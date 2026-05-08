@@ -1,4 +1,4 @@
-.PHONY: gen build dev infra-up infra-down infra-ps test test-pkg test-services lint fmt clean help
+.PHONY: gen build dev dev-start dev-stop infra-up infra-down infra-ps test test-pkg test-services lint fmt clean help
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification
@@ -10,18 +10,26 @@ DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "
 
 help:
 	@echo "Platform Monorepo - Available targets:"
+	@echo ""
+	@echo "  [DEV] ----------------------------------------------------------------"
+	@echo "  make dev-start     [DEV] 一键启动：infra + 编译 + 后端三服务 + 前端"
+	@echo "  make dev-stop      [DEV] 一键停止所有服务进程（不停 Docker）"
 	@echo "  make infra-up      Start local dev dependencies (MongoDB + Redis) via Docker"
 	@echo "  make infra-down    Stop local dev dependencies"
 	@echo "  make infra-ps      Show status of local dev containers"
 	@echo "  make dev           Alias for infra-up"
+	@echo ""
+	@echo "  [BUILD] --------------------------------------------------------------"
 	@echo "  make gen           Generate Kitex code for all services from thrift IDL"
 	@echo "  make build         Build all services into ./bin"
+	@echo "  make fmt           Run gofmt -w on the whole repo"
+	@echo "  make clean         Remove build artifacts"
+	@echo ""
+	@echo "  [TEST] ---------------------------------------------------------------"
 	@echo "  make test          Run go vet + go test across pkg and all services"
 	@echo "  make test-pkg      Run go test for pkg/ only"
 	@echo "  make test-services Run go test for services/* only"
 	@echo "  make lint          Run go vet (+ golangci-lint if installed)"
-	@echo "  make fmt           Run gofmt -w on the whole repo"
-	@echo "  make clean         Remove build artifacts"
 
 # Start minimal local dev infra (MongoDB + Redis)
 infra-up:
@@ -50,6 +58,45 @@ infra-ps:
 
 # Alias
 dev: infra-up
+
+# ----------------------------------------------------------------
+# [DEV] 一键启动所有服务（infra + 后端 + 前端）
+# 前置：复制 .env.example 为 .env 并填写真实凭据
+# 日志：/tmp/iam.log / /tmp/idp.log / /tmp/edge-api.log / /tmp/web.log
+# ----------------------------------------------------------------
+dev-start: infra-up build
+	@echo ">>> [DEV] Loading .env..."
+	@if [ ! -f .env ]; then \
+		echo "Error: .env not found. Copy .env.example and fill in credentials:"; \
+		echo "  cp .env.example .env"; \
+		exit 1; \
+	fi
+	@echo ">>> [DEV] Starting iam (:8082)..."
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/iam > /tmp/iam.log 2>&1 &
+	@echo ">>> [DEV] Starting idp (:8081)..."
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/idp > /tmp/idp.log 2>&1 &
+	@echo ">>> [DEV] Starting edge-api (:8080)..."
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/edge-api > /tmp/edge-api.log 2>&1 &
+	@sleep 2
+	@echo ">>> [DEV] Starting web dev server (:5173)..."
+	@cd web && npm run dev > /tmp/web.log 2>&1 &
+	@sleep 2
+	@echo ""
+	@echo "  ✅  All services started:"
+	@echo "     Backend  → http://localhost:8080"
+	@echo "     Frontend → http://localhost:5173"
+	@echo ""
+	@echo "  Logs: /tmp/{iam,idp,edge-api,web}.log"
+	@echo "  Stop: make dev-stop"
+
+# [DEV] 停止所有服务进程（不停 Docker infra）
+dev-stop:
+	@echo ">>> [DEV] Stopping services..."
+	@lsof -ti tcp:8080 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:8081 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:8082 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:5173 | xargs kill -9 2>/dev/null || true
+	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)
 gen:
