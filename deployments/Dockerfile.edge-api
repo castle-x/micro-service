@@ -1,0 +1,22 @@
+# Hertz edge-api 多阶段构建
+# Build: docker build -f deployments/Dockerfile.edge-api -t platform/edge-api:latest .
+
+FROM golang:1.25.6-alpine AS builder
+WORKDIR /workspace
+
+# 拷贝 go.work + 所有模块（必须，workspace 需要完整上下文）
+COPY go.work ./
+COPY idl ./idl
+COPY pkg ./pkg
+COPY services ./services
+
+RUN apk add --no-cache git \
+ && cd services/edge-api \
+ && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/edge-api .
+
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=builder /out/edge-api /app/edge-api
+EXPOSE 8888
+ENTRYPOINT ["/app/edge-api"]

@@ -1,0 +1,23 @@
+# idp 服务配置（非敏感字段）
+# 敏感字段通过环境变量注入：JWT_SECRET / GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+
+mongo:
+  uri: "${MONGO_URI:mongodb://localhost:27017/platform}"
+  db: "platform"
+
+redis:
+  addr: "${REDIS_ADDR:localhost:6379}"
+
+jwt:
+  secret: "${JWT_SECRET}"
+
+google:
+  client_id: "${GOOGLE_CLIENT_ID}"
+  client_secret: "${GOOGLE_CLIENT_SECRET}"
+  redirect_url: "${GOOGLE_REDIRECT_URL:http://localhost:8080/api/v1/auth/google/callback}"
+
+server:
+  addr: ":8081"
+
+iam:
+  addr: "${IAM_ADDR:127.0.0.1:8082}"

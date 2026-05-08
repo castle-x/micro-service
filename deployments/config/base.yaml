@@ -1,0 +1,22 @@
+# 基础配置（非敏感）。敏感配置（JWT_SECRET、WECHAT_APPID 等）必须走环境变量。
+# 参考 SPEC.md §10
+
+mongo:
+  uri: "mongodb://mongo:27017"
+  db: "platform"
+
+redis:
+  addr: "redis:6379"
+  db: 0
+
+etcd:
+  endpoints:
+    - "etcd:2379"
+
+mq:
+  nsqd: "nsqd:4150"
+  lookupd: "nsqlookupd:4161"
+
+log:
+  level: "info"
+  format: "json"

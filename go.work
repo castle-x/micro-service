@@ -1,0 +1,12 @@
+go 1.25.6
+
+use (
+	./idl
+	./pkg
+	./services/billing
+	./services/credits
+	./services/edge-api
+	./services/iam
+	./services/idp
+	./services/notification
+)

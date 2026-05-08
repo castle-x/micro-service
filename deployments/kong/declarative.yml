@@ -1,0 +1,16 @@
+_format_version: "3.0"
+_transform: true
+
+# Kong 声明式路由配置占位
+# TODO: 后续补充 services / routes / plugins（JWT / CORS / rate-limiting）
+services:
+  - name: edge-api
+    url: http://edge-api:8888
+    routes:
+      - name: edge-api-default
+        paths:
+          - /
+        strip_path: false
+
+plugins: []
+consumers: []

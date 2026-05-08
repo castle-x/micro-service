@@ -1,0 +1,28 @@
+# 依赖与构建产物
+bin/
+*.o
+*.a
+
+# Go
+go.work.sum
+
+# 前端
+web/node_modules/
+web/dist/
+
+# 敏感配置（绝不提交真实凭据）
+.env
+.env.local
+*.local.yaml
+
+# 编辑器 / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# AI 工具目录
+.claude
+.omc
+.codebuddy
+.axm/

@@ -1,0 +1,8 @@
+# iam 服务配置（非敏感字段）
+
+mongo:
+  uri: "${MONGO_URI:mongodb://localhost:27017/platform}"
+  db: "platform"
+
+server:
+  addr: ":8082"

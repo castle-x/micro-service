@@ -1,0 +1,23 @@
+# 通用 Kitex 服务镜像，通过 ARG SERVICE_NAME 选择构建哪个服务
+# Build: docker build -f deployments/Dockerfile.kitex --build-arg SERVICE_NAME=idp -t platform/idp:latest .
+
+FROM golang:1.25.6-alpine AS builder
+ARG SERVICE_NAME
+WORKDIR /workspace
+
+COPY go.work ./
+COPY idl ./idl
+COPY pkg ./pkg
+COPY services ./services
+
+RUN apk add --no-cache git \
+ && test -n "$SERVICE_NAME" || (echo "SERVICE_NAME build-arg is required" && exit 1) \
+ && cd services/${SERVICE_NAME} \
+ && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/service .
+
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=builder /out/service /app/service
+EXPOSE 8888
+ENTRYPOINT ["/app/service"]

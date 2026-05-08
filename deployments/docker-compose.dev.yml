@@ -1,0 +1,41 @@
+version: "3.9"
+
+# Phase 03 最小依赖：MongoDB + Redis
+# macOS 上 host 网络不生效，使用端口映射（效果相同：localhost:27017 / localhost:6379）
+# 启动：make infra-up   停止：make infra-down
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: platform-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: platform
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mongo_data:
+  redis_data:
+

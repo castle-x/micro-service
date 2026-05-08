@@ -1,0 +1,91 @@
+version: "3.9"
+
+# 本地全量基础设施：MongoDB / Redis / etcd / NSQ (+ lookupd/admin) / Kong
+# 启动：make dev    |    停止：docker-compose -f deployments/docker-compose.yml down
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: platform-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: platform
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: platform-etcd
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    volumes:
+      - etcd_data:/bitnami/etcd
+    restart: unless-stopped
+
+  nsqlookupd:
+    image: nsqio/nsq:v1.3.0
+    container_name: platform-nsqlookupd
+    command: /nsqlookupd
+    ports:
+      - "4160:4160"
+      - "4161:4161"
+    restart: unless-stopped
+
+  nsqd:
+    image: nsqio/nsq:v1.3.0
+    container_name: platform-nsqd
+    command: /nsqd --lookupd-tcp-address=nsqlookupd:4160 --broadcast-address=nsqd
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4150:4150"
+      - "4151:4151"
+    restart: unless-stopped
+
+  nsqadmin:
+    image: nsqio/nsq:v1.3.0
+    container_name: platform-nsqadmin
+    command: /nsqadmin --lookupd-http-address=nsqlookupd:4161
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4171:4171"
+    restart: unless-stopped
+
+  kong:
+    image: kong:3.7
+    container_name: platform-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/declarative.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+    volumes:
+      - ./kong/declarative.yml:/etc/kong/declarative.yml:ro
+    ports:
+      - "8000:8000"   # proxy
+      - "8001:8001"   # admin
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:
+  etcd_data:
