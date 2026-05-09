@@ -1,4 +1,4 @@
-.PHONY: gen build dev dev-start dev-stop infra-up infra-down infra-ps test test-pkg test-services lint fmt clean help
+.PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps test test-pkg test-services lint fmt clean help
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification
@@ -13,6 +13,7 @@ help:
 	@echo ""
 	@echo "  [DEV] ----------------------------------------------------------------"
 	@echo "  make dev-start     [DEV] 一键启动：infra + 编译 + 后端三服务 + 前端"
+	@echo "  make dev-restart   [DEV] 重编译并按正确顺序重启所有后端服务"
 	@echo "  make dev-stop      [DEV] 一键停止所有服务进程（不停 Docker）"
 	@echo "  make infra-up      Start local dev dependencies (MongoDB + Redis) via Docker"
 	@echo "  make infra-down    Stop local dev dependencies"
@@ -97,6 +98,24 @@ dev-stop:
 	@lsof -ti tcp:38082 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null || true
 	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
+
+# [DEV] 重启所有服务（停止 → 重新编译 → 启动），正确顺序：iam → idp → edge-api → web
+dev-restart: dev-stop build
+	@echo ">>> [DEV] Loading .env..."
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/iam > /tmp/iam.log 2>&1 &
+	@sleep 1
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/idp > /tmp/idp.log 2>&1 &
+	@sleep 1
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/edge-api > /tmp/edge-api.log 2>&1 &
+	@sleep 2
+	@echo ""
+	@echo "  ✅  Services restarted:"
+	@echo "     Backend  → http://localhost:38080"
+	@echo "     Frontend → http://localhost:35173 (not restarted, Vite HMR handles it)"
+	@echo ""
+	@echo "  Logs: /tmp/{iam,idp,edge-api}.log"
+
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)
 gen:
