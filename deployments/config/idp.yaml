@@ -14,10 +14,10 @@ jwt:
 google:
   client_id: "${GOOGLE_CLIENT_ID}"
   client_secret: "${GOOGLE_CLIENT_SECRET}"
-  redirect_url: "${GOOGLE_REDIRECT_URL:http://localhost:8080/api/v1/auth/google/callback}"
+  redirect_url: "${GOOGLE_REDIRECT_URL:http://localhost:38080/api/v1/auth/google/callback}"
 
 server:
-  addr: ":8081"
+  addr: ":38081"
 
 iam:
-  addr: "${IAM_ADDR:127.0.0.1:8082}"
+  addr: "${IAM_ADDR:127.0.0.1:38082}"

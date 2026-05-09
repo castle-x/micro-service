@@ -46,13 +46,13 @@ func main() {
 	// FRONTEND_URL — 用于 Google OAuth2 callback 重定向和 CORS
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
-		frontendURL = "http://localhost:5173"
+		frontendURL = "http://localhost:35173"
 	}
 
 	// IDP Kitex 客户端
 	idpAddr := cfg.IDP.Addr
 	if idpAddr == "" {
-		idpAddr = "127.0.0.1:8081"
+		idpAddr = "127.0.0.1:38081"
 	}
 	idpCli, err := idpclient.NewClient("idp", client.WithHostPorts(idpAddr))
 	if err != nil {
@@ -62,7 +62,7 @@ func main() {
 	// IAM Kitex 客户端
 	iamAddr := cfg.IAM.Addr
 	if iamAddr == "" {
-		iamAddr = "127.0.0.1:8082"
+		iamAddr = "127.0.0.1:38082"
 	}
 	iamCli, err := iamclient.NewClient("iam", client.WithHostPorts(iamAddr))
 	if err != nil {
@@ -76,7 +76,7 @@ func main() {
 	// Hertz server
 	addr := cfg.Server.Addr
 	if addr == "" {
-		addr = ":8080"
+		addr = ":38080"
 	}
 	h := server.Default(server.WithHostPorts(addr))
 	RegisterRoutes(h, authHandler, userHandler, frontendURL)

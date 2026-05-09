@@ -1,7 +1,7 @@
 # edge-api 服务配置（非敏感字段）
 
 server:
-  addr: ":8080"
+  addr: ":38080"
 
 idp:
-  addr: "${IDP_ADDR:127.0.0.1:8081}"
+  addr: "${IDP_ADDR:127.0.0.1:38081}"

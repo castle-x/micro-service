@@ -84,7 +84,7 @@ func main() {
 	// 启动 Kitex server
 	addr := cfg.Server.Addr
 	if addr == "" {
-		addr = ":8082"
+		addr = ":38082"
 	}
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {

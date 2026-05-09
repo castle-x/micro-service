@@ -5,4 +5,4 @@ mongo:
   db: "platform"
 
 server:
-  addr: ":8082"
+  addr: ":38082"

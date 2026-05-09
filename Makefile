@@ -71,20 +71,20 @@ dev-start: infra-up build
 		echo "  cp .env.example .env"; \
 		exit 1; \
 	fi
-	@echo ">>> [DEV] Starting iam (:8082)..."
+	@echo ">>> [DEV] Starting iam :38082)..."
 	@env $$(cat .env | grep -v '^#' | xargs) ./bin/iam > /tmp/iam.log 2>&1 &
-	@echo ">>> [DEV] Starting idp (:8081)..."
+	@echo ">>> [DEV] Starting idp :38081)..."
 	@env $$(cat .env | grep -v '^#' | xargs) ./bin/idp > /tmp/idp.log 2>&1 &
-	@echo ">>> [DEV] Starting edge-api (:8080)..."
+	@echo ">>> [DEV] Starting edge-api :38080)..."
 	@env $$(cat .env | grep -v '^#' | xargs) ./bin/edge-api > /tmp/edge-api.log 2>&1 &
 	@sleep 2
-	@echo ">>> [DEV] Starting web dev server (:5173)..."
+	@echo ">>> [DEV] Starting web dev server :35173)..."
 	@cd web && npm run dev > /tmp/web.log 2>&1 &
 	@sleep 2
 	@echo ""
 	@echo "  ✅  All services started:"
-	@echo "     Backend  → http://localhost:8080"
-	@echo "     Frontend → http://localhost:5173"
+	@echo "     Backend  → http://localhost:38080"
+	@echo "     Frontend → http://localhost:35173"
 	@echo ""
 	@echo "  Logs: /tmp/{iam,idp,edge-api,web}.log"
 	@echo "  Stop: make dev-stop"
@@ -92,10 +92,10 @@ dev-start: infra-up build
 # [DEV] 停止所有服务进程（不停 Docker infra）
 dev-stop:
 	@echo ">>> [DEV] Stopping services..."
-	@lsof -ti tcp:8080 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:8081 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:8082 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:5173 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:38080 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:38081 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:38082 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null || true
 	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)

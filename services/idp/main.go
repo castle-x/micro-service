@@ -45,7 +45,7 @@ type IDPConfig struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
 	IAM struct {
-		Addr string `mapstructure:"addr"` // iam service addr e.g. "127.0.0.1:8082"
+		Addr string `mapstructure:"addr"` // iam service addr e.g. "127.0.0.1:38082"
 	} `mapstructure:"iam"`
 }
 
@@ -117,7 +117,7 @@ func main() {
 
 	iamAddr := cfg.IAM.Addr
 	if iamAddr == "" {
-		iamAddr = "127.0.0.1:8082"
+		iamAddr = "127.0.0.1:38082"
 	}
 	iamCli, err := iamclient.NewClient("iam", client.WithHostPorts(iamAddr))
 	if err != nil {
@@ -132,7 +132,7 @@ func main() {
 	// Kitex server
 	addr := cfg.Server.Addr
 	if addr == "" {
-		addr = ":8081"
+		addr = ":38081"
 	}
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
