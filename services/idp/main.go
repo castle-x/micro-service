@@ -42,13 +42,23 @@ type IDPConfig struct {
 		RedirectURL  string `mapstructure:"redirect_url"`
 	} `mapstructure:"google"`
 	Alipay struct {
-		AppID        string `mapstructure:"app_id"`         // ALIPAY_APP_ID
-		PrivateKey   string `mapstructure:"private_key"`    // ALIPAY_PRIVATE_KEY
-		AlipayPubKey string `mapstructure:"alipay_pub_key"` // ALIPAY_PUB_KEY
-		RedirectURL  string `mapstructure:"redirect_url"`   // ALIPAY_REDIRECT_URL
-		GatewayURL   string `mapstructure:"gateway_url"`    // ALIPAY_GATEWAY_URL
-		AuthURL      string `mapstructure:"auth_url"`       // ALIPAY_AUTH_URL
-		Sandbox      bool   `mapstructure:"sandbox"`        // 已废弃，保留兼容
+		Env string `mapstructure:"env"` // "sandbox" | "production"
+
+		// 正式环境
+		AppID        string `mapstructure:"app_id"`
+		PrivateKey   string `mapstructure:"private_key"`
+		AlipayPubKey string `mapstructure:"alipay_pub_key"`
+		RedirectURL  string `mapstructure:"redirect_url"`
+		GatewayURL   string `mapstructure:"gateway_url"`
+		AuthURL      string `mapstructure:"auth_url"`
+
+		// 沙箱环境
+		SandboxAppID        string `mapstructure:"sandbox_app_id"`
+		SandboxPrivateKey   string `mapstructure:"sandbox_private_key"`
+		SandboxAlipayPubKey string `mapstructure:"sandbox_alipay_pub_key"`
+		SandboxRedirectURL  string `mapstructure:"sandbox_redirect_url"`
+		SandboxGatewayURL   string `mapstructure:"sandbox_gateway_url"`
+		SandboxAuthURL      string `mapstructure:"sandbox_auth_url"`
 	} `mapstructure:"alipay"`
 	Server struct {
 		Addr string `mapstructure:"addr"`
@@ -136,14 +146,30 @@ func main() {
 	oauthBiz := idpbiz.NewOAuthBiz(cfg.Google.ClientID, cfg.Google.ClientSecret, cfg.Google.RedirectURL, stateRepo)
 	loginBiz := idpbiz.NewLoginBiz(oauthBiz, tokenBiz, identityRepo, iamCli)
 
-	alipayBiz := idpbiz.NewAlipayBiz(idpbiz.AlipayConfig{
-		AppID:        cfg.Alipay.AppID,
-		PrivateKey:   cfg.Alipay.PrivateKey,
-		AlipayPubKey: cfg.Alipay.AlipayPubKey,
-		RedirectURL:  cfg.Alipay.RedirectURL,
-		GatewayURL:   cfg.Alipay.GatewayURL,
-		AuthURL:      cfg.Alipay.AuthURL,
-	}, stateRepo)
+	// 支付宝：根据 ALIPAY_ENV 选择沙箱或正式配置
+	var alipayCfg idpbiz.AlipayConfig
+	if cfg.Alipay.Env == "sandbox" {
+		alipayCfg = idpbiz.AlipayConfig{
+			AppID:        cfg.Alipay.SandboxAppID,
+			PrivateKey:   cfg.Alipay.SandboxPrivateKey,
+			AlipayPubKey: cfg.Alipay.SandboxAlipayPubKey,
+			RedirectURL:  cfg.Alipay.SandboxRedirectURL,
+			GatewayURL:   cfg.Alipay.SandboxGatewayURL,
+			AuthURL:      cfg.Alipay.SandboxAuthURL,
+		}
+		logger.L().Info("alipay: using sandbox environment")
+	} else {
+		alipayCfg = idpbiz.AlipayConfig{
+			AppID:        cfg.Alipay.AppID,
+			PrivateKey:   cfg.Alipay.PrivateKey,
+			AlipayPubKey: cfg.Alipay.AlipayPubKey,
+			RedirectURL:  cfg.Alipay.RedirectURL,
+			GatewayURL:   cfg.Alipay.GatewayURL,
+			AuthURL:      cfg.Alipay.AuthURL,
+		}
+		logger.L().Info("alipay: using production environment")
+	}
+	alipayBiz := idpbiz.NewAlipayBiz(alipayCfg, stateRepo)
 	alipayLoginBiz := idpbiz.NewAlipayLoginBiz(alipayBiz, tokenBiz, identityRepo, iamCli)
 
 	handler := NewIDPImpl(loginBiz, alipayLoginBiz, tokenBiz, oauthBiz, alipayBiz)

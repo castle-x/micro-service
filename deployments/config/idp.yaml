@@ -17,13 +17,26 @@ google:
   client_secret: "${GOOGLE_CLIENT_SECRET}"
   redirect_url: "${GOOGLE_REDIRECT_URL:http://localhost:38080/api/v1/auth/google/callback}"
 
+# 支付宝登录
+# ALIPAY_ENV=sandbox 时走沙箱配置（ALIPAY_SANDBOX_*），否则走正式配置（ALIPAY_*）
 alipay:
-  app_id: "${ALIPAY_APP_ID}"
-  private_key: "${ALIPAY_PRIVATE_KEY}"
+  env: "${ALIPAY_ENV:sandbox}"
+
+  # 正式环境
+  app_id:        "${ALIPAY_APP_ID}"
+  private_key:   "${ALIPAY_PRIVATE_KEY}"
   alipay_pub_key: "${ALIPAY_PUB_KEY}"
-  redirect_url: "${ALIPAY_REDIRECT_URL:http://localhost:38080/api/v1/auth/alipay/callback}"
-  gateway_url: "${ALIPAY_GATEWAY_URL}"
-  auth_url: "${ALIPAY_AUTH_URL}"
+  redirect_url:  "${ALIPAY_REDIRECT_URL}"
+  gateway_url:   "${ALIPAY_GATEWAY_URL:https://openapi.alipay.com/gateway.do}"
+  auth_url:      "${ALIPAY_AUTH_URL:https://openauth.alipay.com/oauth2/publicAppAuthorize.htm}"
+
+  # 沙箱环境
+  sandbox_app_id:        "${ALIPAY_SANDBOX_APP_ID}"
+  sandbox_private_key:   "${ALIPAY_SANDBOX_PRIVATE_KEY}"
+  sandbox_alipay_pub_key: "${ALIPAY_SANDBOX_PUB_KEY}"
+  sandbox_redirect_url:  "${ALIPAY_SANDBOX_REDIRECT_URL:http://localhost:38080/api/v1/auth/alipay/callback}"
+  sandbox_gateway_url:   "${ALIPAY_SANDBOX_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}"
+  sandbox_auth_url:      "${ALIPAY_SANDBOX_AUTH_URL:https://openauth-sandbox.dl.alipaydev.com/oauth2/publicAppAuthorize.htm}"
 
 server:
   addr: ":38081"
