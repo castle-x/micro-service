@@ -146,9 +146,16 @@ func main() {
 	oauthBiz := idpbiz.NewOAuthBiz(cfg.Google.ClientID, cfg.Google.ClientSecret, cfg.Google.RedirectURL, stateRepo)
 	loginBiz := idpbiz.NewLoginBiz(oauthBiz, tokenBiz, identityRepo, iamCli)
 
-	// 支付宝：根据 ALIPAY_ENV 选择沙箱或正式配置
+	// 支付宝：直接读 ALIPAY_ENV 环境变量（不依赖 viper 嵌套解析）
+	alipayEnv := os.Getenv("ALIPAY_ENV")
+	if alipayEnv == "" {
+		alipayEnv = cfg.Alipay.Env // fallback to yaml value
+	}
+	if alipayEnv == "" {
+		alipayEnv = "sandbox" // 最终兜底：默认沙箱
+	}
 	var alipayCfg idpbiz.AlipayConfig
-	if cfg.Alipay.Env == "sandbox" {
+	if alipayEnv == "sandbox" {
 		alipayCfg = idpbiz.AlipayConfig{
 			AppID:        cfg.Alipay.SandboxAppID,
 			PrivateKey:   cfg.Alipay.SandboxPrivateKey,
