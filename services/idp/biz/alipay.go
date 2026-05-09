@@ -139,7 +139,7 @@ type alipayTokenResponse struct {
 		UserID       string `json:"user_id"`
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
-		ExpiresIn    string `json:"expires_in"`
+		ExpiresIn    int64  `json:"expires_in"`
 	} `json:"alipay_system_oauth_token_response"`
 	ErrorResponse *alipayErrorResponse `json:"error_response,omitempty"`
 }
