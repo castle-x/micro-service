@@ -63,9 +63,10 @@ dev: infra-up
 # ----------------------------------------------------------------
 # [DEV] 一键启动所有服务（infra + 后端 + 前端）
 # 前置：复制 .env.example 为 .env 并填写真实凭据
-# 日志：/tmp/iam.log / /tmp/idp.log / /tmp/edge-api.log / /tmp/web.log
+# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/edge-api.log / bin/log/web.log
 # ----------------------------------------------------------------
 dev-start: infra-up build
+	@mkdir -p bin/log
 	@echo ">>> [DEV] Loading .env..."
 	@if [ ! -f .env ]; then \
 		echo "Error: .env not found. Copy .env.example and fill in credentials:"; \
@@ -73,21 +74,21 @@ dev-start: infra-up build
 		exit 1; \
 	fi
 	@echo ">>> [DEV] Starting iam :38082)..."
-	@env $$(cat .env | grep -v '^#' | xargs) ./bin/iam > /tmp/iam.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/iam > bin/log/iam.log 2>&1 &
 	@echo ">>> [DEV] Starting idp :38081)..."
-	@env $$(cat .env | grep -v '^#' | xargs) ./bin/idp > /tmp/idp.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/idp > bin/log/idp.log 2>&1 &
 	@echo ">>> [DEV] Starting edge-api :38080)..."
-	@env $$(cat .env | grep -v '^#' | xargs) ./bin/edge-api > /tmp/edge-api.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
 	@sleep 2
 	@echo ">>> [DEV] Starting web dev server :35173)..."
-	@cd web && npm run dev > /tmp/web.log 2>&1 &
+	@cd web && npm run dev > ../bin/log/web.log 2>&1 &
 	@sleep 2
 	@echo ""
 	@echo "  ✅  All services started:"
 	@echo "     Backend  → http://localhost:38080"
 	@echo "     Frontend → http://localhost:35173"
 	@echo ""
-	@echo "  Logs: /tmp/{iam,idp,edge-api,web}.log"
+	@echo "  Logs: bin/log/{iam,idp,edge-api,web}.log"
 	@echo "  Stop: make dev-stop"
 
 # [DEV] 停止所有服务进程（不停 Docker infra）
@@ -101,23 +102,24 @@ dev-stop:
 
 # [DEV] 重启所有服务（停止 → 重新编译 → 启动），正确顺序：iam → idp → edge-api → web
 dev-restart: dev-stop build
+	@mkdir -p bin/log
 	@echo ">>> [DEV] Loading .env..."
 	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/iam > /tmp/iam.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/iam > bin/log/iam.log 2>&1 &
 	@sleep 1
-	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/idp > /tmp/idp.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/idp > bin/log/idp.log 2>&1 &
 	@sleep 1
-	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/edge-api > /tmp/edge-api.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
 	@sleep 2
 	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null; true
-	@cd web && npm run dev > /tmp/web.log 2>&1 &
+	@cd web && npm run dev > ../bin/log/web.log 2>&1 &
 	@sleep 2
 	@echo ""
 	@echo "  ✅  Services restarted:"
 	@echo "     Backend  → http://localhost:38080"
 	@echo "     Frontend → http://localhost:35173"
 	@echo ""
-	@echo "  Logs: /tmp/{iam,idp,edge-api,web}.log"
+	@echo "  Logs: bin/log/{iam,idp,edge-api,web}.log"
 
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)

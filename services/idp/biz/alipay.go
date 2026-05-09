@@ -161,11 +161,15 @@ type alipayErrorResponse struct {
 }
 
 func (b *AlipayBiz) systemOauthToken(ctx context.Context, authCode string) (*struct{ AccessToken string }, error) {
-	bizContent := fmt.Sprintf(`{"grant_type":"authorization_code","code":"%s"}`, authCode)
+	// grant_type 和 code 是顶层参数，不放在 biz_content 里
+	bizContent := "{}"
 	params, err := b.buildParams("alipay.system.oauth.token", bizContent)
 	if err != nil {
 		return nil, err
 	}
+	// 追加顶层参数
+	params.Set("grant_type", "authorization_code")
+	params.Set("code", authCode)
 
 	body, err := b.doPost(ctx, params)
 	if err != nil {
