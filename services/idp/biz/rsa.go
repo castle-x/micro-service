@@ -33,13 +33,15 @@ func rsaSign(content, privateKeyStr string) (string, error) {
 	return base64.StdEncoding.EncodeToString(sig), nil
 }
 
-// parsePrivateKey 解析 PKCS8 RSA 私钥。
-// 支持带/不带 PEM 头尾两种格式。
+// parsePrivateKey 解析 RSA 私钥，自动兼容 PKCS8 和 PKCS1 两种格式。
+// 支持带/不带 PEM 头尾两种输入格式。
+// 支付宝密钥工具默认生成 PKCS1；Java/标准工具通常输出 PKCS8。
 func parsePrivateKey(keyStr string) (*rsa.PrivateKey, error) {
 	keyStr = strings.TrimSpace(keyStr)
 
-	// 如果不含 PEM 头，自动包裹
+	// 如果不含 PEM 头，根据内容自动判断包裹格式
 	if !strings.HasPrefix(keyStr, "-----") {
+		// 先尝试 PKCS8（BEGIN PRIVATE KEY），失败再试 PKCS1（BEGIN RSA PRIVATE KEY）
 		keyStr = "-----BEGIN PRIVATE KEY-----\n" +
 			chunkString(keyStr, 64) +
 			"\n-----END PRIVATE KEY-----"
@@ -50,13 +52,19 @@ func parsePrivateKey(keyStr string) (*rsa.PrivateKey, error) {
 		return nil, fmt.Errorf("failed to decode PEM block")
 	}
 
-	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("parse PKCS8: %w", err)
+	// 优先尝试 PKCS8
+	if key, err := x509.ParsePKCS8PrivateKey(block.Bytes); err == nil {
+		rsaKey, ok := key.(*rsa.PrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("not an RSA key")
+		}
+		return rsaKey, nil
 	}
-	rsaKey, ok := key.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("not an RSA key")
+
+	// fallback：尝试 PKCS1（支付宝密钥工具默认格式）
+	rsaKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse private key failed (tried PKCS8 and PKCS1): %w", err)
 	}
 	return rsaKey, nil
 }
