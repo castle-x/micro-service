@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getGoogleAuthUrl, getAlipayAuthUrl } from '../lib/api'
 
 export default function LoginPage() {
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [loadingAlipay, setLoadingAlipay] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+
+  // 读取回调带回的 error 参数
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError) {
+      setError(decodeURIComponent(urlError))
+    }
+  }, [])
 
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true)
