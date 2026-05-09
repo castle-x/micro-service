@@ -161,15 +161,15 @@ type alipayErrorResponse struct {
 }
 
 func (b *AlipayBiz) systemOauthToken(ctx context.Context, authCode string) (*struct{ AccessToken string }, error) {
-	// grant_type 和 code 是顶层参数，不放在 biz_content 里
-	bizContent := "{}"
-	params, err := b.buildParams("alipay.system.oauth.token", bizContent)
+	// grant_type 和 code 必须参与签名，作为顶层参数传入 buildParams
+	extraParams := map[string]string{
+		"grant_type": "authorization_code",
+		"code":       authCode,
+	}
+	params, err := b.buildParams("alipay.system.oauth.token", "{}", extraParams)
 	if err != nil {
 		return nil, err
 	}
-	// 追加顶层参数
-	params.Set("grant_type", "authorization_code")
-	params.Set("code", authCode)
 
 	body, err := b.doPost(ctx, params)
 	if err != nil {
@@ -191,8 +191,11 @@ func (b *AlipayBiz) systemOauthToken(ctx context.Context, authCode string) (*str
 }
 
 func (b *AlipayBiz) userInfoShare(ctx context.Context, accessToken string) (*AlipayUserInfo, error) {
-	bizContent := fmt.Sprintf(`{"auth_token":"%s"}`, accessToken)
-	params, err := b.buildParams("alipay.user.info.share", bizContent)
+	// auth_token 作为顶层参数参与签名
+	extraParams := map[string]string{
+		"auth_token": accessToken,
+	}
+	params, err := b.buildParams("alipay.user.info.share", "{}", extraParams)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +224,8 @@ func (b *AlipayBiz) userInfoShare(ctx context.Context, accessToken string) (*Ali
 }
 
 // buildParams 构造支付宝请求参数并添加 RSA2 签名。
-func (b *AlipayBiz) buildParams(method, bizContent string) (url.Values, error) {
+// extraParams 为需要参与签名的额外顶层参数（如 grant_type、code、auth_token）。
+func (b *AlipayBiz) buildParams(method, bizContent string, extraParams ...map[string]string) (url.Values, error) {
 	params := map[string]string{
 		"app_id":      b.appID,
 		"method":      method,
@@ -231,6 +235,12 @@ func (b *AlipayBiz) buildParams(method, bizContent string) (url.Values, error) {
 		"timestamp":   time.Now().Format("2006-01-02 15:04:05"),
 		"version":     "1.0",
 		"biz_content": bizContent,
+	}
+	// 合并额外参数（参与签名）
+	for _, extra := range extraParams {
+		for k, v := range extra {
+			params[k] = v
+		}
 	}
 
 	// 按 key 排序拼接待签名字符串
