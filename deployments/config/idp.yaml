@@ -22,7 +22,8 @@ alipay:
   private_key: "${ALIPAY_PRIVATE_KEY}"
   alipay_pub_key: "${ALIPAY_PUB_KEY}"
   redirect_url: "${ALIPAY_REDIRECT_URL:http://localhost:38080/api/v1/auth/alipay/callback}"
-  sandbox: true   # 开发阶段使用沙箱，生产设 ALIPAY_SANDBOX=false
+  gateway_url: "${ALIPAY_GATEWAY_URL}"
+  auth_url: "${ALIPAY_AUTH_URL}"
 
 server:
   addr: ":38081"

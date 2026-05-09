@@ -23,39 +23,48 @@ import (
 )
 
 const (
-	alipayGateway   = "https://openapi.alipaydev.com/gateway.do" // 沙箱网关，生产改为 openapi.alipay.com
-	alipayAuthURL   = "https://openauth.alipaydev.com/oauth2/publicAppAuthorize.htm"
-	alipayScope     = "auth_user"
+	alipayScope = "auth_user"
+
+	// 默认地址（可被 AlipayConfig 覆盖）
+	alipayGatewayProd    = "https://openapi.alipay.com/gateway.do"
+	alipayGatewaySandbox = "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
+	alipayAuthURLProd    = "https://openauth.alipay.com/oauth2/publicAppAuthorize.htm"
+	alipayAuthURLSandbox = "https://openauth-sandbox.dl.alipaydev.com/oauth2/publicAppAuthorize.htm"
 )
 
 // AlipayBiz 处理支付宝 OAuth2 扫码登录流程。
 type AlipayBiz struct {
-	appID       string
-	privateKey  string // PKCS8 格式 RSA2 私钥（PEM，不含头尾）
-	alipayPubKey string // 支付宝公钥（用于验签，暂未实现，可按需补充）
-	redirectURL string
-	stateRepo   *idpmongo.OAuthStateRepo
-	gateway     string
+	appID        string
+	privateKey   string // PKCS8 格式 RSA2 私钥（PEM，不含头尾）
+	alipayPubKey string // 支付宝公钥
+	redirectURL  string
+	stateRepo    *idpmongo.OAuthStateRepo
+	gateway      string // API 网关地址
+	authBase     string // OAuth2 授权页地址
 }
 
 // AlipayConfig 支付宝登录配置。
+// 所有地址均从环境变量注入，沙箱和生产环境通过不同 ENV 值切换，不硬编码到代码中。
 type AlipayConfig struct {
 	AppID        string
 	PrivateKey   string // 应用私钥，PKCS8，不含 PEM 头尾
 	AlipayPubKey string // 支付宝公钥
 	RedirectURL  string
-	Sandbox      bool // true = 沙箱环境
+	GatewayURL   string // ALIPAY_GATEWAY_URL，沙箱：https://openapi-sandbox.dl.alipaydev.com/gateway.do
+	AuthURL      string // ALIPAY_AUTH_URL，沙箱：https://openauth-sandbox.dl.alipaydev.com/oauth2/publicAppAuthorize.htm
 }
 
 // NewAlipayBiz 构造 AlipayBiz。
+// GatewayURL / AuthURL 留空时回退到沙箱默认地址（开发安全兜底）。
 func NewAlipayBiz(cfg AlipayConfig, stateRepo *idpmongo.OAuthStateRepo) *AlipayBiz {
-	gateway := "https://openapi.alipay.com/gateway.do"
-	authBase := "https://openauth.alipay.com/oauth2/publicAppAuthorize.htm"
-	if cfg.Sandbox {
-		gateway = "https://openapi.alipaydev.com/gateway.do"
-		authBase = "https://openauth.alipaydev.com/oauth2/publicAppAuthorize.htm"
+	gateway := cfg.GatewayURL
+	if gateway == "" {
+		gateway = alipayGatewaySandbox // 默认沙箱，防止误打生产
 	}
-	_ = authBase // authBase 拼在 GetAuthURL 里
+	authBase := cfg.AuthURL
+	if authBase == "" {
+		authBase = alipayAuthURLSandbox
+	}
 	return &AlipayBiz{
 		appID:        cfg.AppID,
 		privateKey:   cfg.PrivateKey,
@@ -63,6 +72,7 @@ func NewAlipayBiz(cfg AlipayConfig, stateRepo *idpmongo.OAuthStateRepo) *AlipayB
 		redirectURL:  cfg.RedirectURL,
 		stateRepo:    stateRepo,
 		gateway:      gateway,
+		authBase:     authBase,
 	}
 }
 
@@ -80,17 +90,12 @@ func (b *AlipayBiz) GetAuthURL(ctx context.Context, overrideRedirect string) (au
 		return "", "", err
 	}
 
-	base := "https://openauth.alipaydev.com/oauth2/publicAppAuthorize.htm"
-	if !strings.Contains(b.gateway, "dev") {
-		base = "https://openauth.alipay.com/oauth2/publicAppAuthorize.htm"
-	}
-
 	params := url.Values{}
 	params.Set("app_id", b.appID)
 	params.Set("scope", alipayScope)
 	params.Set("redirect_uri", redirect)
 	params.Set("state", state)
-	authURL = fmt.Sprintf("%s?%s", base, params.Encode())
+	authURL = fmt.Sprintf("%s?%s", b.authBase, params.Encode())
 	return authURL, state, nil
 }
 
