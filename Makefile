@@ -109,12 +109,15 @@ dev-restart: dev-stop build
 	@sleep 1
 	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/edge-api > /tmp/edge-api.log 2>&1 &
 	@sleep 2
+	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null; true
+	@cd web && npm run dev > /tmp/web.log 2>&1 &
+	@sleep 2
 	@echo ""
 	@echo "  ✅  Services restarted:"
 	@echo "     Backend  → http://localhost:38080"
-	@echo "     Frontend → http://localhost:35173 (not restarted, Vite HMR handles it)"
+	@echo "     Frontend → http://localhost:35173"
 	@echo ""
-	@echo "  Logs: /tmp/{iam,idp,edge-api}.log"
+	@echo "  Logs: /tmp/{iam,idp,edge-api,web}.log"
 
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)
