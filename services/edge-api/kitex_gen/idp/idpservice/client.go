@@ -13,6 +13,8 @@ import (
 type Client interface {
 	GetGoogleAuthURL(ctx context.Context, req *idp.GetGoogleAuthURLReq, callOptions ...callopt.Option) (r *idp.GetGoogleAuthURLResp, err error)
 	LoginByGoogle(ctx context.Context, req *idp.LoginByGoogleReq, callOptions ...callopt.Option) (r *idp.LoginByGoogleResp, err error)
+	GetAlipayAuthURL(ctx context.Context, req *idp.GetAlipayAuthURLReq, callOptions ...callopt.Option) (r *idp.GetAlipayAuthURLResp, err error)
+	LoginByAlipay(ctx context.Context, req *idp.LoginByAlipayReq, callOptions ...callopt.Option) (r *idp.LoginByAlipayResp, err error)
 	RefreshToken(ctx context.Context, req *idp.RefreshTokenReq, callOptions ...callopt.Option) (r *idp.RefreshTokenResp, err error)
 	VerifyToken(ctx context.Context, req *idp.VerifyTokenReq, callOptions ...callopt.Option) (r *idp.VerifyTokenResp, err error)
 }
@@ -54,6 +56,16 @@ func (p *kIDPServiceClient) GetGoogleAuthURL(ctx context.Context, req *idp.GetGo
 func (p *kIDPServiceClient) LoginByGoogle(ctx context.Context, req *idp.LoginByGoogleReq, callOptions ...callopt.Option) (r *idp.LoginByGoogleResp, err error) {
 	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
 	return p.kClient.LoginByGoogle(ctx, req)
+}
+
+func (p *kIDPServiceClient) GetAlipayAuthURL(ctx context.Context, req *idp.GetAlipayAuthURLReq, callOptions ...callopt.Option) (r *idp.GetAlipayAuthURLResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.GetAlipayAuthURL(ctx, req)
+}
+
+func (p *kIDPServiceClient) LoginByAlipay(ctx context.Context, req *idp.LoginByAlipayReq, callOptions ...callopt.Option) (r *idp.LoginByAlipayResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.LoginByAlipay(ctx, req)
 }
 
 func (p *kIDPServiceClient) RefreshToken(ctx context.Context, req *idp.RefreshTokenReq, callOptions ...callopt.Option) (r *idp.RefreshTokenResp, err error) {

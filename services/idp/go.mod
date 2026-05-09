@@ -7,6 +7,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.37.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/kitex v0.16.1 // indirect
+	github.com/go-pay/gopay v1.5.118 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/redis/go-redis/v9 v9.19.0 // indirect

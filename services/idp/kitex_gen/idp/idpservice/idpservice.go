@@ -27,6 +27,20 @@ var serviceMethods = map[string]kitex.MethodInfo{
 		false,
 		kitex.WithStreamingMode(kitex.StreamingNone),
 	),
+	"GetAlipayAuthURL": kitex.NewMethodInfo(
+		getAlipayAuthURLHandler,
+		newIDPServiceGetAlipayAuthURLArgs,
+		newIDPServiceGetAlipayAuthURLResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"LoginByAlipay": kitex.NewMethodInfo(
+		loginByAlipayHandler,
+		newIDPServiceLoginByAlipayArgs,
+		newIDPServiceLoginByAlipayResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
 	"RefreshToken": kitex.NewMethodInfo(
 		refreshTokenHandler,
 		newIDPServiceRefreshTokenArgs,
@@ -143,6 +157,42 @@ func newIDPServiceLoginByGoogleResult() interface{} {
 	return idp.NewIDPServiceLoginByGoogleResult()
 }
 
+func getAlipayAuthURLHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceGetAlipayAuthURLArgs)
+	realResult := result.(*idp.IDPServiceGetAlipayAuthURLResult)
+	success, err := handler.(idp.IDPService).GetAlipayAuthURL(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceGetAlipayAuthURLArgs() interface{} {
+	return idp.NewIDPServiceGetAlipayAuthURLArgs()
+}
+
+func newIDPServiceGetAlipayAuthURLResult() interface{} {
+	return idp.NewIDPServiceGetAlipayAuthURLResult()
+}
+
+func loginByAlipayHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceLoginByAlipayArgs)
+	realResult := result.(*idp.IDPServiceLoginByAlipayResult)
+	success, err := handler.(idp.IDPService).LoginByAlipay(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceLoginByAlipayArgs() interface{} {
+	return idp.NewIDPServiceLoginByAlipayArgs()
+}
+
+func newIDPServiceLoginByAlipayResult() interface{} {
+	return idp.NewIDPServiceLoginByAlipayResult()
+}
+
 func refreshTokenHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
 	realArg := arg.(*idp.IDPServiceRefreshTokenArgs)
 	realResult := result.(*idp.IDPServiceRefreshTokenResult)
@@ -204,6 +254,26 @@ func (p *kClient) LoginByGoogle(ctx context.Context, req *idp.LoginByGoogleReq) 
 	_args.Req = req
 	var _result idp.IDPServiceLoginByGoogleResult
 	if err = p.c.Call(ctx, "LoginByGoogle", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) GetAlipayAuthURL(ctx context.Context, req *idp.GetAlipayAuthURLReq) (r *idp.GetAlipayAuthURLResp, err error) {
+	var _args idp.IDPServiceGetAlipayAuthURLArgs
+	_args.Req = req
+	var _result idp.IDPServiceGetAlipayAuthURLResult
+	if err = p.c.Call(ctx, "GetAlipayAuthURL", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) LoginByAlipay(ctx context.Context, req *idp.LoginByAlipayReq) (r *idp.LoginByAlipayResp, err error) {
+	var _args idp.IDPServiceLoginByAlipayArgs
+	_args.Req = req
+	var _result idp.IDPServiceLoginByAlipayResult
+	if err = p.c.Call(ctx, "LoginByAlipay", &_args, &_result); err != nil {
 		return
 	}
 	return _result.GetSuccess(), nil

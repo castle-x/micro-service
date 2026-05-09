@@ -46,6 +46,10 @@ func RegisterRoutes(h *server.Hertz, authHandler *handler.AuthHandler, userHandl
 			auth.GET("/google/url", authHandler.GetGoogleAuthURL)
 			// GET /api/v1/auth/google/callback — Google OAuth2 回调（重定向到前端）
 			auth.GET("/google/callback", authHandler.GoogleCallback)
+			// GET /api/v1/auth/alipay/url — 获取支付宝扫码授权 URL
+			auth.GET("/alipay/url", authHandler.GetAlipayAuthURL)
+			// GET /api/v1/auth/alipay/callback — 支付宝回调（重定向到前端）
+			auth.GET("/alipay/callback", authHandler.AlipayCallback)
 			// POST /api/v1/auth/token/refresh — 刷新 access token
 			auth.POST("/token/refresh", authHandler.RefreshToken)
 			// POST /api/v1/auth/logout — 登出

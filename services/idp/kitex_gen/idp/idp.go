@@ -559,10 +559,256 @@ var fieldIDToName_VerifyTokenResp = map[int16]string{
 	4: "ExpiresAt",
 }
 
+type GetAlipayAuthURLReq struct {
+	Base        *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	RedirectURI *string       `thrift:"RedirectURI,2,optional" frugal:"2,optional,string" json:"RedirectURI,omitempty"`
+}
+
+func NewGetAlipayAuthURLReq() *GetAlipayAuthURLReq {
+	return &GetAlipayAuthURLReq{}
+}
+
+func (p *GetAlipayAuthURLReq) InitDefault() {
+}
+
+var GetAlipayAuthURLReq_Base_DEFAULT *base.BaseReq
+
+func (p *GetAlipayAuthURLReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return GetAlipayAuthURLReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var GetAlipayAuthURLReq_RedirectURI_DEFAULT string
+
+func (p *GetAlipayAuthURLReq) GetRedirectURI() (v string) {
+	if !p.IsSetRedirectURI() {
+		return GetAlipayAuthURLReq_RedirectURI_DEFAULT
+	}
+	return *p.RedirectURI
+}
+func (p *GetAlipayAuthURLReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *GetAlipayAuthURLReq) SetRedirectURI(val *string) {
+	p.RedirectURI = val
+}
+
+func (p *GetAlipayAuthURLReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetAlipayAuthURLReq) IsSetRedirectURI() bool {
+	return p.RedirectURI != nil
+}
+
+func (p *GetAlipayAuthURLReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetAlipayAuthURLReq(%+v)", *p)
+}
+
+var fieldIDToName_GetAlipayAuthURLReq = map[int16]string{
+	1: "Base",
+	2: "RedirectURI",
+}
+
+type GetAlipayAuthURLResp struct {
+	Base    *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	AuthURL string         `thrift:"AuthURL,2,required" frugal:"2,required,string" json:"AuthURL"`
+	State   string         `thrift:"State,3,required" frugal:"3,required,string" json:"State"`
+}
+
+func NewGetAlipayAuthURLResp() *GetAlipayAuthURLResp {
+	return &GetAlipayAuthURLResp{}
+}
+
+func (p *GetAlipayAuthURLResp) InitDefault() {
+}
+
+var GetAlipayAuthURLResp_Base_DEFAULT *base.BaseResp
+
+func (p *GetAlipayAuthURLResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return GetAlipayAuthURLResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *GetAlipayAuthURLResp) GetAuthURL() (v string) {
+	return p.AuthURL
+}
+
+func (p *GetAlipayAuthURLResp) GetState() (v string) {
+	return p.State
+}
+func (p *GetAlipayAuthURLResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *GetAlipayAuthURLResp) SetAuthURL(val string) {
+	p.AuthURL = val
+}
+func (p *GetAlipayAuthURLResp) SetState(val string) {
+	p.State = val
+}
+
+func (p *GetAlipayAuthURLResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetAlipayAuthURLResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetAlipayAuthURLResp(%+v)", *p)
+}
+
+var fieldIDToName_GetAlipayAuthURLResp = map[int16]string{
+	1: "Base",
+	2: "AuthURL",
+	3: "State",
+}
+
+type LoginByAlipayReq struct {
+	Base     *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	AuthCode string        `thrift:"AuthCode,2,required" frugal:"2,required,string" json:"AuthCode"`
+	State    string        `thrift:"State,3,required" frugal:"3,required,string" json:"State"`
+}
+
+func NewLoginByAlipayReq() *LoginByAlipayReq {
+	return &LoginByAlipayReq{}
+}
+
+func (p *LoginByAlipayReq) InitDefault() {
+}
+
+var LoginByAlipayReq_Base_DEFAULT *base.BaseReq
+
+func (p *LoginByAlipayReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return LoginByAlipayReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *LoginByAlipayReq) GetAuthCode() (v string) {
+	return p.AuthCode
+}
+
+func (p *LoginByAlipayReq) GetState() (v string) {
+	return p.State
+}
+func (p *LoginByAlipayReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *LoginByAlipayReq) SetAuthCode(val string) {
+	p.AuthCode = val
+}
+func (p *LoginByAlipayReq) SetState(val string) {
+	p.State = val
+}
+
+func (p *LoginByAlipayReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *LoginByAlipayReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LoginByAlipayReq(%+v)", *p)
+}
+
+var fieldIDToName_LoginByAlipayReq = map[int16]string{
+	1: "Base",
+	2: "AuthCode",
+	3: "State",
+}
+
+type LoginByAlipayResp struct {
+	Base         *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	AccessToken  string         `thrift:"AccessToken,2,required" frugal:"2,required,string" json:"AccessToken"`
+	RefreshToken string         `thrift:"RefreshToken,3,required" frugal:"3,required,string" json:"RefreshToken"`
+	ExpiresAt    int64          `thrift:"ExpiresAt,4,required" frugal:"4,required,i64" json:"ExpiresAt"`
+	UserID       string         `thrift:"UserID,5,required" frugal:"5,required,string" json:"UserID"`
+}
+
+func NewLoginByAlipayResp() *LoginByAlipayResp {
+	return &LoginByAlipayResp{}
+}
+
+func (p *LoginByAlipayResp) InitDefault() {
+}
+
+var LoginByAlipayResp_Base_DEFAULT *base.BaseResp
+
+func (p *LoginByAlipayResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return LoginByAlipayResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *LoginByAlipayResp) GetAccessToken() (v string) {
+	return p.AccessToken
+}
+
+func (p *LoginByAlipayResp) GetRefreshToken() (v string) {
+	return p.RefreshToken
+}
+
+func (p *LoginByAlipayResp) GetExpiresAt() (v int64) {
+	return p.ExpiresAt
+}
+
+func (p *LoginByAlipayResp) GetUserID() (v string) {
+	return p.UserID
+}
+func (p *LoginByAlipayResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *LoginByAlipayResp) SetAccessToken(val string) {
+	p.AccessToken = val
+}
+func (p *LoginByAlipayResp) SetRefreshToken(val string) {
+	p.RefreshToken = val
+}
+func (p *LoginByAlipayResp) SetExpiresAt(val int64) {
+	p.ExpiresAt = val
+}
+func (p *LoginByAlipayResp) SetUserID(val string) {
+	p.UserID = val
+}
+
+func (p *LoginByAlipayResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *LoginByAlipayResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LoginByAlipayResp(%+v)", *p)
+}
+
+var fieldIDToName_LoginByAlipayResp = map[int16]string{
+	1: "Base",
+	2: "AccessToken",
+	3: "RefreshToken",
+	4: "ExpiresAt",
+	5: "UserID",
+}
+
 type IDPService interface {
 	GetGoogleAuthURL(ctx context.Context, req *GetGoogleAuthURLReq) (r *GetGoogleAuthURLResp, err error)
 
 	LoginByGoogle(ctx context.Context, req *LoginByGoogleReq) (r *LoginByGoogleResp, err error)
+
+	GetAlipayAuthURL(ctx context.Context, req *GetAlipayAuthURLReq) (r *GetAlipayAuthURLResp, err error)
+
+	LoginByAlipay(ctx context.Context, req *LoginByAlipayReq) (r *LoginByAlipayResp, err error)
 
 	RefreshToken(ctx context.Context, req *RefreshTokenReq) (r *RefreshTokenResp, err error)
 
@@ -718,6 +964,158 @@ func (p *IDPServiceLoginByGoogleResult) String() string {
 }
 
 var fieldIDToName_IDPServiceLoginByGoogleResult = map[int16]string{
+	0: "success",
+}
+
+type IDPServiceGetAlipayAuthURLArgs struct {
+	Req *GetAlipayAuthURLReq `thrift:"req,1" frugal:"1,default,GetAlipayAuthURLReq" json:"req"`
+}
+
+func NewIDPServiceGetAlipayAuthURLArgs() *IDPServiceGetAlipayAuthURLArgs {
+	return &IDPServiceGetAlipayAuthURLArgs{}
+}
+
+func (p *IDPServiceGetAlipayAuthURLArgs) InitDefault() {
+}
+
+var IDPServiceGetAlipayAuthURLArgs_Req_DEFAULT *GetAlipayAuthURLReq
+
+func (p *IDPServiceGetAlipayAuthURLArgs) GetReq() (v *GetAlipayAuthURLReq) {
+	if !p.IsSetReq() {
+		return IDPServiceGetAlipayAuthURLArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceGetAlipayAuthURLArgs) SetReq(val *GetAlipayAuthURLReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceGetAlipayAuthURLArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceGetAlipayAuthURLArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceGetAlipayAuthURLArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceGetAlipayAuthURLArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceGetAlipayAuthURLResult struct {
+	Success *GetAlipayAuthURLResp `thrift:"success,0,optional" frugal:"0,optional,GetAlipayAuthURLResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceGetAlipayAuthURLResult() *IDPServiceGetAlipayAuthURLResult {
+	return &IDPServiceGetAlipayAuthURLResult{}
+}
+
+func (p *IDPServiceGetAlipayAuthURLResult) InitDefault() {
+}
+
+var IDPServiceGetAlipayAuthURLResult_Success_DEFAULT *GetAlipayAuthURLResp
+
+func (p *IDPServiceGetAlipayAuthURLResult) GetSuccess() (v *GetAlipayAuthURLResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceGetAlipayAuthURLResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceGetAlipayAuthURLResult) SetSuccess(x interface{}) {
+	p.Success = x.(*GetAlipayAuthURLResp)
+}
+
+func (p *IDPServiceGetAlipayAuthURLResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceGetAlipayAuthURLResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceGetAlipayAuthURLResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceGetAlipayAuthURLResult = map[int16]string{
+	0: "success",
+}
+
+type IDPServiceLoginByAlipayArgs struct {
+	Req *LoginByAlipayReq `thrift:"req,1" frugal:"1,default,LoginByAlipayReq" json:"req"`
+}
+
+func NewIDPServiceLoginByAlipayArgs() *IDPServiceLoginByAlipayArgs {
+	return &IDPServiceLoginByAlipayArgs{}
+}
+
+func (p *IDPServiceLoginByAlipayArgs) InitDefault() {
+}
+
+var IDPServiceLoginByAlipayArgs_Req_DEFAULT *LoginByAlipayReq
+
+func (p *IDPServiceLoginByAlipayArgs) GetReq() (v *LoginByAlipayReq) {
+	if !p.IsSetReq() {
+		return IDPServiceLoginByAlipayArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceLoginByAlipayArgs) SetReq(val *LoginByAlipayReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceLoginByAlipayArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceLoginByAlipayArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceLoginByAlipayArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceLoginByAlipayArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceLoginByAlipayResult struct {
+	Success *LoginByAlipayResp `thrift:"success,0,optional" frugal:"0,optional,LoginByAlipayResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceLoginByAlipayResult() *IDPServiceLoginByAlipayResult {
+	return &IDPServiceLoginByAlipayResult{}
+}
+
+func (p *IDPServiceLoginByAlipayResult) InitDefault() {
+}
+
+var IDPServiceLoginByAlipayResult_Success_DEFAULT *LoginByAlipayResp
+
+func (p *IDPServiceLoginByAlipayResult) GetSuccess() (v *LoginByAlipayResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceLoginByAlipayResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceLoginByAlipayResult) SetSuccess(x interface{}) {
+	p.Success = x.(*LoginByAlipayResp)
+}
+
+func (p *IDPServiceLoginByAlipayResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceLoginByAlipayResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceLoginByAlipayResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceLoginByAlipayResult = map[int16]string{
 	0: "success",
 }
 

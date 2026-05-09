@@ -179,6 +179,65 @@ func (h *AuthHandler) Logout(c context.Context, ctx *app.RequestContext) {
 	ctx.JSON(http.StatusOK, apiResp{Code: 0, Message: "ok"})
 }
 
+// GetAlipayAuthURL GET /api/v1/auth/alipay/url
+func (h *AuthHandler) GetAlipayAuthURL(c context.Context, ctx *app.RequestContext) {
+	idpResp, err := h.idpClient.GetAlipayAuthURL(c, &idpgen.GetAlipayAuthURLReq{
+		Base: &edgebase.BaseReq{},
+	})
+	if err != nil {
+		logger.Ctx(c).Error("idp.GetAlipayAuthURL failed", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, apiResp{Code: errno.ErrInternal.Code, Message: err.Error()})
+		return
+	}
+	if idpResp.Base != nil && idpResp.Base.Code != 0 {
+		ctx.JSON(http.StatusBadRequest, apiResp{Code: idpResp.Base.Code, Message: idpResp.Base.Message})
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{
+		Code:    0,
+		Message: "ok",
+		Data:    map[string]string{"auth_url": idpResp.AuthURL, "state": idpResp.State},
+	})
+}
+
+// AlipayCallback GET /api/v1/auth/alipay/callback
+// 支付宝回调携带 auth_code 和 state，调 idp 完成登录后重定向到前端。
+func (h *AuthHandler) AlipayCallback(c context.Context, ctx *app.RequestContext) {
+	authCode := string(ctx.Query("auth_code"))
+	state := string(ctx.Query("state"))
+	if authCode == "" || state == "" {
+		redirectURL := fmt.Sprintf("%s/login?error=%s", h.frontendURL, url.QueryEscape("auth_code and state are required"))
+		ctx.Redirect(http.StatusFound, []byte(redirectURL))
+		return
+	}
+
+	idpResp, err := h.idpClient.LoginByAlipay(c, &idpgen.LoginByAlipayReq{
+		Base:     &edgebase.BaseReq{},
+		AuthCode: authCode,
+		State:    state,
+	})
+	if err != nil {
+		logger.Ctx(c).Error("idp.LoginByAlipay failed", zap.Error(err))
+		redirectURL := fmt.Sprintf("%s/login?error=%s", h.frontendURL, url.QueryEscape(err.Error()))
+		ctx.Redirect(http.StatusFound, []byte(redirectURL))
+		return
+	}
+	if idpResp.Base != nil && idpResp.Base.Code != 0 {
+		redirectURL := fmt.Sprintf("%s/login?error=%s", h.frontendURL, url.QueryEscape(idpResp.Base.Message))
+		ctx.Redirect(http.StatusFound, []byte(redirectURL))
+		return
+	}
+
+	redirectURL := fmt.Sprintf(
+		"%s/auth/callback?access_token=%s&refresh_token=%s&user_id=%s&expires_at=%d",
+		h.frontendURL,
+		url.QueryEscape(idpResp.AccessToken),
+		url.QueryEscape(idpResp.RefreshToken),
+		url.QueryEscape(idpResp.UserID),
+		idpResp.ExpiresAt,
+	)
+	ctx.Redirect(http.StatusFound, []byte(redirectURL))
+}
 // bizCodeToHTTP 将业务错误码转换为 HTTP 状态码。
 func bizCodeToHTTP(code int32) int {
 	var e errno.Errno

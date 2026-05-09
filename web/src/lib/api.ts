@@ -36,6 +36,12 @@ export const getGoogleAuthUrl = async (): Promise<string> => {
   return res.data.data.auth_url
 }
 
+export const getAlipayAuthUrl = async (): Promise<string> => {
+  const res = await api.get<ApiResponse<{ auth_url: string }>>('/v1/auth/alipay/url')
+  return res.data.data.auth_url
+}
+
+
 export const getUserMe = async () => {
   const res = await api.get<ApiResponse<{
     user_id: string

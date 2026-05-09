@@ -41,6 +41,13 @@ type IDPConfig struct {
 		ClientSecret string `mapstructure:"client_secret"`  // GOOGLE_CLIENT_SECRET
 		RedirectURL  string `mapstructure:"redirect_url"`
 	} `mapstructure:"google"`
+	Alipay struct {
+		AppID        string `mapstructure:"app_id"`         // ALIPAY_APP_ID
+		PrivateKey   string `mapstructure:"private_key"`    // ALIPAY_PRIVATE_KEY
+		AlipayPubKey string `mapstructure:"alipay_pub_key"` // ALIPAY_PUB_KEY
+		RedirectURL  string `mapstructure:"redirect_url"`   // ALIPAY_REDIRECT_URL
+		Sandbox      bool   `mapstructure:"sandbox"`        // 默认 true（开发阶段）
+	} `mapstructure:"alipay"`
 	Server struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
@@ -127,7 +134,25 @@ func main() {
 	oauthBiz := idpbiz.NewOAuthBiz(cfg.Google.ClientID, cfg.Google.ClientSecret, cfg.Google.RedirectURL, stateRepo)
 	loginBiz := idpbiz.NewLoginBiz(oauthBiz, tokenBiz, identityRepo, iamCli)
 
-	handler := NewIDPImpl(loginBiz, tokenBiz, oauthBiz)
+	// 支付宝登录（沙箱默认开启；生产环境设 ALIPAY_SANDBOX=false）
+	sandbox := cfg.Alipay.Sandbox
+	if os.Getenv("ALIPAY_SANDBOX") == "false" {
+		sandbox = false
+	} else if cfg.Alipay.AppID != "" && !sandbox {
+		sandbox = false
+	} else {
+		sandbox = true // 开发默认沙箱
+	}
+	alipayBiz := idpbiz.NewAlipayBiz(idpbiz.AlipayConfig{
+		AppID:        cfg.Alipay.AppID,
+		PrivateKey:   cfg.Alipay.PrivateKey,
+		AlipayPubKey: cfg.Alipay.AlipayPubKey,
+		RedirectURL:  cfg.Alipay.RedirectURL,
+		Sandbox:      sandbox,
+	}, stateRepo)
+	alipayLoginBiz := idpbiz.NewAlipayLoginBiz(alipayBiz, tokenBiz, identityRepo, iamCli)
+
+	handler := NewIDPImpl(loginBiz, alipayLoginBiz, tokenBiz, oauthBiz, alipayBiz)
 
 	// Kitex server
 	addr := cfg.Server.Addr

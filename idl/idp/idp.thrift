@@ -69,11 +69,42 @@ struct VerifyTokenResp {
     4: required i64    ExpiresAt
 }
 
+// ---- GetAlipayAuthURL ----
+
+struct GetAlipayAuthURLReq {
+    1: required base.BaseReq Base
+    2: optional string RedirectURI
+}
+
+struct GetAlipayAuthURLResp {
+    1: required base.BaseResp Base
+    2: required string AuthURL
+    3: required string State
+}
+
+// ---- LoginByAlipay ----
+
+struct LoginByAlipayReq {
+    1: required base.BaseReq Base
+    2: required string AuthCode  // 支付宝回调的 auth_code
+    3: required string State
+}
+
+struct LoginByAlipayResp {
+    1: required base.BaseResp Base
+    2: required string AccessToken
+    3: required string RefreshToken
+    4: required i64    ExpiresAt
+    5: required string UserID
+}
+
 // ---- Service ----
 
 service IDPService {
     GetGoogleAuthURLResp GetGoogleAuthURL(1: GetGoogleAuthURLReq req)
     LoginByGoogleResp    LoginByGoogle   (1: LoginByGoogleReq req)
+    GetAlipayAuthURLResp GetAlipayAuthURL(1: GetAlipayAuthURLReq req)
+    LoginByAlipayResp    LoginByAlipay   (1: LoginByAlipayReq req)
     RefreshTokenResp     RefreshToken    (1: RefreshTokenReq req)
     VerifyTokenResp      VerifyToken     (1: VerifyTokenReq req)
 }

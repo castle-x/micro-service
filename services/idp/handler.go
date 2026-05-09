@@ -12,14 +12,28 @@ import (
 
 // IDPImpl 实现 Kitex 生成的 IDPService 接口。
 type IDPImpl struct {
-	loginBiz *idpbiz.LoginBiz
-	tokenBiz *idpbiz.TokenBiz
-	oauthBiz *idpbiz.OAuthBiz
+	loginBiz       *idpbiz.LoginBiz
+	alipayLoginBiz *idpbiz.AlipayLoginBiz
+	tokenBiz       *idpbiz.TokenBiz
+	oauthBiz       *idpbiz.OAuthBiz
+	alipayBiz      *idpbiz.AlipayBiz
 }
 
 // NewIDPImpl 构造 IDPImpl。
-func NewIDPImpl(loginBiz *idpbiz.LoginBiz, tokenBiz *idpbiz.TokenBiz, oauthBiz *idpbiz.OAuthBiz) *IDPImpl {
-	return &IDPImpl{loginBiz: loginBiz, tokenBiz: tokenBiz, oauthBiz: oauthBiz}
+func NewIDPImpl(
+	loginBiz *idpbiz.LoginBiz,
+	alipayLoginBiz *idpbiz.AlipayLoginBiz,
+	tokenBiz *idpbiz.TokenBiz,
+	oauthBiz *idpbiz.OAuthBiz,
+	alipayBiz *idpbiz.AlipayBiz,
+) *IDPImpl {
+	return &IDPImpl{
+		loginBiz:       loginBiz,
+		alipayLoginBiz: alipayLoginBiz,
+		tokenBiz:       tokenBiz,
+		oauthBiz:       oauthBiz,
+		alipayBiz:      alipayBiz,
+	}
 }
 
 // GetGoogleAuthURL 返回 Google OAuth2 授权 URL。
@@ -46,6 +60,38 @@ func (s *IDPImpl) LoginByGoogle(ctx context.Context, req *idpgen.LoginByGoogleRe
 		return &idpgen.LoginByGoogleResp{Base: errBase(err)}, nil
 	}
 	return &idpgen.LoginByGoogleResp{
+		Base:         okBase(),
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt,
+		UserID:       result.UserID,
+	}, nil
+}
+
+// GetAlipayAuthURL 返回支付宝扫码授权 URL。
+func (s *IDPImpl) GetAlipayAuthURL(ctx context.Context, req *idpgen.GetAlipayAuthURLReq) (*idpgen.GetAlipayAuthURLResp, error) {
+	redirectURI := ""
+	if req.RedirectURI != nil {
+		redirectURI = *req.RedirectURI
+	}
+	authURL, state, err := s.alipayBiz.GetAuthURL(ctx, redirectURI)
+	if err != nil {
+		return &idpgen.GetAlipayAuthURLResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.GetAlipayAuthURLResp{
+		Base:    okBase(),
+		AuthURL: authURL,
+		State:   state,
+	}, nil
+}
+
+// LoginByAlipay 处理支付宝回调，签发本服务 JWT。
+func (s *IDPImpl) LoginByAlipay(ctx context.Context, req *idpgen.LoginByAlipayReq) (*idpgen.LoginByAlipayResp, error) {
+	result, err := s.alipayLoginBiz.LoginByAlipay(ctx, req.AuthCode, req.State)
+	if err != nil {
+		return &idpgen.LoginByAlipayResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.LoginByAlipayResp{
 		Base:         okBase(),
 		AccessToken:  result.AccessToken,
 		RefreshToken: result.RefreshToken,
