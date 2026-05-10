@@ -27,6 +27,76 @@ var serviceMethods = map[string]kitex.MethodInfo{
 		false,
 		kitex.WithStreamingMode(kitex.StreamingNone),
 	),
+	"ListUsers": kitex.NewMethodInfo(
+		listUsersHandler,
+		newIAMServiceListUsersArgs,
+		newIAMServiceListUsersResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"UpdateUserRole": kitex.NewMethodInfo(
+		updateUserRoleHandler,
+		newIAMServiceUpdateUserRoleArgs,
+		newIAMServiceUpdateUserRoleResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"UpdateUserStatus": kitex.NewMethodInfo(
+		updateUserStatusHandler,
+		newIAMServiceUpdateUserStatusArgs,
+		newIAMServiceUpdateUserStatusResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"ListRoles": kitex.NewMethodInfo(
+		listRolesHandler,
+		newIAMServiceListRolesArgs,
+		newIAMServiceListRolesResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"CreateRole": kitex.NewMethodInfo(
+		createRoleHandler,
+		newIAMServiceCreateRoleArgs,
+		newIAMServiceCreateRoleResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"UpdateRole": kitex.NewMethodInfo(
+		updateRoleHandler,
+		newIAMServiceUpdateRoleArgs,
+		newIAMServiceUpdateRoleResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"DeleteRole": kitex.NewMethodInfo(
+		deleteRoleHandler,
+		newIAMServiceDeleteRoleArgs,
+		newIAMServiceDeleteRoleResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"ListPermissions": kitex.NewMethodInfo(
+		listPermissionsHandler,
+		newIAMServiceListPermissionsArgs,
+		newIAMServiceListPermissionsResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"CreatePermission": kitex.NewMethodInfo(
+		createPermissionHandler,
+		newIAMServiceCreatePermissionArgs,
+		newIAMServiceCreatePermissionResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"GetRolePermissions": kitex.NewMethodInfo(
+		getRolePermissionsHandler,
+		newIAMServiceGetRolePermissionsArgs,
+		newIAMServiceGetRolePermissionsResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
 }
 
 var (
@@ -129,6 +199,186 @@ func newIAMServiceGetUserResult() interface{} {
 	return iam.NewIAMServiceGetUserResult()
 }
 
+func listUsersHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceListUsersArgs)
+	realResult := result.(*iam.IAMServiceListUsersResult)
+	success, err := handler.(iam.IAMService).ListUsers(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceListUsersArgs() interface{} {
+	return iam.NewIAMServiceListUsersArgs()
+}
+
+func newIAMServiceListUsersResult() interface{} {
+	return iam.NewIAMServiceListUsersResult()
+}
+
+func updateUserRoleHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceUpdateUserRoleArgs)
+	realResult := result.(*iam.IAMServiceUpdateUserRoleResult)
+	success, err := handler.(iam.IAMService).UpdateUserRole(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceUpdateUserRoleArgs() interface{} {
+	return iam.NewIAMServiceUpdateUserRoleArgs()
+}
+
+func newIAMServiceUpdateUserRoleResult() interface{} {
+	return iam.NewIAMServiceUpdateUserRoleResult()
+}
+
+func updateUserStatusHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceUpdateUserStatusArgs)
+	realResult := result.(*iam.IAMServiceUpdateUserStatusResult)
+	success, err := handler.(iam.IAMService).UpdateUserStatus(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceUpdateUserStatusArgs() interface{} {
+	return iam.NewIAMServiceUpdateUserStatusArgs()
+}
+
+func newIAMServiceUpdateUserStatusResult() interface{} {
+	return iam.NewIAMServiceUpdateUserStatusResult()
+}
+
+func listRolesHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceListRolesArgs)
+	realResult := result.(*iam.IAMServiceListRolesResult)
+	success, err := handler.(iam.IAMService).ListRoles(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceListRolesArgs() interface{} {
+	return iam.NewIAMServiceListRolesArgs()
+}
+
+func newIAMServiceListRolesResult() interface{} {
+	return iam.NewIAMServiceListRolesResult()
+}
+
+func createRoleHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceCreateRoleArgs)
+	realResult := result.(*iam.IAMServiceCreateRoleResult)
+	success, err := handler.(iam.IAMService).CreateRole(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceCreateRoleArgs() interface{} {
+	return iam.NewIAMServiceCreateRoleArgs()
+}
+
+func newIAMServiceCreateRoleResult() interface{} {
+	return iam.NewIAMServiceCreateRoleResult()
+}
+
+func updateRoleHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceUpdateRoleArgs)
+	realResult := result.(*iam.IAMServiceUpdateRoleResult)
+	success, err := handler.(iam.IAMService).UpdateRole(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceUpdateRoleArgs() interface{} {
+	return iam.NewIAMServiceUpdateRoleArgs()
+}
+
+func newIAMServiceUpdateRoleResult() interface{} {
+	return iam.NewIAMServiceUpdateRoleResult()
+}
+
+func deleteRoleHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceDeleteRoleArgs)
+	realResult := result.(*iam.IAMServiceDeleteRoleResult)
+	success, err := handler.(iam.IAMService).DeleteRole(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceDeleteRoleArgs() interface{} {
+	return iam.NewIAMServiceDeleteRoleArgs()
+}
+
+func newIAMServiceDeleteRoleResult() interface{} {
+	return iam.NewIAMServiceDeleteRoleResult()
+}
+
+func listPermissionsHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceListPermissionsArgs)
+	realResult := result.(*iam.IAMServiceListPermissionsResult)
+	success, err := handler.(iam.IAMService).ListPermissions(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceListPermissionsArgs() interface{} {
+	return iam.NewIAMServiceListPermissionsArgs()
+}
+
+func newIAMServiceListPermissionsResult() interface{} {
+	return iam.NewIAMServiceListPermissionsResult()
+}
+
+func createPermissionHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceCreatePermissionArgs)
+	realResult := result.(*iam.IAMServiceCreatePermissionResult)
+	success, err := handler.(iam.IAMService).CreatePermission(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceCreatePermissionArgs() interface{} {
+	return iam.NewIAMServiceCreatePermissionArgs()
+}
+
+func newIAMServiceCreatePermissionResult() interface{} {
+	return iam.NewIAMServiceCreatePermissionResult()
+}
+
+func getRolePermissionsHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*iam.IAMServiceGetRolePermissionsArgs)
+	realResult := result.(*iam.IAMServiceGetRolePermissionsResult)
+	success, err := handler.(iam.IAMService).GetRolePermissions(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIAMServiceGetRolePermissionsArgs() interface{} {
+	return iam.NewIAMServiceGetRolePermissionsArgs()
+}
+
+func newIAMServiceGetRolePermissionsResult() interface{} {
+	return iam.NewIAMServiceGetRolePermissionsResult()
+}
+
 type kClient struct {
 	c client.Client
 }
@@ -154,6 +404,106 @@ func (p *kClient) GetUser(ctx context.Context, req *iam.GetUserReq) (r *iam.GetU
 	_args.Req = req
 	var _result iam.IAMServiceGetUserResult
 	if err = p.c.Call(ctx, "GetUser", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) ListUsers(ctx context.Context, req *iam.ListUsersReq) (r *iam.ListUsersResp, err error) {
+	var _args iam.IAMServiceListUsersArgs
+	_args.Req = req
+	var _result iam.IAMServiceListUsersResult
+	if err = p.c.Call(ctx, "ListUsers", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) UpdateUserRole(ctx context.Context, req *iam.UpdateUserRoleReq) (r *iam.UpdateUserRoleResp, err error) {
+	var _args iam.IAMServiceUpdateUserRoleArgs
+	_args.Req = req
+	var _result iam.IAMServiceUpdateUserRoleResult
+	if err = p.c.Call(ctx, "UpdateUserRole", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) UpdateUserStatus(ctx context.Context, req *iam.UpdateUserStatusReq) (r *iam.UpdateUserStatusResp, err error) {
+	var _args iam.IAMServiceUpdateUserStatusArgs
+	_args.Req = req
+	var _result iam.IAMServiceUpdateUserStatusResult
+	if err = p.c.Call(ctx, "UpdateUserStatus", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) ListRoles(ctx context.Context, req *iam.ListRolesReq) (r *iam.ListRolesResp, err error) {
+	var _args iam.IAMServiceListRolesArgs
+	_args.Req = req
+	var _result iam.IAMServiceListRolesResult
+	if err = p.c.Call(ctx, "ListRoles", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) CreateRole(ctx context.Context, req *iam.CreateRoleReq) (r *iam.CreateRoleResp, err error) {
+	var _args iam.IAMServiceCreateRoleArgs
+	_args.Req = req
+	var _result iam.IAMServiceCreateRoleResult
+	if err = p.c.Call(ctx, "CreateRole", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) UpdateRole(ctx context.Context, req *iam.UpdateRoleReq) (r *iam.UpdateRoleResp, err error) {
+	var _args iam.IAMServiceUpdateRoleArgs
+	_args.Req = req
+	var _result iam.IAMServiceUpdateRoleResult
+	if err = p.c.Call(ctx, "UpdateRole", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) DeleteRole(ctx context.Context, req *iam.DeleteRoleReq) (r *iam.DeleteRoleResp, err error) {
+	var _args iam.IAMServiceDeleteRoleArgs
+	_args.Req = req
+	var _result iam.IAMServiceDeleteRoleResult
+	if err = p.c.Call(ctx, "DeleteRole", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) ListPermissions(ctx context.Context, req *iam.ListPermissionsReq) (r *iam.ListPermissionsResp, err error) {
+	var _args iam.IAMServiceListPermissionsArgs
+	_args.Req = req
+	var _result iam.IAMServiceListPermissionsResult
+	if err = p.c.Call(ctx, "ListPermissions", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) CreatePermission(ctx context.Context, req *iam.CreatePermissionReq) (r *iam.CreatePermissionResp, err error) {
+	var _args iam.IAMServiceCreatePermissionArgs
+	_args.Req = req
+	var _result iam.IAMServiceCreatePermissionResult
+	if err = p.c.Call(ctx, "CreatePermission", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) GetRolePermissions(ctx context.Context, req *iam.GetRolePermissionsReq) (r *iam.GetRolePermissionsResp, err error) {
+	var _args iam.IAMServiceGetRolePermissionsArgs
+	_args.Req = req
+	var _result iam.IAMServiceGetRolePermissionsResult
+	if err = p.c.Call(ctx, "GetRolePermissions", &_args, &_result); err != nil {
 		return
 	}
 	return _result.GetSuccess(), nil

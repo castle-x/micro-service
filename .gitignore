@@ -26,3 +26,13 @@ web/dist/
 .omc
 .codebuddy
 .axm/
+
+# 测试截图 / 日志
+*.png
+*.jpg
+*.jpeg
+bin/log/
+*.log
+
+# Playwright MCP
+.playwright-mcp/

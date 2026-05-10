@@ -13,6 +13,16 @@ import (
 type Client interface {
 	UpsertUserByProvider(ctx context.Context, req *iam.UpsertUserByProviderReq, callOptions ...callopt.Option) (r *iam.UpsertUserByProviderResp, err error)
 	GetUser(ctx context.Context, req *iam.GetUserReq, callOptions ...callopt.Option) (r *iam.GetUserResp, err error)
+	ListUsers(ctx context.Context, req *iam.ListUsersReq, callOptions ...callopt.Option) (r *iam.ListUsersResp, err error)
+	UpdateUserRole(ctx context.Context, req *iam.UpdateUserRoleReq, callOptions ...callopt.Option) (r *iam.UpdateUserRoleResp, err error)
+	UpdateUserStatus(ctx context.Context, req *iam.UpdateUserStatusReq, callOptions ...callopt.Option) (r *iam.UpdateUserStatusResp, err error)
+	ListRoles(ctx context.Context, req *iam.ListRolesReq, callOptions ...callopt.Option) (r *iam.ListRolesResp, err error)
+	CreateRole(ctx context.Context, req *iam.CreateRoleReq, callOptions ...callopt.Option) (r *iam.CreateRoleResp, err error)
+	UpdateRole(ctx context.Context, req *iam.UpdateRoleReq, callOptions ...callopt.Option) (r *iam.UpdateRoleResp, err error)
+	DeleteRole(ctx context.Context, req *iam.DeleteRoleReq, callOptions ...callopt.Option) (r *iam.DeleteRoleResp, err error)
+	ListPermissions(ctx context.Context, req *iam.ListPermissionsReq, callOptions ...callopt.Option) (r *iam.ListPermissionsResp, err error)
+	CreatePermission(ctx context.Context, req *iam.CreatePermissionReq, callOptions ...callopt.Option) (r *iam.CreatePermissionResp, err error)
+	GetRolePermissions(ctx context.Context, req *iam.GetRolePermissionsReq, callOptions ...callopt.Option) (r *iam.GetRolePermissionsResp, err error)
 }
 
 // NewClient creates a client for the service defined in IDL.
@@ -52,4 +62,54 @@ func (p *kIAMServiceClient) UpsertUserByProvider(ctx context.Context, req *iam.U
 func (p *kIAMServiceClient) GetUser(ctx context.Context, req *iam.GetUserReq, callOptions ...callopt.Option) (r *iam.GetUserResp, err error) {
 	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
 	return p.kClient.GetUser(ctx, req)
+}
+
+func (p *kIAMServiceClient) ListUsers(ctx context.Context, req *iam.ListUsersReq, callOptions ...callopt.Option) (r *iam.ListUsersResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.ListUsers(ctx, req)
+}
+
+func (p *kIAMServiceClient) UpdateUserRole(ctx context.Context, req *iam.UpdateUserRoleReq, callOptions ...callopt.Option) (r *iam.UpdateUserRoleResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.UpdateUserRole(ctx, req)
+}
+
+func (p *kIAMServiceClient) UpdateUserStatus(ctx context.Context, req *iam.UpdateUserStatusReq, callOptions ...callopt.Option) (r *iam.UpdateUserStatusResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.UpdateUserStatus(ctx, req)
+}
+
+func (p *kIAMServiceClient) ListRoles(ctx context.Context, req *iam.ListRolesReq, callOptions ...callopt.Option) (r *iam.ListRolesResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.ListRoles(ctx, req)
+}
+
+func (p *kIAMServiceClient) CreateRole(ctx context.Context, req *iam.CreateRoleReq, callOptions ...callopt.Option) (r *iam.CreateRoleResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.CreateRole(ctx, req)
+}
+
+func (p *kIAMServiceClient) UpdateRole(ctx context.Context, req *iam.UpdateRoleReq, callOptions ...callopt.Option) (r *iam.UpdateRoleResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.UpdateRole(ctx, req)
+}
+
+func (p *kIAMServiceClient) DeleteRole(ctx context.Context, req *iam.DeleteRoleReq, callOptions ...callopt.Option) (r *iam.DeleteRoleResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.DeleteRole(ctx, req)
+}
+
+func (p *kIAMServiceClient) ListPermissions(ctx context.Context, req *iam.ListPermissionsReq, callOptions ...callopt.Option) (r *iam.ListPermissionsResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.ListPermissions(ctx, req)
+}
+
+func (p *kIAMServiceClient) CreatePermission(ctx context.Context, req *iam.CreatePermissionReq, callOptions ...callopt.Option) (r *iam.CreatePermissionResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.CreatePermission(ctx, req)
+}
+
+func (p *kIAMServiceClient) GetRolePermissions(ctx context.Context, req *iam.GetRolePermissionsReq, callOptions ...callopt.Option) (r *iam.GetRolePermissionsResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.GetRolePermissions(ctx, req)
 }

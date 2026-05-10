@@ -62,6 +62,68 @@ func (p *UserStatus) Value() (driver.Value, error) {
 	return int64(*p), nil
 }
 
+type UserSource int64
+
+const (
+	UserSource_UNKNOWN       UserSource = 0
+	UserSource_PASSWORD      UserSource = 1
+	UserSource_GOOGLE        UserSource = 2
+	UserSource_ALIPAY        UserSource = 3
+	UserSource_PHONE         UserSource = 4
+	UserSource_ADMIN_CREATED UserSource = 5
+)
+
+func (p UserSource) String() string {
+	switch p {
+	case UserSource_UNKNOWN:
+		return "UNKNOWN"
+	case UserSource_PASSWORD:
+		return "PASSWORD"
+	case UserSource_GOOGLE:
+		return "GOOGLE"
+	case UserSource_ALIPAY:
+		return "ALIPAY"
+	case UserSource_PHONE:
+		return "PHONE"
+	case UserSource_ADMIN_CREATED:
+		return "ADMIN_CREATED"
+	}
+	return "<UNSET>"
+}
+
+func UserSourceFromString(s string) (UserSource, error) {
+	switch s {
+	case "UNKNOWN":
+		return UserSource_UNKNOWN, nil
+	case "PASSWORD":
+		return UserSource_PASSWORD, nil
+	case "GOOGLE":
+		return UserSource_GOOGLE, nil
+	case "ALIPAY":
+		return UserSource_ALIPAY, nil
+	case "PHONE":
+		return UserSource_PHONE, nil
+	case "ADMIN_CREATED":
+		return UserSource_ADMIN_CREATED, nil
+	}
+	return UserSource(0), fmt.Errorf("not a valid UserSource string")
+}
+
+func UserSourcePtr(v UserSource) *UserSource { return &v }
+func (p *UserSource) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = UserSource(result.Int64)
+	return
+}
+
+func (p *UserSource) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
 type ProviderProfile struct {
 	Provider    string  `thrift:"Provider,1,required" frugal:"1,required,string" json:"Provider"`
 	ProviderSub string  `thrift:"ProviderSub,2,required" frugal:"2,required,string" json:"ProviderSub"`
@@ -205,6 +267,8 @@ type UpsertUserByProviderResp struct {
 	Base    *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
 	UserID  string         `thrift:"UserID,2,required" frugal:"2,required,string" json:"UserID"`
 	Created bool           `thrift:"Created,3,required" frugal:"3,required,bool" json:"Created"`
+	Role    string         `thrift:"Role,4,required" frugal:"4,required,string" json:"Role"`
+	Status  int32          `thrift:"Status,5,required" frugal:"5,required,i32" json:"Status"`
 }
 
 func NewUpsertUserByProviderResp() *UpsertUserByProviderResp {
@@ -230,6 +294,14 @@ func (p *UpsertUserByProviderResp) GetUserID() (v string) {
 func (p *UpsertUserByProviderResp) GetCreated() (v bool) {
 	return p.Created
 }
+
+func (p *UpsertUserByProviderResp) GetRole() (v string) {
+	return p.Role
+}
+
+func (p *UpsertUserByProviderResp) GetStatus() (v int32) {
+	return p.Status
+}
 func (p *UpsertUserByProviderResp) SetBase(val *base.BaseResp) {
 	p.Base = val
 }
@@ -238,6 +310,12 @@ func (p *UpsertUserByProviderResp) SetUserID(val string) {
 }
 func (p *UpsertUserByProviderResp) SetCreated(val bool) {
 	p.Created = val
+}
+func (p *UpsertUserByProviderResp) SetRole(val string) {
+	p.Role = val
+}
+func (p *UpsertUserByProviderResp) SetStatus(val int32) {
+	p.Status = val
 }
 
 func (p *UpsertUserByProviderResp) IsSetBase() bool {
@@ -255,6 +333,8 @@ var fieldIDToName_UpsertUserByProviderResp = map[int16]string{
 	1: "Base",
 	2: "UserID",
 	3: "Created",
+	4: "Role",
+	5: "Status",
 }
 
 type GetUserReq struct {
@@ -312,6 +392,8 @@ type GetUserResp struct {
 	AvatarURL *string        `thrift:"AvatarURL,5,optional" frugal:"5,optional,string" json:"AvatarURL,omitempty"`
 	Status    UserStatus     `thrift:"Status,6,required" frugal:"6,required,UserStatus" json:"Status"`
 	CreatedAt int64          `thrift:"CreatedAt,7,required" frugal:"7,required,i64" json:"CreatedAt"`
+	Role      string         `thrift:"Role,8,required" frugal:"8,required,string" json:"Role"`
+	Phone     *string        `thrift:"Phone,9,optional" frugal:"9,optional,string" json:"Phone,omitempty"`
 }
 
 func NewGetUserResp() *GetUserResp {
@@ -363,6 +445,19 @@ func (p *GetUserResp) GetStatus() (v UserStatus) {
 func (p *GetUserResp) GetCreatedAt() (v int64) {
 	return p.CreatedAt
 }
+
+func (p *GetUserResp) GetRole() (v string) {
+	return p.Role
+}
+
+var GetUserResp_Phone_DEFAULT string
+
+func (p *GetUserResp) GetPhone() (v string) {
+	if !p.IsSetPhone() {
+		return GetUserResp_Phone_DEFAULT
+	}
+	return *p.Phone
+}
 func (p *GetUserResp) SetBase(val *base.BaseResp) {
 	p.Base = val
 }
@@ -384,6 +479,12 @@ func (p *GetUserResp) SetStatus(val UserStatus) {
 func (p *GetUserResp) SetCreatedAt(val int64) {
 	p.CreatedAt = val
 }
+func (p *GetUserResp) SetRole(val string) {
+	p.Role = val
+}
+func (p *GetUserResp) SetPhone(val *string) {
+	p.Phone = val
+}
 
 func (p *GetUserResp) IsSetBase() bool {
 	return p.Base != nil
@@ -395,6 +496,10 @@ func (p *GetUserResp) IsSetName() bool {
 
 func (p *GetUserResp) IsSetAvatarURL() bool {
 	return p.AvatarURL != nil
+}
+
+func (p *GetUserResp) IsSetPhone() bool {
+	return p.Phone != nil
 }
 
 func (p *GetUserResp) String() string {
@@ -412,12 +517,1358 @@ var fieldIDToName_GetUserResp = map[int16]string{
 	5: "AvatarURL",
 	6: "Status",
 	7: "CreatedAt",
+	8: "Role",
+	9: "Phone",
+}
+
+type ListUsersReq struct {
+	Base     *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	Page     int32         `thrift:"Page,2,required" frugal:"2,required,i32" json:"Page"`
+	PageSize int32         `thrift:"PageSize,3,required" frugal:"3,required,i32" json:"PageSize"`
+	Role     *string       `thrift:"Role,4,optional" frugal:"4,optional,string" json:"Role,omitempty"`
+	Status   *UserStatus   `thrift:"Status,5,optional" frugal:"5,optional,UserStatus" json:"Status,omitempty"`
+}
+
+func NewListUsersReq() *ListUsersReq {
+	return &ListUsersReq{}
+}
+
+func (p *ListUsersReq) InitDefault() {
+}
+
+var ListUsersReq_Base_DEFAULT *base.BaseReq
+
+func (p *ListUsersReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return ListUsersReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *ListUsersReq) GetPage() (v int32) {
+	return p.Page
+}
+
+func (p *ListUsersReq) GetPageSize() (v int32) {
+	return p.PageSize
+}
+
+var ListUsersReq_Role_DEFAULT string
+
+func (p *ListUsersReq) GetRole() (v string) {
+	if !p.IsSetRole() {
+		return ListUsersReq_Role_DEFAULT
+	}
+	return *p.Role
+}
+
+var ListUsersReq_Status_DEFAULT UserStatus
+
+func (p *ListUsersReq) GetStatus() (v UserStatus) {
+	if !p.IsSetStatus() {
+		return ListUsersReq_Status_DEFAULT
+	}
+	return *p.Status
+}
+func (p *ListUsersReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *ListUsersReq) SetPage(val int32) {
+	p.Page = val
+}
+func (p *ListUsersReq) SetPageSize(val int32) {
+	p.PageSize = val
+}
+func (p *ListUsersReq) SetRole(val *string) {
+	p.Role = val
+}
+func (p *ListUsersReq) SetStatus(val *UserStatus) {
+	p.Status = val
+}
+
+func (p *ListUsersReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListUsersReq) IsSetRole() bool {
+	return p.Role != nil
+}
+
+func (p *ListUsersReq) IsSetStatus() bool {
+	return p.Status != nil
+}
+
+func (p *ListUsersReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListUsersReq(%+v)", *p)
+}
+
+var fieldIDToName_ListUsersReq = map[int16]string{
+	1: "Base",
+	2: "Page",
+	3: "PageSize",
+	4: "Role",
+	5: "Status",
+}
+
+type UserItem struct {
+	UserID    string     `thrift:"UserID,1,required" frugal:"1,required,string" json:"UserID"`
+	Email     string     `thrift:"Email,2,required" frugal:"2,required,string" json:"Email"`
+	Name      *string    `thrift:"Name,3,optional" frugal:"3,optional,string" json:"Name,omitempty"`
+	AvatarURL *string    `thrift:"AvatarURL,4,optional" frugal:"4,optional,string" json:"AvatarURL,omitempty"`
+	Role      string     `thrift:"Role,5,required" frugal:"5,required,string" json:"Role"`
+	Status    UserStatus `thrift:"Status,6,required" frugal:"6,required,UserStatus" json:"Status"`
+	CreatedAt int64      `thrift:"CreatedAt,7,required" frugal:"7,required,i64" json:"CreatedAt"`
+	Phone     *string    `thrift:"Phone,8,optional" frugal:"8,optional,string" json:"Phone,omitempty"`
+}
+
+func NewUserItem() *UserItem {
+	return &UserItem{}
+}
+
+func (p *UserItem) InitDefault() {
+}
+
+func (p *UserItem) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *UserItem) GetEmail() (v string) {
+	return p.Email
+}
+
+var UserItem_Name_DEFAULT string
+
+func (p *UserItem) GetName() (v string) {
+	if !p.IsSetName() {
+		return UserItem_Name_DEFAULT
+	}
+	return *p.Name
+}
+
+var UserItem_AvatarURL_DEFAULT string
+
+func (p *UserItem) GetAvatarURL() (v string) {
+	if !p.IsSetAvatarURL() {
+		return UserItem_AvatarURL_DEFAULT
+	}
+	return *p.AvatarURL
+}
+
+func (p *UserItem) GetRole() (v string) {
+	return p.Role
+}
+
+func (p *UserItem) GetStatus() (v UserStatus) {
+	return p.Status
+}
+
+func (p *UserItem) GetCreatedAt() (v int64) {
+	return p.CreatedAt
+}
+
+var UserItem_Phone_DEFAULT string
+
+func (p *UserItem) GetPhone() (v string) {
+	if !p.IsSetPhone() {
+		return UserItem_Phone_DEFAULT
+	}
+	return *p.Phone
+}
+func (p *UserItem) SetUserID(val string) {
+	p.UserID = val
+}
+func (p *UserItem) SetEmail(val string) {
+	p.Email = val
+}
+func (p *UserItem) SetName(val *string) {
+	p.Name = val
+}
+func (p *UserItem) SetAvatarURL(val *string) {
+	p.AvatarURL = val
+}
+func (p *UserItem) SetRole(val string) {
+	p.Role = val
+}
+func (p *UserItem) SetStatus(val UserStatus) {
+	p.Status = val
+}
+func (p *UserItem) SetCreatedAt(val int64) {
+	p.CreatedAt = val
+}
+func (p *UserItem) SetPhone(val *string) {
+	p.Phone = val
+}
+
+func (p *UserItem) IsSetName() bool {
+	return p.Name != nil
+}
+
+func (p *UserItem) IsSetAvatarURL() bool {
+	return p.AvatarURL != nil
+}
+
+func (p *UserItem) IsSetPhone() bool {
+	return p.Phone != nil
+}
+
+func (p *UserItem) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UserItem(%+v)", *p)
+}
+
+var fieldIDToName_UserItem = map[int16]string{
+	1: "UserID",
+	2: "Email",
+	3: "Name",
+	4: "AvatarURL",
+	5: "Role",
+	6: "Status",
+	7: "CreatedAt",
+	8: "Phone",
+}
+
+type ListUsersResp struct {
+	Base  *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Users []*UserItem    `thrift:"Users,2,required" frugal:"2,required,list<UserItem>" json:"Users"`
+	Total int64          `thrift:"Total,3,required" frugal:"3,required,i64" json:"Total"`
+}
+
+func NewListUsersResp() *ListUsersResp {
+	return &ListUsersResp{}
+}
+
+func (p *ListUsersResp) InitDefault() {
+}
+
+var ListUsersResp_Base_DEFAULT *base.BaseResp
+
+func (p *ListUsersResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return ListUsersResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *ListUsersResp) GetUsers() (v []*UserItem) {
+	return p.Users
+}
+
+func (p *ListUsersResp) GetTotal() (v int64) {
+	return p.Total
+}
+func (p *ListUsersResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *ListUsersResp) SetUsers(val []*UserItem) {
+	p.Users = val
+}
+func (p *ListUsersResp) SetTotal(val int64) {
+	p.Total = val
+}
+
+func (p *ListUsersResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListUsersResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListUsersResp(%+v)", *p)
+}
+
+var fieldIDToName_ListUsersResp = map[int16]string{
+	1: "Base",
+	2: "Users",
+	3: "Total",
+}
+
+type UpdateUserRoleReq struct {
+	Base           *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	TargetUserID   string        `thrift:"TargetUserID,2,required" frugal:"2,required,string" json:"TargetUserID"`
+	Role           string        `thrift:"Role,3,required" frugal:"3,required,string" json:"Role"`
+	OperatorUserID string        `thrift:"OperatorUserID,4,required" frugal:"4,required,string" json:"OperatorUserID"`
+}
+
+func NewUpdateUserRoleReq() *UpdateUserRoleReq {
+	return &UpdateUserRoleReq{}
+}
+
+func (p *UpdateUserRoleReq) InitDefault() {
+}
+
+var UpdateUserRoleReq_Base_DEFAULT *base.BaseReq
+
+func (p *UpdateUserRoleReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return UpdateUserRoleReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *UpdateUserRoleReq) GetTargetUserID() (v string) {
+	return p.TargetUserID
+}
+
+func (p *UpdateUserRoleReq) GetRole() (v string) {
+	return p.Role
+}
+
+func (p *UpdateUserRoleReq) GetOperatorUserID() (v string) {
+	return p.OperatorUserID
+}
+func (p *UpdateUserRoleReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *UpdateUserRoleReq) SetTargetUserID(val string) {
+	p.TargetUserID = val
+}
+func (p *UpdateUserRoleReq) SetRole(val string) {
+	p.Role = val
+}
+func (p *UpdateUserRoleReq) SetOperatorUserID(val string) {
+	p.OperatorUserID = val
+}
+
+func (p *UpdateUserRoleReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UpdateUserRoleReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UpdateUserRoleReq(%+v)", *p)
+}
+
+var fieldIDToName_UpdateUserRoleReq = map[int16]string{
+	1: "Base",
+	2: "TargetUserID",
+	3: "Role",
+	4: "OperatorUserID",
+}
+
+type UpdateUserRoleResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewUpdateUserRoleResp() *UpdateUserRoleResp {
+	return &UpdateUserRoleResp{}
+}
+
+func (p *UpdateUserRoleResp) InitDefault() {
+}
+
+var UpdateUserRoleResp_Base_DEFAULT *base.BaseResp
+
+func (p *UpdateUserRoleResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return UpdateUserRoleResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *UpdateUserRoleResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *UpdateUserRoleResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UpdateUserRoleResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UpdateUserRoleResp(%+v)", *p)
+}
+
+var fieldIDToName_UpdateUserRoleResp = map[int16]string{
+	1: "Base",
+}
+
+type UpdateUserStatusReq struct {
+	Base           *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	TargetUserID   string        `thrift:"TargetUserID,2,required" frugal:"2,required,string" json:"TargetUserID"`
+	Status         UserStatus    `thrift:"Status,3,required" frugal:"3,required,UserStatus" json:"Status"`
+	OperatorUserID string        `thrift:"OperatorUserID,4,required" frugal:"4,required,string" json:"OperatorUserID"`
+}
+
+func NewUpdateUserStatusReq() *UpdateUserStatusReq {
+	return &UpdateUserStatusReq{}
+}
+
+func (p *UpdateUserStatusReq) InitDefault() {
+}
+
+var UpdateUserStatusReq_Base_DEFAULT *base.BaseReq
+
+func (p *UpdateUserStatusReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return UpdateUserStatusReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *UpdateUserStatusReq) GetTargetUserID() (v string) {
+	return p.TargetUserID
+}
+
+func (p *UpdateUserStatusReq) GetStatus() (v UserStatus) {
+	return p.Status
+}
+
+func (p *UpdateUserStatusReq) GetOperatorUserID() (v string) {
+	return p.OperatorUserID
+}
+func (p *UpdateUserStatusReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *UpdateUserStatusReq) SetTargetUserID(val string) {
+	p.TargetUserID = val
+}
+func (p *UpdateUserStatusReq) SetStatus(val UserStatus) {
+	p.Status = val
+}
+func (p *UpdateUserStatusReq) SetOperatorUserID(val string) {
+	p.OperatorUserID = val
+}
+
+func (p *UpdateUserStatusReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UpdateUserStatusReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UpdateUserStatusReq(%+v)", *p)
+}
+
+var fieldIDToName_UpdateUserStatusReq = map[int16]string{
+	1: "Base",
+	2: "TargetUserID",
+	3: "Status",
+	4: "OperatorUserID",
+}
+
+type UpdateUserStatusResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewUpdateUserStatusResp() *UpdateUserStatusResp {
+	return &UpdateUserStatusResp{}
+}
+
+func (p *UpdateUserStatusResp) InitDefault() {
+}
+
+var UpdateUserStatusResp_Base_DEFAULT *base.BaseResp
+
+func (p *UpdateUserStatusResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return UpdateUserStatusResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *UpdateUserStatusResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *UpdateUserStatusResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UpdateUserStatusResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UpdateUserStatusResp(%+v)", *p)
+}
+
+var fieldIDToName_UpdateUserStatusResp = map[int16]string{
+	1: "Base",
+}
+
+type RoleItem struct {
+	RoleID      string   `thrift:"RoleID,1,required" frugal:"1,required,string" json:"RoleID"`
+	Name        string   `thrift:"Name,2,required" frugal:"2,required,string" json:"Name"`
+	DisplayName string   `thrift:"DisplayName,3,required" frugal:"3,required,string" json:"DisplayName"`
+	Permissions []string `thrift:"Permissions,4,required" frugal:"4,required,list<string>" json:"Permissions"`
+	IsSystem    bool     `thrift:"IsSystem,5,required" frugal:"5,required,bool" json:"IsSystem"`
+}
+
+func NewRoleItem() *RoleItem {
+	return &RoleItem{}
+}
+
+func (p *RoleItem) InitDefault() {
+}
+
+func (p *RoleItem) GetRoleID() (v string) {
+	return p.RoleID
+}
+
+func (p *RoleItem) GetName() (v string) {
+	return p.Name
+}
+
+func (p *RoleItem) GetDisplayName() (v string) {
+	return p.DisplayName
+}
+
+func (p *RoleItem) GetPermissions() (v []string) {
+	return p.Permissions
+}
+
+func (p *RoleItem) GetIsSystem() (v bool) {
+	return p.IsSystem
+}
+func (p *RoleItem) SetRoleID(val string) {
+	p.RoleID = val
+}
+func (p *RoleItem) SetName(val string) {
+	p.Name = val
+}
+func (p *RoleItem) SetDisplayName(val string) {
+	p.DisplayName = val
+}
+func (p *RoleItem) SetPermissions(val []string) {
+	p.Permissions = val
+}
+func (p *RoleItem) SetIsSystem(val bool) {
+	p.IsSystem = val
+}
+
+func (p *RoleItem) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RoleItem(%+v)", *p)
+}
+
+var fieldIDToName_RoleItem = map[int16]string{
+	1: "RoleID",
+	2: "Name",
+	3: "DisplayName",
+	4: "Permissions",
+	5: "IsSystem",
+}
+
+type ListRolesReq struct {
+	Base *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+}
+
+func NewListRolesReq() *ListRolesReq {
+	return &ListRolesReq{}
+}
+
+func (p *ListRolesReq) InitDefault() {
+}
+
+var ListRolesReq_Base_DEFAULT *base.BaseReq
+
+func (p *ListRolesReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return ListRolesReq_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *ListRolesReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+
+func (p *ListRolesReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListRolesReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListRolesReq(%+v)", *p)
+}
+
+var fieldIDToName_ListRolesReq = map[int16]string{
+	1: "Base",
+}
+
+type ListRolesResp struct {
+	Base  *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Roles []*RoleItem    `thrift:"Roles,2,required" frugal:"2,required,list<RoleItem>" json:"Roles"`
+}
+
+func NewListRolesResp() *ListRolesResp {
+	return &ListRolesResp{}
+}
+
+func (p *ListRolesResp) InitDefault() {
+}
+
+var ListRolesResp_Base_DEFAULT *base.BaseResp
+
+func (p *ListRolesResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return ListRolesResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *ListRolesResp) GetRoles() (v []*RoleItem) {
+	return p.Roles
+}
+func (p *ListRolesResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *ListRolesResp) SetRoles(val []*RoleItem) {
+	p.Roles = val
+}
+
+func (p *ListRolesResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListRolesResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListRolesResp(%+v)", *p)
+}
+
+var fieldIDToName_ListRolesResp = map[int16]string{
+	1: "Base",
+	2: "Roles",
+}
+
+type CreateRoleReq struct {
+	Base           *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	Name           string        `thrift:"Name,2,required" frugal:"2,required,string" json:"Name"`
+	DisplayName    string        `thrift:"DisplayName,3,required" frugal:"3,required,string" json:"DisplayName"`
+	Permissions    []string      `thrift:"Permissions,4,required" frugal:"4,required,list<string>" json:"Permissions"`
+	OperatorUserID string        `thrift:"OperatorUserID,5,required" frugal:"5,required,string" json:"OperatorUserID"`
+}
+
+func NewCreateRoleReq() *CreateRoleReq {
+	return &CreateRoleReq{}
+}
+
+func (p *CreateRoleReq) InitDefault() {
+}
+
+var CreateRoleReq_Base_DEFAULT *base.BaseReq
+
+func (p *CreateRoleReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return CreateRoleReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *CreateRoleReq) GetName() (v string) {
+	return p.Name
+}
+
+func (p *CreateRoleReq) GetDisplayName() (v string) {
+	return p.DisplayName
+}
+
+func (p *CreateRoleReq) GetPermissions() (v []string) {
+	return p.Permissions
+}
+
+func (p *CreateRoleReq) GetOperatorUserID() (v string) {
+	return p.OperatorUserID
+}
+func (p *CreateRoleReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *CreateRoleReq) SetName(val string) {
+	p.Name = val
+}
+func (p *CreateRoleReq) SetDisplayName(val string) {
+	p.DisplayName = val
+}
+func (p *CreateRoleReq) SetPermissions(val []string) {
+	p.Permissions = val
+}
+func (p *CreateRoleReq) SetOperatorUserID(val string) {
+	p.OperatorUserID = val
+}
+
+func (p *CreateRoleReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *CreateRoleReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CreateRoleReq(%+v)", *p)
+}
+
+var fieldIDToName_CreateRoleReq = map[int16]string{
+	1: "Base",
+	2: "Name",
+	3: "DisplayName",
+	4: "Permissions",
+	5: "OperatorUserID",
+}
+
+type CreateRoleResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Role *RoleItem      `thrift:"Role,2,required" frugal:"2,required,RoleItem" json:"Role"`
+}
+
+func NewCreateRoleResp() *CreateRoleResp {
+	return &CreateRoleResp{}
+}
+
+func (p *CreateRoleResp) InitDefault() {
+}
+
+var CreateRoleResp_Base_DEFAULT *base.BaseResp
+
+func (p *CreateRoleResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return CreateRoleResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var CreateRoleResp_Role_DEFAULT *RoleItem
+
+func (p *CreateRoleResp) GetRole() (v *RoleItem) {
+	if !p.IsSetRole() {
+		return CreateRoleResp_Role_DEFAULT
+	}
+	return p.Role
+}
+func (p *CreateRoleResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *CreateRoleResp) SetRole(val *RoleItem) {
+	p.Role = val
+}
+
+func (p *CreateRoleResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *CreateRoleResp) IsSetRole() bool {
+	return p.Role != nil
+}
+
+func (p *CreateRoleResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CreateRoleResp(%+v)", *p)
+}
+
+var fieldIDToName_CreateRoleResp = map[int16]string{
+	1: "Base",
+	2: "Role",
+}
+
+type UpdateRoleReq struct {
+	Base           *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	RoleID         string        `thrift:"RoleID,2,required" frugal:"2,required,string" json:"RoleID"`
+	DisplayName    string        `thrift:"DisplayName,3,required" frugal:"3,required,string" json:"DisplayName"`
+	Permissions    []string      `thrift:"Permissions,4,required" frugal:"4,required,list<string>" json:"Permissions"`
+	OperatorUserID string        `thrift:"OperatorUserID,5,required" frugal:"5,required,string" json:"OperatorUserID"`
+}
+
+func NewUpdateRoleReq() *UpdateRoleReq {
+	return &UpdateRoleReq{}
+}
+
+func (p *UpdateRoleReq) InitDefault() {
+}
+
+var UpdateRoleReq_Base_DEFAULT *base.BaseReq
+
+func (p *UpdateRoleReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return UpdateRoleReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *UpdateRoleReq) GetRoleID() (v string) {
+	return p.RoleID
+}
+
+func (p *UpdateRoleReq) GetDisplayName() (v string) {
+	return p.DisplayName
+}
+
+func (p *UpdateRoleReq) GetPermissions() (v []string) {
+	return p.Permissions
+}
+
+func (p *UpdateRoleReq) GetOperatorUserID() (v string) {
+	return p.OperatorUserID
+}
+func (p *UpdateRoleReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *UpdateRoleReq) SetRoleID(val string) {
+	p.RoleID = val
+}
+func (p *UpdateRoleReq) SetDisplayName(val string) {
+	p.DisplayName = val
+}
+func (p *UpdateRoleReq) SetPermissions(val []string) {
+	p.Permissions = val
+}
+func (p *UpdateRoleReq) SetOperatorUserID(val string) {
+	p.OperatorUserID = val
+}
+
+func (p *UpdateRoleReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UpdateRoleReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UpdateRoleReq(%+v)", *p)
+}
+
+var fieldIDToName_UpdateRoleReq = map[int16]string{
+	1: "Base",
+	2: "RoleID",
+	3: "DisplayName",
+	4: "Permissions",
+	5: "OperatorUserID",
+}
+
+type UpdateRoleResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewUpdateRoleResp() *UpdateRoleResp {
+	return &UpdateRoleResp{}
+}
+
+func (p *UpdateRoleResp) InitDefault() {
+}
+
+var UpdateRoleResp_Base_DEFAULT *base.BaseResp
+
+func (p *UpdateRoleResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return UpdateRoleResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *UpdateRoleResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *UpdateRoleResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UpdateRoleResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UpdateRoleResp(%+v)", *p)
+}
+
+var fieldIDToName_UpdateRoleResp = map[int16]string{
+	1: "Base",
+}
+
+type DeleteRoleReq struct {
+	Base           *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	RoleID         string        `thrift:"RoleID,2,required" frugal:"2,required,string" json:"RoleID"`
+	OperatorUserID string        `thrift:"OperatorUserID,3,required" frugal:"3,required,string" json:"OperatorUserID"`
+}
+
+func NewDeleteRoleReq() *DeleteRoleReq {
+	return &DeleteRoleReq{}
+}
+
+func (p *DeleteRoleReq) InitDefault() {
+}
+
+var DeleteRoleReq_Base_DEFAULT *base.BaseReq
+
+func (p *DeleteRoleReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return DeleteRoleReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *DeleteRoleReq) GetRoleID() (v string) {
+	return p.RoleID
+}
+
+func (p *DeleteRoleReq) GetOperatorUserID() (v string) {
+	return p.OperatorUserID
+}
+func (p *DeleteRoleReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *DeleteRoleReq) SetRoleID(val string) {
+	p.RoleID = val
+}
+func (p *DeleteRoleReq) SetOperatorUserID(val string) {
+	p.OperatorUserID = val
+}
+
+func (p *DeleteRoleReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *DeleteRoleReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("DeleteRoleReq(%+v)", *p)
+}
+
+var fieldIDToName_DeleteRoleReq = map[int16]string{
+	1: "Base",
+	2: "RoleID",
+	3: "OperatorUserID",
+}
+
+type DeleteRoleResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewDeleteRoleResp() *DeleteRoleResp {
+	return &DeleteRoleResp{}
+}
+
+func (p *DeleteRoleResp) InitDefault() {
+}
+
+var DeleteRoleResp_Base_DEFAULT *base.BaseResp
+
+func (p *DeleteRoleResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return DeleteRoleResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *DeleteRoleResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *DeleteRoleResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *DeleteRoleResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("DeleteRoleResp(%+v)", *p)
+}
+
+var fieldIDToName_DeleteRoleResp = map[int16]string{
+	1: "Base",
+}
+
+type PermissionItem struct {
+	Code        string `thrift:"Code,1,required" frugal:"1,required,string" json:"Code"`
+	DisplayName string `thrift:"DisplayName,2,required" frugal:"2,required,string" json:"DisplayName"`
+	Description string `thrift:"Description,3,required" frugal:"3,required,string" json:"Description"`
+	IsSystem    bool   `thrift:"IsSystem,4,required" frugal:"4,required,bool" json:"IsSystem"`
+}
+
+func NewPermissionItem() *PermissionItem {
+	return &PermissionItem{}
+}
+
+func (p *PermissionItem) InitDefault() {
+}
+
+func (p *PermissionItem) GetCode() (v string) {
+	return p.Code
+}
+
+func (p *PermissionItem) GetDisplayName() (v string) {
+	return p.DisplayName
+}
+
+func (p *PermissionItem) GetDescription() (v string) {
+	return p.Description
+}
+
+func (p *PermissionItem) GetIsSystem() (v bool) {
+	return p.IsSystem
+}
+func (p *PermissionItem) SetCode(val string) {
+	p.Code = val
+}
+func (p *PermissionItem) SetDisplayName(val string) {
+	p.DisplayName = val
+}
+func (p *PermissionItem) SetDescription(val string) {
+	p.Description = val
+}
+func (p *PermissionItem) SetIsSystem(val bool) {
+	p.IsSystem = val
+}
+
+func (p *PermissionItem) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("PermissionItem(%+v)", *p)
+}
+
+var fieldIDToName_PermissionItem = map[int16]string{
+	1: "Code",
+	2: "DisplayName",
+	3: "Description",
+	4: "IsSystem",
+}
+
+type ListPermissionsReq struct {
+	Base *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+}
+
+func NewListPermissionsReq() *ListPermissionsReq {
+	return &ListPermissionsReq{}
+}
+
+func (p *ListPermissionsReq) InitDefault() {
+}
+
+var ListPermissionsReq_Base_DEFAULT *base.BaseReq
+
+func (p *ListPermissionsReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return ListPermissionsReq_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *ListPermissionsReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+
+func (p *ListPermissionsReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListPermissionsReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListPermissionsReq(%+v)", *p)
+}
+
+var fieldIDToName_ListPermissionsReq = map[int16]string{
+	1: "Base",
+}
+
+type ListPermissionsResp struct {
+	Base        *base.BaseResp    `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Permissions []*PermissionItem `thrift:"Permissions,2,required" frugal:"2,required,list<PermissionItem>" json:"Permissions"`
+}
+
+func NewListPermissionsResp() *ListPermissionsResp {
+	return &ListPermissionsResp{}
+}
+
+func (p *ListPermissionsResp) InitDefault() {
+}
+
+var ListPermissionsResp_Base_DEFAULT *base.BaseResp
+
+func (p *ListPermissionsResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return ListPermissionsResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *ListPermissionsResp) GetPermissions() (v []*PermissionItem) {
+	return p.Permissions
+}
+func (p *ListPermissionsResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *ListPermissionsResp) SetPermissions(val []*PermissionItem) {
+	p.Permissions = val
+}
+
+func (p *ListPermissionsResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListPermissionsResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListPermissionsResp(%+v)", *p)
+}
+
+var fieldIDToName_ListPermissionsResp = map[int16]string{
+	1: "Base",
+	2: "Permissions",
+}
+
+type CreatePermissionReq struct {
+	Base           *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	Code           string        `thrift:"Code,2,required" frugal:"2,required,string" json:"Code"`
+	DisplayName    string        `thrift:"DisplayName,3,required" frugal:"3,required,string" json:"DisplayName"`
+	Description    string        `thrift:"Description,4,required" frugal:"4,required,string" json:"Description"`
+	OperatorUserID string        `thrift:"OperatorUserID,5,required" frugal:"5,required,string" json:"OperatorUserID"`
+}
+
+func NewCreatePermissionReq() *CreatePermissionReq {
+	return &CreatePermissionReq{}
+}
+
+func (p *CreatePermissionReq) InitDefault() {
+}
+
+var CreatePermissionReq_Base_DEFAULT *base.BaseReq
+
+func (p *CreatePermissionReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return CreatePermissionReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *CreatePermissionReq) GetCode() (v string) {
+	return p.Code
+}
+
+func (p *CreatePermissionReq) GetDisplayName() (v string) {
+	return p.DisplayName
+}
+
+func (p *CreatePermissionReq) GetDescription() (v string) {
+	return p.Description
+}
+
+func (p *CreatePermissionReq) GetOperatorUserID() (v string) {
+	return p.OperatorUserID
+}
+func (p *CreatePermissionReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *CreatePermissionReq) SetCode(val string) {
+	p.Code = val
+}
+func (p *CreatePermissionReq) SetDisplayName(val string) {
+	p.DisplayName = val
+}
+func (p *CreatePermissionReq) SetDescription(val string) {
+	p.Description = val
+}
+func (p *CreatePermissionReq) SetOperatorUserID(val string) {
+	p.OperatorUserID = val
+}
+
+func (p *CreatePermissionReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *CreatePermissionReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CreatePermissionReq(%+v)", *p)
+}
+
+var fieldIDToName_CreatePermissionReq = map[int16]string{
+	1: "Base",
+	2: "Code",
+	3: "DisplayName",
+	4: "Description",
+	5: "OperatorUserID",
+}
+
+type CreatePermissionResp struct {
+	Base       *base.BaseResp  `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Permission *PermissionItem `thrift:"Permission,2,required" frugal:"2,required,PermissionItem" json:"Permission"`
+}
+
+func NewCreatePermissionResp() *CreatePermissionResp {
+	return &CreatePermissionResp{}
+}
+
+func (p *CreatePermissionResp) InitDefault() {
+}
+
+var CreatePermissionResp_Base_DEFAULT *base.BaseResp
+
+func (p *CreatePermissionResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return CreatePermissionResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var CreatePermissionResp_Permission_DEFAULT *PermissionItem
+
+func (p *CreatePermissionResp) GetPermission() (v *PermissionItem) {
+	if !p.IsSetPermission() {
+		return CreatePermissionResp_Permission_DEFAULT
+	}
+	return p.Permission
+}
+func (p *CreatePermissionResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *CreatePermissionResp) SetPermission(val *PermissionItem) {
+	p.Permission = val
+}
+
+func (p *CreatePermissionResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *CreatePermissionResp) IsSetPermission() bool {
+	return p.Permission != nil
+}
+
+func (p *CreatePermissionResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CreatePermissionResp(%+v)", *p)
+}
+
+var fieldIDToName_CreatePermissionResp = map[int16]string{
+	1: "Base",
+	2: "Permission",
+}
+
+type GetRolePermissionsReq struct {
+	Base     *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	RoleName string        `thrift:"RoleName,2,required" frugal:"2,required,string" json:"RoleName"`
+}
+
+func NewGetRolePermissionsReq() *GetRolePermissionsReq {
+	return &GetRolePermissionsReq{}
+}
+
+func (p *GetRolePermissionsReq) InitDefault() {
+}
+
+var GetRolePermissionsReq_Base_DEFAULT *base.BaseReq
+
+func (p *GetRolePermissionsReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return GetRolePermissionsReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *GetRolePermissionsReq) GetRoleName() (v string) {
+	return p.RoleName
+}
+func (p *GetRolePermissionsReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *GetRolePermissionsReq) SetRoleName(val string) {
+	p.RoleName = val
+}
+
+func (p *GetRolePermissionsReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetRolePermissionsReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetRolePermissionsReq(%+v)", *p)
+}
+
+var fieldIDToName_GetRolePermissionsReq = map[int16]string{
+	1: "Base",
+	2: "RoleName",
+}
+
+type GetRolePermissionsResp struct {
+	Base        *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Permissions []string       `thrift:"Permissions,2,required" frugal:"2,required,list<string>" json:"Permissions"`
+}
+
+func NewGetRolePermissionsResp() *GetRolePermissionsResp {
+	return &GetRolePermissionsResp{}
+}
+
+func (p *GetRolePermissionsResp) InitDefault() {
+}
+
+var GetRolePermissionsResp_Base_DEFAULT *base.BaseResp
+
+func (p *GetRolePermissionsResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return GetRolePermissionsResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *GetRolePermissionsResp) GetPermissions() (v []string) {
+	return p.Permissions
+}
+func (p *GetRolePermissionsResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *GetRolePermissionsResp) SetPermissions(val []string) {
+	p.Permissions = val
+}
+
+func (p *GetRolePermissionsResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetRolePermissionsResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetRolePermissionsResp(%+v)", *p)
+}
+
+var fieldIDToName_GetRolePermissionsResp = map[int16]string{
+	1: "Base",
+	2: "Permissions",
 }
 
 type IAMService interface {
 	UpsertUserByProvider(ctx context.Context, req *UpsertUserByProviderReq) (r *UpsertUserByProviderResp, err error)
 
 	GetUser(ctx context.Context, req *GetUserReq) (r *GetUserResp, err error)
+
+	ListUsers(ctx context.Context, req *ListUsersReq) (r *ListUsersResp, err error)
+
+	UpdateUserRole(ctx context.Context, req *UpdateUserRoleReq) (r *UpdateUserRoleResp, err error)
+
+	UpdateUserStatus(ctx context.Context, req *UpdateUserStatusReq) (r *UpdateUserStatusResp, err error)
+
+	ListRoles(ctx context.Context, req *ListRolesReq) (r *ListRolesResp, err error)
+
+	CreateRole(ctx context.Context, req *CreateRoleReq) (r *CreateRoleResp, err error)
+
+	UpdateRole(ctx context.Context, req *UpdateRoleReq) (r *UpdateRoleResp, err error)
+
+	DeleteRole(ctx context.Context, req *DeleteRoleReq) (r *DeleteRoleResp, err error)
+
+	ListPermissions(ctx context.Context, req *ListPermissionsReq) (r *ListPermissionsResp, err error)
+
+	CreatePermission(ctx context.Context, req *CreatePermissionReq) (r *CreatePermissionResp, err error)
+
+	GetRolePermissions(ctx context.Context, req *GetRolePermissionsReq) (r *GetRolePermissionsResp, err error)
 }
 
 type IAMServiceUpsertUserByProviderArgs struct {
@@ -569,5 +2020,765 @@ func (p *IAMServiceGetUserResult) String() string {
 }
 
 var fieldIDToName_IAMServiceGetUserResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceListUsersArgs struct {
+	Req *ListUsersReq `thrift:"req,1" frugal:"1,default,ListUsersReq" json:"req"`
+}
+
+func NewIAMServiceListUsersArgs() *IAMServiceListUsersArgs {
+	return &IAMServiceListUsersArgs{}
+}
+
+func (p *IAMServiceListUsersArgs) InitDefault() {
+}
+
+var IAMServiceListUsersArgs_Req_DEFAULT *ListUsersReq
+
+func (p *IAMServiceListUsersArgs) GetReq() (v *ListUsersReq) {
+	if !p.IsSetReq() {
+		return IAMServiceListUsersArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceListUsersArgs) SetReq(val *ListUsersReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceListUsersArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceListUsersArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceListUsersArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceListUsersArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceListUsersResult struct {
+	Success *ListUsersResp `thrift:"success,0,optional" frugal:"0,optional,ListUsersResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceListUsersResult() *IAMServiceListUsersResult {
+	return &IAMServiceListUsersResult{}
+}
+
+func (p *IAMServiceListUsersResult) InitDefault() {
+}
+
+var IAMServiceListUsersResult_Success_DEFAULT *ListUsersResp
+
+func (p *IAMServiceListUsersResult) GetSuccess() (v *ListUsersResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceListUsersResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceListUsersResult) SetSuccess(x interface{}) {
+	p.Success = x.(*ListUsersResp)
+}
+
+func (p *IAMServiceListUsersResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceListUsersResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceListUsersResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceListUsersResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceUpdateUserRoleArgs struct {
+	Req *UpdateUserRoleReq `thrift:"req,1" frugal:"1,default,UpdateUserRoleReq" json:"req"`
+}
+
+func NewIAMServiceUpdateUserRoleArgs() *IAMServiceUpdateUserRoleArgs {
+	return &IAMServiceUpdateUserRoleArgs{}
+}
+
+func (p *IAMServiceUpdateUserRoleArgs) InitDefault() {
+}
+
+var IAMServiceUpdateUserRoleArgs_Req_DEFAULT *UpdateUserRoleReq
+
+func (p *IAMServiceUpdateUserRoleArgs) GetReq() (v *UpdateUserRoleReq) {
+	if !p.IsSetReq() {
+		return IAMServiceUpdateUserRoleArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceUpdateUserRoleArgs) SetReq(val *UpdateUserRoleReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceUpdateUserRoleArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceUpdateUserRoleArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceUpdateUserRoleArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceUpdateUserRoleArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceUpdateUserRoleResult struct {
+	Success *UpdateUserRoleResp `thrift:"success,0,optional" frugal:"0,optional,UpdateUserRoleResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceUpdateUserRoleResult() *IAMServiceUpdateUserRoleResult {
+	return &IAMServiceUpdateUserRoleResult{}
+}
+
+func (p *IAMServiceUpdateUserRoleResult) InitDefault() {
+}
+
+var IAMServiceUpdateUserRoleResult_Success_DEFAULT *UpdateUserRoleResp
+
+func (p *IAMServiceUpdateUserRoleResult) GetSuccess() (v *UpdateUserRoleResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceUpdateUserRoleResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceUpdateUserRoleResult) SetSuccess(x interface{}) {
+	p.Success = x.(*UpdateUserRoleResp)
+}
+
+func (p *IAMServiceUpdateUserRoleResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceUpdateUserRoleResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceUpdateUserRoleResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceUpdateUserRoleResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceUpdateUserStatusArgs struct {
+	Req *UpdateUserStatusReq `thrift:"req,1" frugal:"1,default,UpdateUserStatusReq" json:"req"`
+}
+
+func NewIAMServiceUpdateUserStatusArgs() *IAMServiceUpdateUserStatusArgs {
+	return &IAMServiceUpdateUserStatusArgs{}
+}
+
+func (p *IAMServiceUpdateUserStatusArgs) InitDefault() {
+}
+
+var IAMServiceUpdateUserStatusArgs_Req_DEFAULT *UpdateUserStatusReq
+
+func (p *IAMServiceUpdateUserStatusArgs) GetReq() (v *UpdateUserStatusReq) {
+	if !p.IsSetReq() {
+		return IAMServiceUpdateUserStatusArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceUpdateUserStatusArgs) SetReq(val *UpdateUserStatusReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceUpdateUserStatusArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceUpdateUserStatusArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceUpdateUserStatusArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceUpdateUserStatusArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceUpdateUserStatusResult struct {
+	Success *UpdateUserStatusResp `thrift:"success,0,optional" frugal:"0,optional,UpdateUserStatusResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceUpdateUserStatusResult() *IAMServiceUpdateUserStatusResult {
+	return &IAMServiceUpdateUserStatusResult{}
+}
+
+func (p *IAMServiceUpdateUserStatusResult) InitDefault() {
+}
+
+var IAMServiceUpdateUserStatusResult_Success_DEFAULT *UpdateUserStatusResp
+
+func (p *IAMServiceUpdateUserStatusResult) GetSuccess() (v *UpdateUserStatusResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceUpdateUserStatusResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceUpdateUserStatusResult) SetSuccess(x interface{}) {
+	p.Success = x.(*UpdateUserStatusResp)
+}
+
+func (p *IAMServiceUpdateUserStatusResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceUpdateUserStatusResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceUpdateUserStatusResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceUpdateUserStatusResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceListRolesArgs struct {
+	Req *ListRolesReq `thrift:"req,1" frugal:"1,default,ListRolesReq" json:"req"`
+}
+
+func NewIAMServiceListRolesArgs() *IAMServiceListRolesArgs {
+	return &IAMServiceListRolesArgs{}
+}
+
+func (p *IAMServiceListRolesArgs) InitDefault() {
+}
+
+var IAMServiceListRolesArgs_Req_DEFAULT *ListRolesReq
+
+func (p *IAMServiceListRolesArgs) GetReq() (v *ListRolesReq) {
+	if !p.IsSetReq() {
+		return IAMServiceListRolesArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceListRolesArgs) SetReq(val *ListRolesReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceListRolesArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceListRolesArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceListRolesArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceListRolesArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceListRolesResult struct {
+	Success *ListRolesResp `thrift:"success,0,optional" frugal:"0,optional,ListRolesResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceListRolesResult() *IAMServiceListRolesResult {
+	return &IAMServiceListRolesResult{}
+}
+
+func (p *IAMServiceListRolesResult) InitDefault() {
+}
+
+var IAMServiceListRolesResult_Success_DEFAULT *ListRolesResp
+
+func (p *IAMServiceListRolesResult) GetSuccess() (v *ListRolesResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceListRolesResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceListRolesResult) SetSuccess(x interface{}) {
+	p.Success = x.(*ListRolesResp)
+}
+
+func (p *IAMServiceListRolesResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceListRolesResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceListRolesResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceListRolesResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceCreateRoleArgs struct {
+	Req *CreateRoleReq `thrift:"req,1" frugal:"1,default,CreateRoleReq" json:"req"`
+}
+
+func NewIAMServiceCreateRoleArgs() *IAMServiceCreateRoleArgs {
+	return &IAMServiceCreateRoleArgs{}
+}
+
+func (p *IAMServiceCreateRoleArgs) InitDefault() {
+}
+
+var IAMServiceCreateRoleArgs_Req_DEFAULT *CreateRoleReq
+
+func (p *IAMServiceCreateRoleArgs) GetReq() (v *CreateRoleReq) {
+	if !p.IsSetReq() {
+		return IAMServiceCreateRoleArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceCreateRoleArgs) SetReq(val *CreateRoleReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceCreateRoleArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceCreateRoleArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceCreateRoleArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceCreateRoleArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceCreateRoleResult struct {
+	Success *CreateRoleResp `thrift:"success,0,optional" frugal:"0,optional,CreateRoleResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceCreateRoleResult() *IAMServiceCreateRoleResult {
+	return &IAMServiceCreateRoleResult{}
+}
+
+func (p *IAMServiceCreateRoleResult) InitDefault() {
+}
+
+var IAMServiceCreateRoleResult_Success_DEFAULT *CreateRoleResp
+
+func (p *IAMServiceCreateRoleResult) GetSuccess() (v *CreateRoleResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceCreateRoleResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceCreateRoleResult) SetSuccess(x interface{}) {
+	p.Success = x.(*CreateRoleResp)
+}
+
+func (p *IAMServiceCreateRoleResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceCreateRoleResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceCreateRoleResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceCreateRoleResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceUpdateRoleArgs struct {
+	Req *UpdateRoleReq `thrift:"req,1" frugal:"1,default,UpdateRoleReq" json:"req"`
+}
+
+func NewIAMServiceUpdateRoleArgs() *IAMServiceUpdateRoleArgs {
+	return &IAMServiceUpdateRoleArgs{}
+}
+
+func (p *IAMServiceUpdateRoleArgs) InitDefault() {
+}
+
+var IAMServiceUpdateRoleArgs_Req_DEFAULT *UpdateRoleReq
+
+func (p *IAMServiceUpdateRoleArgs) GetReq() (v *UpdateRoleReq) {
+	if !p.IsSetReq() {
+		return IAMServiceUpdateRoleArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceUpdateRoleArgs) SetReq(val *UpdateRoleReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceUpdateRoleArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceUpdateRoleArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceUpdateRoleArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceUpdateRoleArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceUpdateRoleResult struct {
+	Success *UpdateRoleResp `thrift:"success,0,optional" frugal:"0,optional,UpdateRoleResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceUpdateRoleResult() *IAMServiceUpdateRoleResult {
+	return &IAMServiceUpdateRoleResult{}
+}
+
+func (p *IAMServiceUpdateRoleResult) InitDefault() {
+}
+
+var IAMServiceUpdateRoleResult_Success_DEFAULT *UpdateRoleResp
+
+func (p *IAMServiceUpdateRoleResult) GetSuccess() (v *UpdateRoleResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceUpdateRoleResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceUpdateRoleResult) SetSuccess(x interface{}) {
+	p.Success = x.(*UpdateRoleResp)
+}
+
+func (p *IAMServiceUpdateRoleResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceUpdateRoleResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceUpdateRoleResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceUpdateRoleResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceDeleteRoleArgs struct {
+	Req *DeleteRoleReq `thrift:"req,1" frugal:"1,default,DeleteRoleReq" json:"req"`
+}
+
+func NewIAMServiceDeleteRoleArgs() *IAMServiceDeleteRoleArgs {
+	return &IAMServiceDeleteRoleArgs{}
+}
+
+func (p *IAMServiceDeleteRoleArgs) InitDefault() {
+}
+
+var IAMServiceDeleteRoleArgs_Req_DEFAULT *DeleteRoleReq
+
+func (p *IAMServiceDeleteRoleArgs) GetReq() (v *DeleteRoleReq) {
+	if !p.IsSetReq() {
+		return IAMServiceDeleteRoleArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceDeleteRoleArgs) SetReq(val *DeleteRoleReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceDeleteRoleArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceDeleteRoleArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceDeleteRoleArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceDeleteRoleArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceDeleteRoleResult struct {
+	Success *DeleteRoleResp `thrift:"success,0,optional" frugal:"0,optional,DeleteRoleResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceDeleteRoleResult() *IAMServiceDeleteRoleResult {
+	return &IAMServiceDeleteRoleResult{}
+}
+
+func (p *IAMServiceDeleteRoleResult) InitDefault() {
+}
+
+var IAMServiceDeleteRoleResult_Success_DEFAULT *DeleteRoleResp
+
+func (p *IAMServiceDeleteRoleResult) GetSuccess() (v *DeleteRoleResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceDeleteRoleResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceDeleteRoleResult) SetSuccess(x interface{}) {
+	p.Success = x.(*DeleteRoleResp)
+}
+
+func (p *IAMServiceDeleteRoleResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceDeleteRoleResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceDeleteRoleResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceDeleteRoleResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceListPermissionsArgs struct {
+	Req *ListPermissionsReq `thrift:"req,1" frugal:"1,default,ListPermissionsReq" json:"req"`
+}
+
+func NewIAMServiceListPermissionsArgs() *IAMServiceListPermissionsArgs {
+	return &IAMServiceListPermissionsArgs{}
+}
+
+func (p *IAMServiceListPermissionsArgs) InitDefault() {
+}
+
+var IAMServiceListPermissionsArgs_Req_DEFAULT *ListPermissionsReq
+
+func (p *IAMServiceListPermissionsArgs) GetReq() (v *ListPermissionsReq) {
+	if !p.IsSetReq() {
+		return IAMServiceListPermissionsArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceListPermissionsArgs) SetReq(val *ListPermissionsReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceListPermissionsArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceListPermissionsArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceListPermissionsArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceListPermissionsArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceListPermissionsResult struct {
+	Success *ListPermissionsResp `thrift:"success,0,optional" frugal:"0,optional,ListPermissionsResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceListPermissionsResult() *IAMServiceListPermissionsResult {
+	return &IAMServiceListPermissionsResult{}
+}
+
+func (p *IAMServiceListPermissionsResult) InitDefault() {
+}
+
+var IAMServiceListPermissionsResult_Success_DEFAULT *ListPermissionsResp
+
+func (p *IAMServiceListPermissionsResult) GetSuccess() (v *ListPermissionsResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceListPermissionsResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceListPermissionsResult) SetSuccess(x interface{}) {
+	p.Success = x.(*ListPermissionsResp)
+}
+
+func (p *IAMServiceListPermissionsResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceListPermissionsResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceListPermissionsResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceListPermissionsResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceCreatePermissionArgs struct {
+	Req *CreatePermissionReq `thrift:"req,1" frugal:"1,default,CreatePermissionReq" json:"req"`
+}
+
+func NewIAMServiceCreatePermissionArgs() *IAMServiceCreatePermissionArgs {
+	return &IAMServiceCreatePermissionArgs{}
+}
+
+func (p *IAMServiceCreatePermissionArgs) InitDefault() {
+}
+
+var IAMServiceCreatePermissionArgs_Req_DEFAULT *CreatePermissionReq
+
+func (p *IAMServiceCreatePermissionArgs) GetReq() (v *CreatePermissionReq) {
+	if !p.IsSetReq() {
+		return IAMServiceCreatePermissionArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceCreatePermissionArgs) SetReq(val *CreatePermissionReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceCreatePermissionArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceCreatePermissionArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceCreatePermissionArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceCreatePermissionArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceCreatePermissionResult struct {
+	Success *CreatePermissionResp `thrift:"success,0,optional" frugal:"0,optional,CreatePermissionResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceCreatePermissionResult() *IAMServiceCreatePermissionResult {
+	return &IAMServiceCreatePermissionResult{}
+}
+
+func (p *IAMServiceCreatePermissionResult) InitDefault() {
+}
+
+var IAMServiceCreatePermissionResult_Success_DEFAULT *CreatePermissionResp
+
+func (p *IAMServiceCreatePermissionResult) GetSuccess() (v *CreatePermissionResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceCreatePermissionResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceCreatePermissionResult) SetSuccess(x interface{}) {
+	p.Success = x.(*CreatePermissionResp)
+}
+
+func (p *IAMServiceCreatePermissionResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceCreatePermissionResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceCreatePermissionResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceCreatePermissionResult = map[int16]string{
+	0: "success",
+}
+
+type IAMServiceGetRolePermissionsArgs struct {
+	Req *GetRolePermissionsReq `thrift:"req,1" frugal:"1,default,GetRolePermissionsReq" json:"req"`
+}
+
+func NewIAMServiceGetRolePermissionsArgs() *IAMServiceGetRolePermissionsArgs {
+	return &IAMServiceGetRolePermissionsArgs{}
+}
+
+func (p *IAMServiceGetRolePermissionsArgs) InitDefault() {
+}
+
+var IAMServiceGetRolePermissionsArgs_Req_DEFAULT *GetRolePermissionsReq
+
+func (p *IAMServiceGetRolePermissionsArgs) GetReq() (v *GetRolePermissionsReq) {
+	if !p.IsSetReq() {
+		return IAMServiceGetRolePermissionsArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IAMServiceGetRolePermissionsArgs) SetReq(val *GetRolePermissionsReq) {
+	p.Req = val
+}
+
+func (p *IAMServiceGetRolePermissionsArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IAMServiceGetRolePermissionsArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceGetRolePermissionsArgs(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceGetRolePermissionsArgs = map[int16]string{
+	1: "req",
+}
+
+type IAMServiceGetRolePermissionsResult struct {
+	Success *GetRolePermissionsResp `thrift:"success,0,optional" frugal:"0,optional,GetRolePermissionsResp" json:"success,omitempty"`
+}
+
+func NewIAMServiceGetRolePermissionsResult() *IAMServiceGetRolePermissionsResult {
+	return &IAMServiceGetRolePermissionsResult{}
+}
+
+func (p *IAMServiceGetRolePermissionsResult) InitDefault() {
+}
+
+var IAMServiceGetRolePermissionsResult_Success_DEFAULT *GetRolePermissionsResp
+
+func (p *IAMServiceGetRolePermissionsResult) GetSuccess() (v *GetRolePermissionsResp) {
+	if !p.IsSetSuccess() {
+		return IAMServiceGetRolePermissionsResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IAMServiceGetRolePermissionsResult) SetSuccess(x interface{}) {
+	p.Success = x.(*GetRolePermissionsResp)
+}
+
+func (p *IAMServiceGetRolePermissionsResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IAMServiceGetRolePermissionsResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IAMServiceGetRolePermissionsResult(%+v)", *p)
+}
+
+var fieldIDToName_IAMServiceGetRolePermissionsResult = map[int16]string{
 	0: "success",
 }

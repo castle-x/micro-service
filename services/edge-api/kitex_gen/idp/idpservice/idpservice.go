@@ -41,6 +41,20 @@ var serviceMethods = map[string]kitex.MethodInfo{
 		false,
 		kitex.WithStreamingMode(kitex.StreamingNone),
 	),
+	"Register": kitex.NewMethodInfo(
+		registerHandler,
+		newIDPServiceRegisterArgs,
+		newIDPServiceRegisterResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"LoginByPassword": kitex.NewMethodInfo(
+		loginByPasswordHandler,
+		newIDPServiceLoginByPasswordArgs,
+		newIDPServiceLoginByPasswordResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
 	"RefreshToken": kitex.NewMethodInfo(
 		refreshTokenHandler,
 		newIDPServiceRefreshTokenArgs,
@@ -52,6 +66,27 @@ var serviceMethods = map[string]kitex.MethodInfo{
 		verifyTokenHandler,
 		newIDPServiceVerifyTokenArgs,
 		newIDPServiceVerifyTokenResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"RevokeUserTokens": kitex.NewMethodInfo(
+		revokeUserTokensHandler,
+		newIDPServiceRevokeUserTokensArgs,
+		newIDPServiceRevokeUserTokensResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"BanUser": kitex.NewMethodInfo(
+		banUserHandler,
+		newIDPServiceBanUserArgs,
+		newIDPServiceBanUserResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"UnbanUser": kitex.NewMethodInfo(
+		unbanUserHandler,
+		newIDPServiceUnbanUserArgs,
+		newIDPServiceUnbanUserResult,
 		false,
 		kitex.WithStreamingMode(kitex.StreamingNone),
 	),
@@ -193,6 +228,42 @@ func newIDPServiceLoginByAlipayResult() interface{} {
 	return idp.NewIDPServiceLoginByAlipayResult()
 }
 
+func registerHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceRegisterArgs)
+	realResult := result.(*idp.IDPServiceRegisterResult)
+	success, err := handler.(idp.IDPService).Register(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceRegisterArgs() interface{} {
+	return idp.NewIDPServiceRegisterArgs()
+}
+
+func newIDPServiceRegisterResult() interface{} {
+	return idp.NewIDPServiceRegisterResult()
+}
+
+func loginByPasswordHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceLoginByPasswordArgs)
+	realResult := result.(*idp.IDPServiceLoginByPasswordResult)
+	success, err := handler.(idp.IDPService).LoginByPassword(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceLoginByPasswordArgs() interface{} {
+	return idp.NewIDPServiceLoginByPasswordArgs()
+}
+
+func newIDPServiceLoginByPasswordResult() interface{} {
+	return idp.NewIDPServiceLoginByPasswordResult()
+}
+
 func refreshTokenHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
 	realArg := arg.(*idp.IDPServiceRefreshTokenArgs)
 	realResult := result.(*idp.IDPServiceRefreshTokenResult)
@@ -227,6 +298,60 @@ func newIDPServiceVerifyTokenArgs() interface{} {
 
 func newIDPServiceVerifyTokenResult() interface{} {
 	return idp.NewIDPServiceVerifyTokenResult()
+}
+
+func revokeUserTokensHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceRevokeUserTokensArgs)
+	realResult := result.(*idp.IDPServiceRevokeUserTokensResult)
+	success, err := handler.(idp.IDPService).RevokeUserTokens(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceRevokeUserTokensArgs() interface{} {
+	return idp.NewIDPServiceRevokeUserTokensArgs()
+}
+
+func newIDPServiceRevokeUserTokensResult() interface{} {
+	return idp.NewIDPServiceRevokeUserTokensResult()
+}
+
+func banUserHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceBanUserArgs)
+	realResult := result.(*idp.IDPServiceBanUserResult)
+	success, err := handler.(idp.IDPService).BanUser(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceBanUserArgs() interface{} {
+	return idp.NewIDPServiceBanUserArgs()
+}
+
+func newIDPServiceBanUserResult() interface{} {
+	return idp.NewIDPServiceBanUserResult()
+}
+
+func unbanUserHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*idp.IDPServiceUnbanUserArgs)
+	realResult := result.(*idp.IDPServiceUnbanUserResult)
+	success, err := handler.(idp.IDPService).UnbanUser(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newIDPServiceUnbanUserArgs() interface{} {
+	return idp.NewIDPServiceUnbanUserArgs()
+}
+
+func newIDPServiceUnbanUserResult() interface{} {
+	return idp.NewIDPServiceUnbanUserResult()
 }
 
 type kClient struct {
@@ -279,6 +404,26 @@ func (p *kClient) LoginByAlipay(ctx context.Context, req *idp.LoginByAlipayReq) 
 	return _result.GetSuccess(), nil
 }
 
+func (p *kClient) Register(ctx context.Context, req *idp.RegisterReq) (r *idp.RegisterResp, err error) {
+	var _args idp.IDPServiceRegisterArgs
+	_args.Req = req
+	var _result idp.IDPServiceRegisterResult
+	if err = p.c.Call(ctx, "Register", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) LoginByPassword(ctx context.Context, req *idp.LoginByPasswordReq) (r *idp.LoginByPasswordResp, err error) {
+	var _args idp.IDPServiceLoginByPasswordArgs
+	_args.Req = req
+	var _result idp.IDPServiceLoginByPasswordResult
+	if err = p.c.Call(ctx, "LoginByPassword", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
 func (p *kClient) RefreshToken(ctx context.Context, req *idp.RefreshTokenReq) (r *idp.RefreshTokenResp, err error) {
 	var _args idp.IDPServiceRefreshTokenArgs
 	_args.Req = req
@@ -294,6 +439,36 @@ func (p *kClient) VerifyToken(ctx context.Context, req *idp.VerifyTokenReq) (r *
 	_args.Req = req
 	var _result idp.IDPServiceVerifyTokenResult
 	if err = p.c.Call(ctx, "VerifyToken", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) RevokeUserTokens(ctx context.Context, req *idp.RevokeUserTokensReq) (r *idp.RevokeUserTokensResp, err error) {
+	var _args idp.IDPServiceRevokeUserTokensArgs
+	_args.Req = req
+	var _result idp.IDPServiceRevokeUserTokensResult
+	if err = p.c.Call(ctx, "RevokeUserTokens", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) BanUser(ctx context.Context, req *idp.BanUserReq) (r *idp.BanUserResp, err error) {
+	var _args idp.IDPServiceBanUserArgs
+	_args.Req = req
+	var _result idp.IDPServiceBanUserResult
+	if err = p.c.Call(ctx, "BanUser", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) UnbanUser(ctx context.Context, req *idp.UnbanUserReq) (r *idp.UnbanUserResp, err error) {
+	var _args idp.IDPServiceUnbanUserArgs
+	_args.Req = req
+	var _result idp.IDPServiceUnbanUserResult
+	if err = p.c.Call(ctx, "UnbanUser", &_args, &_result); err != nil {
 		return
 	}
 	return _result.GetSuccess(), nil

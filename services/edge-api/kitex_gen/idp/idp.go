@@ -801,6 +801,539 @@ var fieldIDToName_LoginByAlipayResp = map[int16]string{
 	5: "UserID",
 }
 
+type RegisterReq struct {
+	Base     *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	Email    string        `thrift:"Email,2,required" frugal:"2,required,string" json:"Email"`
+	Password string        `thrift:"Password,3,required" frugal:"3,required,string" json:"Password"`
+	Name     *string       `thrift:"Name,4,optional" frugal:"4,optional,string" json:"Name,omitempty"`
+}
+
+func NewRegisterReq() *RegisterReq {
+	return &RegisterReq{}
+}
+
+func (p *RegisterReq) InitDefault() {
+}
+
+var RegisterReq_Base_DEFAULT *base.BaseReq
+
+func (p *RegisterReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return RegisterReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *RegisterReq) GetEmail() (v string) {
+	return p.Email
+}
+
+func (p *RegisterReq) GetPassword() (v string) {
+	return p.Password
+}
+
+var RegisterReq_Name_DEFAULT string
+
+func (p *RegisterReq) GetName() (v string) {
+	if !p.IsSetName() {
+		return RegisterReq_Name_DEFAULT
+	}
+	return *p.Name
+}
+func (p *RegisterReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *RegisterReq) SetEmail(val string) {
+	p.Email = val
+}
+func (p *RegisterReq) SetPassword(val string) {
+	p.Password = val
+}
+func (p *RegisterReq) SetName(val *string) {
+	p.Name = val
+}
+
+func (p *RegisterReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *RegisterReq) IsSetName() bool {
+	return p.Name != nil
+}
+
+func (p *RegisterReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RegisterReq(%+v)", *p)
+}
+
+var fieldIDToName_RegisterReq = map[int16]string{
+	1: "Base",
+	2: "Email",
+	3: "Password",
+	4: "Name",
+}
+
+type RegisterResp struct {
+	Base         *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	AccessToken  string         `thrift:"AccessToken,2,required" frugal:"2,required,string" json:"AccessToken"`
+	RefreshToken string         `thrift:"RefreshToken,3,required" frugal:"3,required,string" json:"RefreshToken"`
+	ExpiresAt    int64          `thrift:"ExpiresAt,4,required" frugal:"4,required,i64" json:"ExpiresAt"`
+	UserID       string         `thrift:"UserID,5,required" frugal:"5,required,string" json:"UserID"`
+}
+
+func NewRegisterResp() *RegisterResp {
+	return &RegisterResp{}
+}
+
+func (p *RegisterResp) InitDefault() {
+}
+
+var RegisterResp_Base_DEFAULT *base.BaseResp
+
+func (p *RegisterResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return RegisterResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *RegisterResp) GetAccessToken() (v string) {
+	return p.AccessToken
+}
+
+func (p *RegisterResp) GetRefreshToken() (v string) {
+	return p.RefreshToken
+}
+
+func (p *RegisterResp) GetExpiresAt() (v int64) {
+	return p.ExpiresAt
+}
+
+func (p *RegisterResp) GetUserID() (v string) {
+	return p.UserID
+}
+func (p *RegisterResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *RegisterResp) SetAccessToken(val string) {
+	p.AccessToken = val
+}
+func (p *RegisterResp) SetRefreshToken(val string) {
+	p.RefreshToken = val
+}
+func (p *RegisterResp) SetExpiresAt(val int64) {
+	p.ExpiresAt = val
+}
+func (p *RegisterResp) SetUserID(val string) {
+	p.UserID = val
+}
+
+func (p *RegisterResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *RegisterResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RegisterResp(%+v)", *p)
+}
+
+var fieldIDToName_RegisterResp = map[int16]string{
+	1: "Base",
+	2: "AccessToken",
+	3: "RefreshToken",
+	4: "ExpiresAt",
+	5: "UserID",
+}
+
+type LoginByPasswordReq struct {
+	Base     *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	Email    string        `thrift:"Email,2,required" frugal:"2,required,string" json:"Email"`
+	Password string        `thrift:"Password,3,required" frugal:"3,required,string" json:"Password"`
+}
+
+func NewLoginByPasswordReq() *LoginByPasswordReq {
+	return &LoginByPasswordReq{}
+}
+
+func (p *LoginByPasswordReq) InitDefault() {
+}
+
+var LoginByPasswordReq_Base_DEFAULT *base.BaseReq
+
+func (p *LoginByPasswordReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return LoginByPasswordReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *LoginByPasswordReq) GetEmail() (v string) {
+	return p.Email
+}
+
+func (p *LoginByPasswordReq) GetPassword() (v string) {
+	return p.Password
+}
+func (p *LoginByPasswordReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *LoginByPasswordReq) SetEmail(val string) {
+	p.Email = val
+}
+func (p *LoginByPasswordReq) SetPassword(val string) {
+	p.Password = val
+}
+
+func (p *LoginByPasswordReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *LoginByPasswordReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LoginByPasswordReq(%+v)", *p)
+}
+
+var fieldIDToName_LoginByPasswordReq = map[int16]string{
+	1: "Base",
+	2: "Email",
+	3: "Password",
+}
+
+type LoginByPasswordResp struct {
+	Base         *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	AccessToken  string         `thrift:"AccessToken,2,required" frugal:"2,required,string" json:"AccessToken"`
+	RefreshToken string         `thrift:"RefreshToken,3,required" frugal:"3,required,string" json:"RefreshToken"`
+	ExpiresAt    int64          `thrift:"ExpiresAt,4,required" frugal:"4,required,i64" json:"ExpiresAt"`
+	UserID       string         `thrift:"UserID,5,required" frugal:"5,required,string" json:"UserID"`
+}
+
+func NewLoginByPasswordResp() *LoginByPasswordResp {
+	return &LoginByPasswordResp{}
+}
+
+func (p *LoginByPasswordResp) InitDefault() {
+}
+
+var LoginByPasswordResp_Base_DEFAULT *base.BaseResp
+
+func (p *LoginByPasswordResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return LoginByPasswordResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *LoginByPasswordResp) GetAccessToken() (v string) {
+	return p.AccessToken
+}
+
+func (p *LoginByPasswordResp) GetRefreshToken() (v string) {
+	return p.RefreshToken
+}
+
+func (p *LoginByPasswordResp) GetExpiresAt() (v int64) {
+	return p.ExpiresAt
+}
+
+func (p *LoginByPasswordResp) GetUserID() (v string) {
+	return p.UserID
+}
+func (p *LoginByPasswordResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *LoginByPasswordResp) SetAccessToken(val string) {
+	p.AccessToken = val
+}
+func (p *LoginByPasswordResp) SetRefreshToken(val string) {
+	p.RefreshToken = val
+}
+func (p *LoginByPasswordResp) SetExpiresAt(val int64) {
+	p.ExpiresAt = val
+}
+func (p *LoginByPasswordResp) SetUserID(val string) {
+	p.UserID = val
+}
+
+func (p *LoginByPasswordResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *LoginByPasswordResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LoginByPasswordResp(%+v)", *p)
+}
+
+var fieldIDToName_LoginByPasswordResp = map[int16]string{
+	1: "Base",
+	2: "AccessToken",
+	3: "RefreshToken",
+	4: "ExpiresAt",
+	5: "UserID",
+}
+
+type RevokeUserTokensReq struct {
+	Base   *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	UserID string        `thrift:"UserID,2,required" frugal:"2,required,string" json:"UserID"`
+}
+
+func NewRevokeUserTokensReq() *RevokeUserTokensReq {
+	return &RevokeUserTokensReq{}
+}
+
+func (p *RevokeUserTokensReq) InitDefault() {
+}
+
+var RevokeUserTokensReq_Base_DEFAULT *base.BaseReq
+
+func (p *RevokeUserTokensReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return RevokeUserTokensReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *RevokeUserTokensReq) GetUserID() (v string) {
+	return p.UserID
+}
+func (p *RevokeUserTokensReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *RevokeUserTokensReq) SetUserID(val string) {
+	p.UserID = val
+}
+
+func (p *RevokeUserTokensReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *RevokeUserTokensReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RevokeUserTokensReq(%+v)", *p)
+}
+
+var fieldIDToName_RevokeUserTokensReq = map[int16]string{
+	1: "Base",
+	2: "UserID",
+}
+
+type RevokeUserTokensResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewRevokeUserTokensResp() *RevokeUserTokensResp {
+	return &RevokeUserTokensResp{}
+}
+
+func (p *RevokeUserTokensResp) InitDefault() {
+}
+
+var RevokeUserTokensResp_Base_DEFAULT *base.BaseResp
+
+func (p *RevokeUserTokensResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return RevokeUserTokensResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *RevokeUserTokensResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *RevokeUserTokensResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *RevokeUserTokensResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RevokeUserTokensResp(%+v)", *p)
+}
+
+var fieldIDToName_RevokeUserTokensResp = map[int16]string{
+	1: "Base",
+}
+
+type BanUserReq struct {
+	Base   *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	UserID string        `thrift:"UserID,2,required" frugal:"2,required,string" json:"UserID"`
+}
+
+func NewBanUserReq() *BanUserReq {
+	return &BanUserReq{}
+}
+
+func (p *BanUserReq) InitDefault() {
+}
+
+var BanUserReq_Base_DEFAULT *base.BaseReq
+
+func (p *BanUserReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return BanUserReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *BanUserReq) GetUserID() (v string) {
+	return p.UserID
+}
+func (p *BanUserReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *BanUserReq) SetUserID(val string) {
+	p.UserID = val
+}
+
+func (p *BanUserReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *BanUserReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BanUserReq(%+v)", *p)
+}
+
+var fieldIDToName_BanUserReq = map[int16]string{
+	1: "Base",
+	2: "UserID",
+}
+
+type BanUserResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewBanUserResp() *BanUserResp {
+	return &BanUserResp{}
+}
+
+func (p *BanUserResp) InitDefault() {
+}
+
+var BanUserResp_Base_DEFAULT *base.BaseResp
+
+func (p *BanUserResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return BanUserResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *BanUserResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *BanUserResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *BanUserResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BanUserResp(%+v)", *p)
+}
+
+var fieldIDToName_BanUserResp = map[int16]string{
+	1: "Base",
+}
+
+type UnbanUserReq struct {
+	Base   *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	UserID string        `thrift:"UserID,2,required" frugal:"2,required,string" json:"UserID"`
+}
+
+func NewUnbanUserReq() *UnbanUserReq {
+	return &UnbanUserReq{}
+}
+
+func (p *UnbanUserReq) InitDefault() {
+}
+
+var UnbanUserReq_Base_DEFAULT *base.BaseReq
+
+func (p *UnbanUserReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return UnbanUserReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *UnbanUserReq) GetUserID() (v string) {
+	return p.UserID
+}
+func (p *UnbanUserReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *UnbanUserReq) SetUserID(val string) {
+	p.UserID = val
+}
+
+func (p *UnbanUserReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UnbanUserReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UnbanUserReq(%+v)", *p)
+}
+
+var fieldIDToName_UnbanUserReq = map[int16]string{
+	1: "Base",
+	2: "UserID",
+}
+
+type UnbanUserResp struct {
+	Base *base.BaseResp `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+}
+
+func NewUnbanUserResp() *UnbanUserResp {
+	return &UnbanUserResp{}
+}
+
+func (p *UnbanUserResp) InitDefault() {
+}
+
+var UnbanUserResp_Base_DEFAULT *base.BaseResp
+
+func (p *UnbanUserResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return UnbanUserResp_Base_DEFAULT
+	}
+	return p.Base
+}
+func (p *UnbanUserResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+
+func (p *UnbanUserResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *UnbanUserResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("UnbanUserResp(%+v)", *p)
+}
+
+var fieldIDToName_UnbanUserResp = map[int16]string{
+	1: "Base",
+}
+
 type IDPService interface {
 	GetGoogleAuthURL(ctx context.Context, req *GetGoogleAuthURLReq) (r *GetGoogleAuthURLResp, err error)
 
@@ -810,9 +1343,19 @@ type IDPService interface {
 
 	LoginByAlipay(ctx context.Context, req *LoginByAlipayReq) (r *LoginByAlipayResp, err error)
 
+	Register(ctx context.Context, req *RegisterReq) (r *RegisterResp, err error)
+
+	LoginByPassword(ctx context.Context, req *LoginByPasswordReq) (r *LoginByPasswordResp, err error)
+
 	RefreshToken(ctx context.Context, req *RefreshTokenReq) (r *RefreshTokenResp, err error)
 
 	VerifyToken(ctx context.Context, req *VerifyTokenReq) (r *VerifyTokenResp, err error)
+
+	RevokeUserTokens(ctx context.Context, req *RevokeUserTokensReq) (r *RevokeUserTokensResp, err error)
+
+	BanUser(ctx context.Context, req *BanUserReq) (r *BanUserResp, err error)
+
+	UnbanUser(ctx context.Context, req *UnbanUserReq) (r *UnbanUserResp, err error)
 }
 
 type IDPServiceGetGoogleAuthURLArgs struct {
@@ -1119,6 +1662,158 @@ var fieldIDToName_IDPServiceLoginByAlipayResult = map[int16]string{
 	0: "success",
 }
 
+type IDPServiceRegisterArgs struct {
+	Req *RegisterReq `thrift:"req,1" frugal:"1,default,RegisterReq" json:"req"`
+}
+
+func NewIDPServiceRegisterArgs() *IDPServiceRegisterArgs {
+	return &IDPServiceRegisterArgs{}
+}
+
+func (p *IDPServiceRegisterArgs) InitDefault() {
+}
+
+var IDPServiceRegisterArgs_Req_DEFAULT *RegisterReq
+
+func (p *IDPServiceRegisterArgs) GetReq() (v *RegisterReq) {
+	if !p.IsSetReq() {
+		return IDPServiceRegisterArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceRegisterArgs) SetReq(val *RegisterReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceRegisterArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceRegisterArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceRegisterArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceRegisterArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceRegisterResult struct {
+	Success *RegisterResp `thrift:"success,0,optional" frugal:"0,optional,RegisterResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceRegisterResult() *IDPServiceRegisterResult {
+	return &IDPServiceRegisterResult{}
+}
+
+func (p *IDPServiceRegisterResult) InitDefault() {
+}
+
+var IDPServiceRegisterResult_Success_DEFAULT *RegisterResp
+
+func (p *IDPServiceRegisterResult) GetSuccess() (v *RegisterResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceRegisterResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceRegisterResult) SetSuccess(x interface{}) {
+	p.Success = x.(*RegisterResp)
+}
+
+func (p *IDPServiceRegisterResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceRegisterResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceRegisterResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceRegisterResult = map[int16]string{
+	0: "success",
+}
+
+type IDPServiceLoginByPasswordArgs struct {
+	Req *LoginByPasswordReq `thrift:"req,1" frugal:"1,default,LoginByPasswordReq" json:"req"`
+}
+
+func NewIDPServiceLoginByPasswordArgs() *IDPServiceLoginByPasswordArgs {
+	return &IDPServiceLoginByPasswordArgs{}
+}
+
+func (p *IDPServiceLoginByPasswordArgs) InitDefault() {
+}
+
+var IDPServiceLoginByPasswordArgs_Req_DEFAULT *LoginByPasswordReq
+
+func (p *IDPServiceLoginByPasswordArgs) GetReq() (v *LoginByPasswordReq) {
+	if !p.IsSetReq() {
+		return IDPServiceLoginByPasswordArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceLoginByPasswordArgs) SetReq(val *LoginByPasswordReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceLoginByPasswordArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceLoginByPasswordArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceLoginByPasswordArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceLoginByPasswordArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceLoginByPasswordResult struct {
+	Success *LoginByPasswordResp `thrift:"success,0,optional" frugal:"0,optional,LoginByPasswordResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceLoginByPasswordResult() *IDPServiceLoginByPasswordResult {
+	return &IDPServiceLoginByPasswordResult{}
+}
+
+func (p *IDPServiceLoginByPasswordResult) InitDefault() {
+}
+
+var IDPServiceLoginByPasswordResult_Success_DEFAULT *LoginByPasswordResp
+
+func (p *IDPServiceLoginByPasswordResult) GetSuccess() (v *LoginByPasswordResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceLoginByPasswordResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceLoginByPasswordResult) SetSuccess(x interface{}) {
+	p.Success = x.(*LoginByPasswordResp)
+}
+
+func (p *IDPServiceLoginByPasswordResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceLoginByPasswordResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceLoginByPasswordResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceLoginByPasswordResult = map[int16]string{
+	0: "success",
+}
+
 type IDPServiceRefreshTokenArgs struct {
 	Req *RefreshTokenReq `thrift:"req,1" frugal:"1,default,RefreshTokenReq" json:"req"`
 }
@@ -1268,5 +1963,233 @@ func (p *IDPServiceVerifyTokenResult) String() string {
 }
 
 var fieldIDToName_IDPServiceVerifyTokenResult = map[int16]string{
+	0: "success",
+}
+
+type IDPServiceRevokeUserTokensArgs struct {
+	Req *RevokeUserTokensReq `thrift:"req,1" frugal:"1,default,RevokeUserTokensReq" json:"req"`
+}
+
+func NewIDPServiceRevokeUserTokensArgs() *IDPServiceRevokeUserTokensArgs {
+	return &IDPServiceRevokeUserTokensArgs{}
+}
+
+func (p *IDPServiceRevokeUserTokensArgs) InitDefault() {
+}
+
+var IDPServiceRevokeUserTokensArgs_Req_DEFAULT *RevokeUserTokensReq
+
+func (p *IDPServiceRevokeUserTokensArgs) GetReq() (v *RevokeUserTokensReq) {
+	if !p.IsSetReq() {
+		return IDPServiceRevokeUserTokensArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceRevokeUserTokensArgs) SetReq(val *RevokeUserTokensReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceRevokeUserTokensArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceRevokeUserTokensArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceRevokeUserTokensArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceRevokeUserTokensArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceRevokeUserTokensResult struct {
+	Success *RevokeUserTokensResp `thrift:"success,0,optional" frugal:"0,optional,RevokeUserTokensResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceRevokeUserTokensResult() *IDPServiceRevokeUserTokensResult {
+	return &IDPServiceRevokeUserTokensResult{}
+}
+
+func (p *IDPServiceRevokeUserTokensResult) InitDefault() {
+}
+
+var IDPServiceRevokeUserTokensResult_Success_DEFAULT *RevokeUserTokensResp
+
+func (p *IDPServiceRevokeUserTokensResult) GetSuccess() (v *RevokeUserTokensResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceRevokeUserTokensResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceRevokeUserTokensResult) SetSuccess(x interface{}) {
+	p.Success = x.(*RevokeUserTokensResp)
+}
+
+func (p *IDPServiceRevokeUserTokensResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceRevokeUserTokensResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceRevokeUserTokensResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceRevokeUserTokensResult = map[int16]string{
+	0: "success",
+}
+
+type IDPServiceBanUserArgs struct {
+	Req *BanUserReq `thrift:"req,1" frugal:"1,default,BanUserReq" json:"req"`
+}
+
+func NewIDPServiceBanUserArgs() *IDPServiceBanUserArgs {
+	return &IDPServiceBanUserArgs{}
+}
+
+func (p *IDPServiceBanUserArgs) InitDefault() {
+}
+
+var IDPServiceBanUserArgs_Req_DEFAULT *BanUserReq
+
+func (p *IDPServiceBanUserArgs) GetReq() (v *BanUserReq) {
+	if !p.IsSetReq() {
+		return IDPServiceBanUserArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceBanUserArgs) SetReq(val *BanUserReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceBanUserArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceBanUserArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceBanUserArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceBanUserArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceBanUserResult struct {
+	Success *BanUserResp `thrift:"success,0,optional" frugal:"0,optional,BanUserResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceBanUserResult() *IDPServiceBanUserResult {
+	return &IDPServiceBanUserResult{}
+}
+
+func (p *IDPServiceBanUserResult) InitDefault() {
+}
+
+var IDPServiceBanUserResult_Success_DEFAULT *BanUserResp
+
+func (p *IDPServiceBanUserResult) GetSuccess() (v *BanUserResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceBanUserResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceBanUserResult) SetSuccess(x interface{}) {
+	p.Success = x.(*BanUserResp)
+}
+
+func (p *IDPServiceBanUserResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceBanUserResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceBanUserResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceBanUserResult = map[int16]string{
+	0: "success",
+}
+
+type IDPServiceUnbanUserArgs struct {
+	Req *UnbanUserReq `thrift:"req,1" frugal:"1,default,UnbanUserReq" json:"req"`
+}
+
+func NewIDPServiceUnbanUserArgs() *IDPServiceUnbanUserArgs {
+	return &IDPServiceUnbanUserArgs{}
+}
+
+func (p *IDPServiceUnbanUserArgs) InitDefault() {
+}
+
+var IDPServiceUnbanUserArgs_Req_DEFAULT *UnbanUserReq
+
+func (p *IDPServiceUnbanUserArgs) GetReq() (v *UnbanUserReq) {
+	if !p.IsSetReq() {
+		return IDPServiceUnbanUserArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *IDPServiceUnbanUserArgs) SetReq(val *UnbanUserReq) {
+	p.Req = val
+}
+
+func (p *IDPServiceUnbanUserArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *IDPServiceUnbanUserArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceUnbanUserArgs(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceUnbanUserArgs = map[int16]string{
+	1: "req",
+}
+
+type IDPServiceUnbanUserResult struct {
+	Success *UnbanUserResp `thrift:"success,0,optional" frugal:"0,optional,UnbanUserResp" json:"success,omitempty"`
+}
+
+func NewIDPServiceUnbanUserResult() *IDPServiceUnbanUserResult {
+	return &IDPServiceUnbanUserResult{}
+}
+
+func (p *IDPServiceUnbanUserResult) InitDefault() {
+}
+
+var IDPServiceUnbanUserResult_Success_DEFAULT *UnbanUserResp
+
+func (p *IDPServiceUnbanUserResult) GetSuccess() (v *UnbanUserResp) {
+	if !p.IsSetSuccess() {
+		return IDPServiceUnbanUserResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IDPServiceUnbanUserResult) SetSuccess(x interface{}) {
+	p.Success = x.(*UnbanUserResp)
+}
+
+func (p *IDPServiceUnbanUserResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IDPServiceUnbanUserResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IDPServiceUnbanUserResult(%+v)", *p)
+}
+
+var fieldIDToName_IDPServiceUnbanUserResult = map[int16]string{
 	0: "success",
 }

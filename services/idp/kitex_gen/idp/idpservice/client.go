@@ -15,8 +15,13 @@ type Client interface {
 	LoginByGoogle(ctx context.Context, req *idp.LoginByGoogleReq, callOptions ...callopt.Option) (r *idp.LoginByGoogleResp, err error)
 	GetAlipayAuthURL(ctx context.Context, req *idp.GetAlipayAuthURLReq, callOptions ...callopt.Option) (r *idp.GetAlipayAuthURLResp, err error)
 	LoginByAlipay(ctx context.Context, req *idp.LoginByAlipayReq, callOptions ...callopt.Option) (r *idp.LoginByAlipayResp, err error)
+	Register(ctx context.Context, req *idp.RegisterReq, callOptions ...callopt.Option) (r *idp.RegisterResp, err error)
+	LoginByPassword(ctx context.Context, req *idp.LoginByPasswordReq, callOptions ...callopt.Option) (r *idp.LoginByPasswordResp, err error)
 	RefreshToken(ctx context.Context, req *idp.RefreshTokenReq, callOptions ...callopt.Option) (r *idp.RefreshTokenResp, err error)
 	VerifyToken(ctx context.Context, req *idp.VerifyTokenReq, callOptions ...callopt.Option) (r *idp.VerifyTokenResp, err error)
+	RevokeUserTokens(ctx context.Context, req *idp.RevokeUserTokensReq, callOptions ...callopt.Option) (r *idp.RevokeUserTokensResp, err error)
+	BanUser(ctx context.Context, req *idp.BanUserReq, callOptions ...callopt.Option) (r *idp.BanUserResp, err error)
+	UnbanUser(ctx context.Context, req *idp.UnbanUserReq, callOptions ...callopt.Option) (r *idp.UnbanUserResp, err error)
 }
 
 // NewClient creates a client for the service defined in IDL.
@@ -68,6 +73,16 @@ func (p *kIDPServiceClient) LoginByAlipay(ctx context.Context, req *idp.LoginByA
 	return p.kClient.LoginByAlipay(ctx, req)
 }
 
+func (p *kIDPServiceClient) Register(ctx context.Context, req *idp.RegisterReq, callOptions ...callopt.Option) (r *idp.RegisterResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.Register(ctx, req)
+}
+
+func (p *kIDPServiceClient) LoginByPassword(ctx context.Context, req *idp.LoginByPasswordReq, callOptions ...callopt.Option) (r *idp.LoginByPasswordResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.LoginByPassword(ctx, req)
+}
+
 func (p *kIDPServiceClient) RefreshToken(ctx context.Context, req *idp.RefreshTokenReq, callOptions ...callopt.Option) (r *idp.RefreshTokenResp, err error) {
 	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
 	return p.kClient.RefreshToken(ctx, req)
@@ -76,4 +91,19 @@ func (p *kIDPServiceClient) RefreshToken(ctx context.Context, req *idp.RefreshTo
 func (p *kIDPServiceClient) VerifyToken(ctx context.Context, req *idp.VerifyTokenReq, callOptions ...callopt.Option) (r *idp.VerifyTokenResp, err error) {
 	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
 	return p.kClient.VerifyToken(ctx, req)
+}
+
+func (p *kIDPServiceClient) RevokeUserTokens(ctx context.Context, req *idp.RevokeUserTokensReq, callOptions ...callopt.Option) (r *idp.RevokeUserTokensResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.RevokeUserTokens(ctx, req)
+}
+
+func (p *kIDPServiceClient) BanUser(ctx context.Context, req *idp.BanUserReq, callOptions ...callopt.Option) (r *idp.BanUserResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.BanUser(ctx, req)
+}
+
+func (p *kIDPServiceClient) UnbanUser(ctx context.Context, req *idp.UnbanUserReq, callOptions ...callopt.Option) (r *idp.UnbanUserResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.UnbanUser(ctx, req)
 }
