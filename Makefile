@@ -1,8 +1,8 @@
-.PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps test test-pkg test-services lint fmt clean help
+.PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps test test-pkg test-services lint fmt clean help model-start model-stop model-restart
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification
-ALL_SERVICES := edge-api $(SERVICES)
+ALL_SERVICES := edge-api model $(SERVICES)
 BIN_DIR := bin
 
 # 自动检测 docker compose 命令（新版插件 vs 旧版独立命令）
@@ -15,6 +15,9 @@ help:
 	@echo "  make dev-start     [DEV] 一键启动：infra + 编译 + 后端三服务 + 前端"
 	@echo "  make dev-restart   [DEV] 重编译并按正确顺序重启所有后端服务"
 	@echo "  make dev-stop      [DEV] 一键停止所有服务进程（不停 Docker）"
+	@echo "  make model-start   [MODEL] 单独编译并启动 model service :38083"
+	@echo "  make model-stop    [MODEL] 停止 model service"
+	@echo "  make model-restart [MODEL] 重编译并重启 model service"
 	@echo "  make infra-up      Start local dev dependencies (MongoDB + Redis) via Docker"
 	@echo "  make infra-down    Stop local dev dependencies"
 	@echo "  make infra-ps      Show status of local dev containers"
@@ -79,6 +82,8 @@ dev-start: infra-up build
 	@env $$(cat .env | grep -v '^#' | xargs) ./bin/idp > bin/log/idp.log 2>&1 &
 	@echo ">>> [DEV] Starting edge-api :38080)..."
 	@env $$(cat .env | grep -v '^#' | xargs) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
+	@echo ">>> [DEV] Starting model :38083)..."
+	@env $$(cat .env | grep -v '^#' | xargs) ./bin/model > bin/log/model.log 2>&1 &
 	@sleep 2
 	@echo ">>> [DEV] Starting web dev server :35173)..."
 	@cd web && npm run dev > ../bin/log/web.log 2>&1 &
@@ -97,6 +102,7 @@ dev-stop:
 	@lsof -ti tcp:38080 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:38081 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:38082 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null || true
 	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
 
@@ -110,6 +116,7 @@ dev-restart: dev-stop build
 	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/idp > bin/log/idp.log 2>&1 &
 	@sleep 1
 	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/model > bin/log/model.log 2>&1 &
 	@sleep 2
 	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null; true
 	@cd web && npm run dev > ../bin/log/web.log 2>&1 &
@@ -120,6 +127,34 @@ dev-restart: dev-stop build
 	@echo "     Frontend → http://localhost:35173"
 	@echo ""
 	@echo "  Logs: bin/log/{iam,idp,edge-api,web}.log"
+
+
+# ----------------------------------------------------------------
+# [MODEL] 单独启动 / 停止 / 重启 model service（:38083）
+# 前置：.env 存在（包含 MODEL_ENCRYPT_KEY 等），infra 已启动
+# 日志：bin/log/model.log
+# ----------------------------------------------------------------
+model-start: build
+	@mkdir -p bin/log
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
+	@echo ">>> [MODEL] Starting model service :38083..."
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/model > bin/log/model.log 2>&1 &
+	@sleep 1
+	@echo ">>> [MODEL] model service started. Log: bin/log/model.log"
+
+model-stop:
+	@echo ">>> [MODEL] Stopping model service..."
+	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
+	@echo ">>> [MODEL] Stopped."
+
+model-restart: model-stop build
+	@mkdir -p bin/log
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@echo ">>> [MODEL] Starting model service :38083..."
+	@env $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) ./bin/model > bin/log/model.log 2>&1 &
+	@sleep 1
+	@echo ">>> [MODEL] model service restarted. Log: bin/log/model.log"
 
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)
@@ -138,6 +173,8 @@ build:
 		echo ">>> Building $$svc..."; \
 		cd services/$$svc && go build -o ../../$(BIN_DIR)/$$svc . && cd ../..; \
 	done
+	@echo ">>> Building iam-bootstrap..."
+	@cd services/iam && go build -o ../../$(BIN_DIR)/iam-bootstrap ./cmd/bootstrap/ && cd ../..
 
 # Start full infrastructure (all services including etcd/NSQ/Kong)
 dev-full:

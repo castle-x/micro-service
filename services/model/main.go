@@ -1,0 +1,105 @@
+// Package main 是 model service 入口，基于 Hertz 框架（端口 :38083）。
+package main
+
+import (
+	"context"
+	"os"
+	"time"
+
+	"github.com/cloudwego/hertz/pkg/app/server"
+	"go.uber.org/zap"
+
+	"github.com/castlexu/micro-service/pkg/config"
+	"github.com/castlexu/micro-service/pkg/db"
+	"github.com/castlexu/micro-service/pkg/logger"
+	mw "github.com/castlexu/micro-service/pkg/middleware"
+	mdlbiz "github.com/castlexu/micro-service/services/model/biz"
+	mdlmongo "github.com/castlexu/micro-service/services/model/dal/mongo"
+	mdlhandler "github.com/castlexu/micro-service/services/model/handler"
+)
+
+// ModelConfig 是 model service 配置。
+type ModelConfig struct {
+	Mongo struct {
+		URI string `mapstructure:"uri"`
+		DB  string `mapstructure:"db"`
+	} `mapstructure:"mongo"`
+	Server struct {
+		Addr string `mapstructure:"addr"`
+	} `mapstructure:"server"`
+	Encrypt struct {
+		// Key 是 32 字节 base64 或原始字符串，优先读 MODEL_ENCRYPT_KEY 环境变量
+		Key string `mapstructure:"key"`
+	} `mapstructure:"encrypt"`
+}
+
+func main() {
+	_ = logger.Init(logger.Options{Service: "model"})
+	defer logger.Sync()
+	mw.RegisterLoggerExtractor()
+
+	cfgPath := os.Getenv("MODEL_CONFIG")
+	if cfgPath == "" {
+		cfgPath = "deployments/config/model.yaml"
+	}
+	var cfg ModelConfig
+	if err := config.Load(cfgPath, &cfg); err != nil {
+		logger.L().Fatal("load config failed", zap.Error(err))
+	}
+
+	// 加密主密钥（32 字节），优先读环境变量
+	encKeyStr := os.Getenv("MODEL_ENCRYPT_KEY")
+	if encKeyStr == "" {
+		encKeyStr = cfg.Encrypt.Key
+	}
+	if len(encKeyStr) < 32 {
+		// dev 环境兜底：不配置时使用固定 dev key，生产环境必须设置
+		logger.L().Warn("MODEL_ENCRYPT_KEY not set or too short, using dev fallback — do NOT use in production")
+		encKeyStr = "dev-model-encrypt-key-32bytesXXX"
+	}
+	encryptKey := []byte(encKeyStr)[:32]
+
+	// MongoDB
+	mongoURI := cfg.Mongo.URI
+	if mongoURI == "" {
+		mongoURI = "mongodb://localhost:27017"
+	}
+	dbName := cfg.Mongo.DB
+	if dbName == "" {
+		dbName = "platform"
+	}
+	mongoClient, err := db.InitMongo(db.MongoConfig{URI: mongoURI, DBName: dbName})
+	if err != nil {
+		logger.L().Fatal("mongo init failed", zap.Error(err))
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mongoClient.Close(ctx)
+	}()
+
+	// 建立索引
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	providerRepo := mdlmongo.NewProviderRepo(mongoClient)
+	if err := providerRepo.EnsureIndexes(ctx, mongoClient); err != nil {
+		logger.L().Warn("ensure model_providers indexes failed", zap.Error(err))
+	}
+
+	// 依赖组装
+	providerBiz := mdlbiz.NewProviderBiz(providerRepo, encryptKey)
+	providerHandler := mdlhandler.NewProviderHandler(providerBiz)
+	chatBiz := mdlbiz.NewChatBiz(providerBiz)
+	chatHandler := mdlhandler.NewChatHandler(chatBiz)
+
+	// Hertz server
+	addr := cfg.Server.Addr
+	if addr == "" {
+		addr = ":38083"
+	}
+	h := server.Default(server.WithHostPorts(addr))
+	RegisterRoutes(h, providerHandler, chatHandler)
+
+	logger.L().Info("model service listening", zap.String("addr", addr))
+	h.Spin()
+}

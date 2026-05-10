@@ -7,6 +7,8 @@
 //   - Billing     : 13001 - 13999
 //   - Credits     : 14001 - 14999
 //   - Notification: 15001 - 15999
+//   - Model       : 16001 - 16999
+//   - Model       : 16001 - 16999
 //
 // 使用规则：
 //   - 业务层禁止 errors.New / 裸 fmt.Errorf，必须返回本包预定义的 Errno。
@@ -64,4 +66,12 @@ var (
 var (
 	ErrTemplateNotFound  = New(15001, "template not found")
 	ErrChannelSendFailed = New(15002, "channel send failed")
+)
+
+// ---- Model 16001 - 16999 ----
+var (
+	ErrProviderNotFound    = New(16001, "model provider not found")
+	ErrProviderDisabled    = New(16002, "model provider disabled")
+	ErrAdapterUnsupported  = New(16003, "model adapter unsupported")
+	ErrUpstreamLLM         = New(16004, "upstream llm error")
 )

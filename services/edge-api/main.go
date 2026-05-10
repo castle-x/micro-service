@@ -11,6 +11,7 @@ import (
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
+	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	"github.com/castlexu/micro-service/services/edge-api/handler"
 	iamclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam/iamservice"
 	idpclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/idp/idpservice"
@@ -27,6 +28,15 @@ type EdgeConfig struct {
 	IAM struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"iam"`
+	Model struct {
+		Addr string `mapstructure:"addr"`
+	} `mapstructure:"model"`
+	JWT struct {
+		Secret string `mapstructure:"secret"`
+	} `mapstructure:"jwt"`
+	Redis struct {
+		Addr string `mapstructure:"addr"`
+	} `mapstructure:"redis"`
 }
 
 func main() {
@@ -43,11 +53,30 @@ func main() {
 		logger.L().Fatal("load config failed", zap.Error(err))
 	}
 
-	// FRONTEND_URL — 用于 Google OAuth2 callback 重定向和 CORS
+	// JWT secret（与 idp 服务共享同一个 secret）
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) == 0 {
+		jwtSecret = []byte(cfg.JWT.Secret)
+	}
+	if len(jwtSecret) < 32 {
+		logger.L().Fatal("JWT_SECRET must be at least 32 bytes")
+	}
+
+	// FRONTEND_URL
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
 		frontendURL = "http://localhost:35173"
 	}
+
+	// Redis（用于封禁标记检查）
+	redisAddr := cfg.Redis.Addr
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	if err := pkgredis.Init(pkgredis.Config{Addr: redisAddr}); err != nil {
+		logger.L().Fatal("redis init failed", zap.Error(err))
+	}
+	defer func() { _ = pkgredis.Close() }()
 
 	// IDP Kitex 客户端
 	idpAddr := cfg.IDP.Addr
@@ -72,6 +101,14 @@ func main() {
 	// 注入 handler
 	authHandler := handler.NewAuthHandler(idpCli, frontendURL)
 	userHandler := handler.NewUserHandler(idpCli, iamCli)
+	adminHandler := handler.NewAdminHandler(iamCli, idpCli)
+
+	// Model service 代理
+	modelAddr := cfg.Model.Addr
+	if modelAddr == "" {
+		modelAddr = "127.0.0.1:38083"
+	}
+	modelProxy := handler.NewModelProxy(modelAddr)
 
 	// Hertz server
 	addr := cfg.Server.Addr
@@ -79,7 +116,7 @@ func main() {
 		addr = ":38080"
 	}
 	h := server.Default(server.WithHostPorts(addr))
-	RegisterRoutes(h, authHandler, userHandler, frontendURL)
+	RegisterRoutes(h, authHandler, userHandler, adminHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
 
 	logger.L().Info("edge-api listening", zap.String("addr", addr))
 	h.Spin()

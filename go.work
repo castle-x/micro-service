@@ -8,5 +8,6 @@ use (
 	./services/edge-api
 	./services/iam
 	./services/idp
+	./services/model
 	./services/notification
 )

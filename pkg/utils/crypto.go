@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
@@ -39,3 +42,54 @@ func RandomBytes(n int) ([]byte, error) {
 	}
 	return buf, nil
 }
+
+// EncryptAESGCM 使用 AES-256-GCM 加密 plaintext，key 必须为 32 字节。
+// 返回 base64url 编码的 nonce+ciphertext。
+func EncryptAESGCM(key []byte, plaintext string) (string, error) {
+	if len(key) != 32 {
+		return "", fmt.Errorf("utils: EncryptAESGCM key must be 32 bytes, got %d", len(key))
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("utils: EncryptAESGCM new cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("utils: EncryptAESGCM new GCM: %w", err)
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("utils: EncryptAESGCM rand nonce: %w", err)
+	}
+	sealed := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	return base64.URLEncoding.EncodeToString(sealed), nil
+}
+
+// DecryptAESGCM 解密 EncryptAESGCM 生成的密文，key 必须为 32 字节。
+func DecryptAESGCM(key []byte, ciphertext string) (string, error) {
+	if len(key) != 32 {
+		return "", fmt.Errorf("utils: DecryptAESGCM key must be 32 bytes, got %d", len(key))
+	}
+	data, err := base64.URLEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return "", fmt.Errorf("utils: DecryptAESGCM base64 decode: %w", err)
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("utils: DecryptAESGCM new cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("utils: DecryptAESGCM new GCM: %w", err)
+	}
+	ns := gcm.NonceSize()
+	if len(data) < ns {
+		return "", fmt.Errorf("utils: DecryptAESGCM ciphertext too short")
+	}
+	plain, err := gcm.Open(nil, data[:ns], data[ns:], nil)
+	if err != nil {
+		return "", fmt.Errorf("utils: DecryptAESGCM open: %w", err)
+	}
+	return string(plain), nil
+}
+
