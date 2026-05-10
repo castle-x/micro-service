@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/castlexu/micro-service/pkg/errno"
@@ -26,23 +27,32 @@ func NewTokenCache(client *pkgredis.Client) *TokenCache {
 	return &TokenCache{client: client}
 }
 
-// SaveRefreshToken 保存 refresh token → userID 映射，TTL 7 天。
-func (c *TokenCache) SaveRefreshToken(ctx context.Context, jti, userID string) error {
+// SaveRefreshToken 保存 refresh token → "userID|role" 映射，TTL 7 天。
+// 同时维护 user → JTI 反向索引集合，用于批量撤销。
+func (c *TokenCache) SaveRefreshToken(ctx context.Context, jti, userID, role string) error {
 	key := pkgredis.Key("idp", "refresh", jti)
-	return c.client.Set(ctx, key, userID, refreshTokenTTL)
+	if err := c.client.Set(ctx, key, userID+"|"+role, refreshTokenTTL); err != nil {
+		return err
+	}
+	indexKey := pkgredis.Key("idp", "user", "refresh", userID)
+	return c.client.SAdd(ctx, indexKey, jti, refreshTokenTTL)
 }
 
-// GetRefreshToken 查 refresh token 对应的 userID，不存在返回 ErrCacheMiss。
-func (c *TokenCache) GetRefreshToken(ctx context.Context, jti string) (string, error) {
+// GetRefreshToken 查 refresh token 对应的 userID 和 role，不存在返回 ErrTokenInvalid。
+func (c *TokenCache) GetRefreshToken(ctx context.Context, jti string) (userID, role string, err error) {
 	key := pkgredis.Key("idp", "refresh", jti)
-	v, err := c.client.Get(ctx, key)
-	if err != nil {
-		if errors.Is(err, errno.ErrCacheMiss) {
-			return "", errno.ErrTokenInvalid.WithMessage("idp: refresh token not found")
+	v, getErr := c.client.Get(ctx, key)
+	if getErr != nil {
+		if errors.Is(getErr, errno.ErrCacheMiss) {
+			return "", "", errno.ErrTokenInvalid.WithMessage("idp: refresh token not found")
 		}
-		return "", err
+		return "", "", getErr
 	}
-	return v, nil
+	parts := strings.SplitN(v, "|", 2)
+	if len(parts) == 2 {
+		return parts[0], parts[1], nil
+	}
+	return v, "", nil // 兼容旧格式
 }
 
 // DeleteRefreshToken 撤销 refresh token（登出/刷新后旧 token 作废）。
@@ -52,10 +62,49 @@ func (c *TokenCache) DeleteRefreshToken(ctx context.Context, jti string) error {
 	return err
 }
 
-// BlacklistAccessToken 将 access token 的 JTI 加入黑名单，remainTTL 为剩余有效期。
+// RevokeAllUserTokens 撤销指定用户的所有 refresh token。
+// 管理员修改用户角色后调用，用户下次刷新时会被踢出，强制重新登录获取新 role。
+func (c *TokenCache) RevokeAllUserTokens(ctx context.Context, userID string) error {
+	indexKey := pkgredis.Key("idp", "user", "refresh", userID)
+	jtis, err := c.client.SMembers(ctx, indexKey)
+	if err != nil {
+		return err
+	}
+	for _, jti := range jtis {
+		_, _ = c.client.Del(ctx, pkgredis.Key("idp", "refresh", jti))
+	}
+	_, _ = c.client.Del(ctx, indexKey)
+	return nil
+}
+
+// ---- 封禁标记 ----
+
+// BanUser 在 Redis 写入封禁标记，永久有效。
+func (c *TokenCache) BanUser(ctx context.Context, userID string) error {
+	key := pkgredis.Key("idp", "banned", userID)
+	return c.client.Set(ctx, key, "1", 0) // TTL=0 永久
+}
+
+// UnbanUser 移除封禁标记。
+func (c *TokenCache) UnbanUser(ctx context.Context, userID string) error {
+	_, err := c.client.Del(ctx, pkgredis.Key("idp", "banned", userID))
+	return err
+}
+
+// IsBanned 检查用户是否被封禁。
+func (c *TokenCache) IsBanned(ctx context.Context, userID string) (bool, error) {
+	_, err := c.client.Get(ctx, pkgredis.Key("idp", "banned", userID))
+	if err != nil {
+		if errors.Is(err, errno.ErrCacheMiss) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 func (c *TokenCache) BlacklistAccessToken(ctx context.Context, jti string, remainTTL time.Duration) error {
 	if remainTTL <= 0 {
-		return nil // 已过期，无需加黑名单
+		return nil
 	}
 	key := pkgredis.Key("idp", "blacklist", jti)
 	return c.client.Set(ctx, key, "1", remainTTL)

@@ -21,9 +21,14 @@ func NewUserRepo(client *db.Client) *UserRepo {
 	return &UserRepo{repo: db.NewRepository[iammodel.User](client, iammodel.UserCollection)}
 }
 
-// EnsureIndexes 建立 email 唯一索引。应在服务启动时调用一次。
+// EnsureIndexes 建立必要索引。
 func (r *UserRepo) EnsureIndexes(ctx context.Context, client *db.Client) error {
-	return client.CreateIndexes(ctx, iammodel.UserCollection, []string{"email"}, true)
+	if err := client.CreateIndexes(ctx, iammodel.UserCollection, []string{"email"}, true); err != nil {
+		return err
+	}
+	// phone 稀疏唯一索引（允许多个 null）
+	return client.CreateIndexesWithOptions(ctx, iammodel.UserCollection, []string{"phone"},
+		db.IndexOptions{Unique: true, Sparse: true, Name: "phone_sparse_unique"})
 }
 
 // Insert 插入新用户。
@@ -62,7 +67,7 @@ func (r *UserRepo) FindByEmail(ctx context.Context, email string) (*iammodel.Use
 	return u, nil
 }
 
-// UpdateProfile 更新用户资料字段（name / avatar_url）。
+// UpdateProfile 更新用户资料字段。
 func (r *UserRepo) UpdateProfile(ctx context.Context, id primitive.ObjectID, name, avatarURL string) error {
 	_, err := r.repo.UpdateOne(ctx,
 		bson.D{{Key: "_id", Value: id}},
@@ -75,4 +80,55 @@ func (r *UserRepo) UpdateProfile(ctx context.Context, id primitive.ObjectID, nam
 		return errno.ErrInternal.WithMessagef("iam: update user profile: %v", err)
 	}
 	return nil
+}
+
+// UpdateRole 更新用户角色。
+func (r *UserRepo) UpdateRole(ctx context.Context, id primitive.ObjectID, role string) error {
+	_, err := r.repo.UpdateOne(ctx,
+		bson.D{{Key: "_id", Value: id}},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "role", Value: role}}}},
+	)
+	if err != nil {
+		return errno.ErrInternal.WithMessagef("iam: update user role: %v", err)
+	}
+	return nil
+}
+
+// UpdateStatus 更新用户状态。
+func (r *UserRepo) UpdateStatus(ctx context.Context, id primitive.ObjectID, status iammodel.UserStatus) error {
+	_, err := r.repo.UpdateOne(ctx,
+		bson.D{{Key: "_id", Value: id}},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: status}}}},
+	)
+	if err != nil {
+		return errno.ErrInternal.WithMessagef("iam: update user status: %v", err)
+	}
+	return nil
+}
+
+// List 分页查询用户，可按 role/status 过滤。
+func (r *UserRepo) List(ctx context.Context, page, pageSize int, role string, status *iammodel.UserStatus) ([]*iammodel.User, int64, error) {
+	filter := bson.D{}
+	if role != "" {
+		filter = append(filter, bson.E{Key: "role", Value: role})
+	}
+	if status != nil {
+		filter = append(filter, bson.E{Key: "status", Value: *status})
+	}
+
+	total, err := r.repo.Count(ctx, filter)
+	if err != nil {
+		return nil, 0, errno.ErrInternal.WithMessagef("iam: count users: %v", err)
+	}
+
+	skip := int64((page - 1) * pageSize)
+	users, err := r.repo.Find(ctx, filter, db.FindOptions{
+		Sort:  bson.D{{Key: "created_at", Value: -1}},
+		Skip:  skip,
+		Limit: int64(pageSize),
+	})
+	if err != nil {
+		return nil, 0, errno.ErrInternal.WithMessagef("iam: list users: %v", err)
+	}
+	return users, total, nil
 }

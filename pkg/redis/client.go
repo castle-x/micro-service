@@ -175,3 +175,25 @@ func Key(parts ...string) string {
 	}
 	return strings.Join(filtered, ":")
 }
+
+// SAdd 向 Set 类型的 key 中添加成员，并设置 TTL（若 TTL > 0）。
+func (c *Client) SAdd(ctx context.Context, key string, member string, expiration time.Duration) error {
+	if err := c.rdb.SAdd(ctx, key, member).Err(); err != nil {
+		return errno.ErrInternal.WithMessagef("redis sadd %s: %v", key, err)
+	}
+	if expiration > 0 {
+		if err := c.rdb.Expire(ctx, key, expiration).Err(); err != nil {
+			return errno.ErrInternal.WithMessagef("redis expire %s: %v", key, err)
+		}
+	}
+	return nil
+}
+
+// SMembers 返回 Set key 中所有成员。key 不存在时返回空切片。
+func (c *Client) SMembers(ctx context.Context, key string) ([]string, error) {
+	members, err := c.rdb.SMembers(ctx, key).Result()
+	if err != nil {
+		return nil, errno.ErrInternal.WithMessagef("redis smembers %s: %v", key, err)
+	}
+	return members, nil
+}

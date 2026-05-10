@@ -116,11 +116,15 @@ func main() {
 	defer cancel()
 	identityRepo := idpmongo.NewIdentityRepo(mongoClient)
 	stateRepo := idpmongo.NewOAuthStateRepo(mongoClient)
+	passwordCredRepo := idpmongo.NewPasswordCredRepo(mongoClient)
 	if err := identityRepo.EnsureIndexes(ctx, mongoClient); err != nil {
 		logger.L().Warn("ensure idp identity indexes failed", zap.Error(err))
 	}
 	if err := stateRepo.EnsureIndexes(ctx); err != nil {
 		logger.L().Warn("ensure idp oauth_states indexes failed", zap.Error(err))
+	}
+	if err := passwordCredRepo.EnsureIndexes(ctx, mongoClient); err != nil {
+		logger.L().Warn("ensure idp password_credentials indexes failed", zap.Error(err))
 	}
 
 	// 依赖组装
@@ -145,6 +149,7 @@ func main() {
 
 	oauthBiz := idpbiz.NewOAuthBiz(cfg.Google.ClientID, cfg.Google.ClientSecret, cfg.Google.RedirectURL, stateRepo)
 	loginBiz := idpbiz.NewLoginBiz(oauthBiz, tokenBiz, identityRepo, iamCli)
+	passwordLoginBiz := idpbiz.NewPasswordLoginBiz(tokenBiz, passwordCredRepo, iamCli)
 
 	// 支付宝：直接读 ALIPAY_ENV 环境变量（不依赖 viper 嵌套解析）
 	alipayEnv := os.Getenv("ALIPAY_ENV")
@@ -179,7 +184,7 @@ func main() {
 	alipayBiz := idpbiz.NewAlipayBiz(alipayCfg, stateRepo)
 	alipayLoginBiz := idpbiz.NewAlipayLoginBiz(alipayBiz, tokenBiz, identityRepo, iamCli)
 
-	handler := NewIDPImpl(loginBiz, alipayLoginBiz, tokenBiz, oauthBiz, alipayBiz)
+	handler := NewIDPImpl(loginBiz, alipayLoginBiz, passwordLoginBiz, tokenBiz, oauthBiz, alipayBiz)
 
 	// Kitex server
 	addr := cfg.Server.Addr

@@ -1,20 +1,104 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { getGoogleAuthUrl, getAlipayAuthUrl } from '../lib/api'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { getGoogleAuthUrl, getAlipayAuthUrl, loginByPassword, register } from '../lib/api'
+import { useAuthStore } from '../store/auth'
+
+type Mode = 'login' | 'register'
+
+// 小眼睛图标
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  )
+}
+
+// 带小眼睛的密码输入框
+function PasswordInput({
+  placeholder,
+  value,
+  onChange,
+  disabled,
+}: {
+  placeholder: string
+  value: string
+  onChange: (v: string) => void
+  disabled: boolean
+}) {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="relative w-full">
+      <input
+        type={show ? 'text' : 'password'}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+        disabled={disabled}
+        className="w-full px-3 py-2.5 pr-10 rounded-lg text-sm outline-none"
+        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        tabIndex={-1}
+        className="absolute right-3 top-1/2 -translate-y-1/2"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, lineHeight: 0 }}
+      >
+        <EyeIcon open={show} />
+      </button>
+    </div>
+  )
+}
 
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [name, setName] = useState('')
+  const [loadingPassword, setLoadingPassword] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [loadingAlipay, setLoadingAlipay] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const setAuth = useAuthStore((s) => s.setAuth)
 
-  // 读取回调带回的 error 参数
   useEffect(() => {
     const urlError = searchParams.get('error')
-    if (urlError) {
-      setError(decodeURIComponent(urlError))
-    }
+    if (urlError) setError(decodeURIComponent(urlError))
   }, [])
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (mode === 'register' && password !== confirm) {
+      setError('Passwords do not match')
+      return
+    }
+    setLoadingPassword(true)
+    try {
+      const data = mode === 'login'
+        ? await loginByPassword(email, password)
+        : await register(email, password, name || undefined)
+      setAuth({ accessToken: data.access_token, refreshToken: data.refresh_token, userId: data.user_id })
+      navigate('/dashboard')
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Request failed'
+      setError(msg)
+    } finally {
+      setLoadingPassword(false)
+    }
+  }
 
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true)
@@ -40,7 +124,14 @@ export default function LoginPage() {
     }
   }
 
-  const disabled = loadingGoogle || loadingAlipay
+  const switchMode = (m: Mode) => {
+    setMode(m)
+    setError(null)
+    setPassword('')
+    setConfirm('')
+  }
+
+  const disabled = loadingPassword || loadingGoogle || loadingAlipay
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
@@ -60,8 +151,10 @@ export default function LoginPage() {
 
         {/* Title */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Platform Admin</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Sign in to continue</p>
+          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Platform</h1>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {mode === 'login' ? 'Sign in to continue' : 'Create your account'}
+          </p>
         </div>
 
         {/* Error */}
@@ -72,14 +165,77 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Login buttons */}
+        {/* Form */}
+        <form className="w-full flex flex-col gap-3" onSubmit={handlePasswordSubmit}>
+          {mode === 'register' && (
+            <input
+              type="text"
+              placeholder="Name (optional)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={disabled}
+              className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          )}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={disabled}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+          />
+          <PasswordInput
+            placeholder="Password"
+            value={password}
+            onChange={setPassword}
+            disabled={disabled}
+          />
+          {mode === 'register' && (
+            <PasswordInput
+              placeholder="Confirm password"
+              value={confirm}
+              onChange={setConfirm}
+              disabled={disabled}
+            />
+          )}
+          <button
+            type="submit"
+            disabled={disabled}
+            className="w-full py-2.5 rounded-lg text-sm font-medium transition-all"
+            style={{ background: 'var(--accent)', color: '#fff', opacity: disabled ? 0.7 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+          >
+            {loadingPassword ? '...' : mode === 'login' ? 'Sign in' : 'Create account'}
+          </button>
+        </form>
+
+        {/* Mode toggle */}
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          <button
+            onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
+            className="font-medium"
+            style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {mode === 'login' ? 'Register' : 'Sign in'}
+          </button>
+        </p>
+
+        {/* Divider */}
+        <div className="w-full flex items-center gap-3">
+          <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
+          <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+        </div>
+
+        {/* OAuth buttons */}
         <div className="w-full flex flex-col gap-3">
-          {/* Google */}
           <button onClick={handleGoogleLogin} disabled={disabled}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all"
             style={{ background: '#ffffff', color: '#1a1a1a', border: '1px solid #e0e0e0', opacity: disabled ? 0.7 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
-            onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -90,17 +246,13 @@ export default function LoginPage() {
             {loadingGoogle ? 'Redirecting...' : 'Continue with Google'}
           </button>
 
-          {/* Alipay */}
           <button onClick={handleAlipayLogin} disabled={disabled}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all"
             style={{ background: '#1677FF', color: '#ffffff', border: 'none', opacity: disabled ? 0.7 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
-            onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = '#0e6ae0' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#1677FF' }}
           >
-            <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="8" fill="white"/>
-              <path d="M24 6C14.06 6 6 14.06 6 24s8.06 18 18 18 18-8.06 18-18S33.94 6 24 6zm8.3 25.4c-2.1-.64-3.82-1.18-5.3-1.62 1.04-1.76 1.86-3.76 2.38-5.98h-6.2V22h7v-1.8H22.4v-2.4h-2.2v2.4H13v1.8h7.18v1.8h-5.96v1.8h10.04c-.38 1.46-.9 2.82-1.58 4.04-2.6-.64-4.66-.96-6.28-.96-3.88 0-6.4 1.72-6.4 4.34 0 2.44 2.18 4.18 5.28 4.18 3.46 0 6.46-1.94 8.2-5.14 2.34.82 5.08 1.86 8.06 3.12l.76-3.08z" fill="#1677FF"/>
-              <path d="M15.18 32.82c0-1.38 1.42-2.32 3.62-2.32 1.28 0 2.88.28 5 .86-1.36 2.34-3.5 3.78-5.7 3.78-1.76 0-2.92-.92-2.92-2.32z" fill="#1677FF"/>
+            <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
+              <rect width="100" height="100" rx="16" fill="white"/>
+              <text x="50" y="72" textAnchor="middle" fontSize="62" fontWeight="bold" fill="#1677FF" fontFamily="Arial, sans-serif">支</text>
             </svg>
             {loadingAlipay ? 'Redirecting...' : 'Continue with Alipay'}
           </button>

@@ -34,7 +34,7 @@ func TestTokenBiz_Issue_Verify(t *testing.T) {
 	biz, _ := newTokenBiz(t)
 	ctx := context.Background()
 
-	pair, err := biz.Issue(ctx, "user-123")
+	pair, err := biz.Issue(ctx, "user-123", "user")
 	require.NoError(t, err)
 	assert.NotEmpty(t, pair.AccessToken)
 	assert.NotEmpty(t, pair.RefreshToken)
@@ -62,7 +62,7 @@ func TestTokenBiz_Refresh(t *testing.T) {
 	biz, _ := newTokenBiz(t)
 	ctx := context.Background()
 
-	pair, err := biz.Issue(ctx, "user-456")
+	pair, err := biz.Issue(ctx, "user-456", "user")
 	require.NoError(t, err)
 
 	// 用 refresh token 换新 pair

@@ -98,13 +98,82 @@ struct LoginByAlipayResp {
     5: required string UserID
 }
 
+// ---- Register ----
+
+struct RegisterReq {
+    1: required base.BaseReq Base
+    2: required string Email
+    3: required string Password
+    4: optional string Name
+}
+
+struct RegisterResp {
+    1: required base.BaseResp Base
+    2: required string AccessToken
+    3: required string RefreshToken
+    4: required i64    ExpiresAt
+    5: required string UserID
+}
+
+// ---- LoginByPassword ----
+
+struct LoginByPasswordReq {
+    1: required base.BaseReq Base
+    2: required string Email
+    3: required string Password
+}
+
+struct LoginByPasswordResp {
+    1: required base.BaseResp Base
+    2: required string AccessToken
+    3: required string RefreshToken
+    4: required i64    ExpiresAt
+    5: required string UserID
+}
+
+// ---- RevokeUserTokens ----
+
+struct RevokeUserTokensReq {
+    1: required base.BaseReq Base
+    2: required string       UserID  // 撤销该用户所有 refresh token
+}
+
+struct RevokeUserTokensResp {
+    1: required base.BaseResp Base
+}
+
+// ---- BanUser / UnbanUser ----
+
+struct BanUserReq {
+    1: required base.BaseReq Base
+    2: required string       UserID
+}
+
+struct BanUserResp {
+    1: required base.BaseResp Base
+}
+
+struct UnbanUserReq {
+    1: required base.BaseReq Base
+    2: required string       UserID
+}
+
+struct UnbanUserResp {
+    1: required base.BaseResp Base
+}
+
 // ---- Service ----
 
 service IDPService {
-    GetGoogleAuthURLResp GetGoogleAuthURL(1: GetGoogleAuthURLReq req)
-    LoginByGoogleResp    LoginByGoogle   (1: LoginByGoogleReq req)
-    GetAlipayAuthURLResp GetAlipayAuthURL(1: GetAlipayAuthURLReq req)
-    LoginByAlipayResp    LoginByAlipay   (1: LoginByAlipayReq req)
-    RefreshTokenResp     RefreshToken    (1: RefreshTokenReq req)
-    VerifyTokenResp      VerifyToken     (1: VerifyTokenReq req)
+    GetGoogleAuthURLResp  GetGoogleAuthURL  (1: GetGoogleAuthURLReq req)
+    LoginByGoogleResp     LoginByGoogle     (1: LoginByGoogleReq req)
+    GetAlipayAuthURLResp  GetAlipayAuthURL  (1: GetAlipayAuthURLReq req)
+    LoginByAlipayResp     LoginByAlipay     (1: LoginByAlipayReq req)
+    RegisterResp          Register          (1: RegisterReq req)
+    LoginByPasswordResp   LoginByPassword   (1: LoginByPasswordReq req)
+    RefreshTokenResp      RefreshToken      (1: RefreshTokenReq req)
+    VerifyTokenResp       VerifyToken       (1: VerifyTokenReq req)
+    RevokeUserTokensResp  RevokeUserTokens  (1: RevokeUserTokensReq req)
+    BanUserResp           BanUser           (1: BanUserReq req)
+    UnbanUserResp         UnbanUser         (1: UnbanUserReq req)
 }

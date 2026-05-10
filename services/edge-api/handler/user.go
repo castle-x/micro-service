@@ -34,6 +34,7 @@ type meResp struct {
 	Email     string `json:"email"`
 	Name      string `json:"name"`
 	AvatarURL string `json:"avatar_url"`
+	Role      string `json:"role"`
 }
 
 // GetMe GET /api/v1/user/me
@@ -90,6 +91,7 @@ func (h *UserHandler) GetMe(c context.Context, ctx *app.RequestContext) {
 			Email:     getUserResp.Email,
 			Name:      getUserResp.GetName(),
 			AvatarURL: getUserResp.GetAvatarURL(),
+			Role:      getUserResp.Role,
 		},
 	})
 }

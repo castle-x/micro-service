@@ -12,27 +12,30 @@ import (
 
 // IDPImpl 实现 Kitex 生成的 IDPService 接口。
 type IDPImpl struct {
-	loginBiz       *idpbiz.LoginBiz
-	alipayLoginBiz *idpbiz.AlipayLoginBiz
-	tokenBiz       *idpbiz.TokenBiz
-	oauthBiz       *idpbiz.OAuthBiz
-	alipayBiz      *idpbiz.AlipayBiz
+	loginBiz        *idpbiz.LoginBiz
+	alipayLoginBiz  *idpbiz.AlipayLoginBiz
+	passwordLoginBiz *idpbiz.PasswordLoginBiz
+	tokenBiz        *idpbiz.TokenBiz
+	oauthBiz        *idpbiz.OAuthBiz
+	alipayBiz       *idpbiz.AlipayBiz
 }
 
 // NewIDPImpl 构造 IDPImpl。
 func NewIDPImpl(
 	loginBiz *idpbiz.LoginBiz,
 	alipayLoginBiz *idpbiz.AlipayLoginBiz,
+	passwordLoginBiz *idpbiz.PasswordLoginBiz,
 	tokenBiz *idpbiz.TokenBiz,
 	oauthBiz *idpbiz.OAuthBiz,
 	alipayBiz *idpbiz.AlipayBiz,
 ) *IDPImpl {
 	return &IDPImpl{
-		loginBiz:       loginBiz,
-		alipayLoginBiz: alipayLoginBiz,
-		tokenBiz:       tokenBiz,
-		oauthBiz:       oauthBiz,
-		alipayBiz:      alipayBiz,
+		loginBiz:         loginBiz,
+		alipayLoginBiz:   alipayLoginBiz,
+		passwordLoginBiz: passwordLoginBiz,
+		tokenBiz:         tokenBiz,
+		oauthBiz:         oauthBiz,
+		alipayBiz:        alipayBiz,
 	}
 }
 
@@ -134,6 +137,64 @@ func (s *IDPImpl) VerifyToken(ctx context.Context, req *idpgen.VerifyTokenReq) (
 		TenantID:  tenantID,
 		ExpiresAt: expiresAt,
 	}, nil
+}
+
+// Register 注册新用户并签发 token。
+func (s *IDPImpl) Register(ctx context.Context, req *idpgen.RegisterReq) (*idpgen.RegisterResp, error) {
+	name := ""
+	if req.Name != nil {
+		name = *req.Name
+	}
+	result, err := s.passwordLoginBiz.Register(ctx, req.Email, req.Password, name)
+	if err != nil {
+		return &idpgen.RegisterResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.RegisterResp{
+		Base:         okBase(),
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt,
+		UserID:       result.UserID,
+	}, nil
+}
+
+// LoginByPassword 账号密码登录。
+func (s *IDPImpl) LoginByPassword(ctx context.Context, req *idpgen.LoginByPasswordReq) (*idpgen.LoginByPasswordResp, error) {
+	result, err := s.passwordLoginBiz.LoginByPassword(ctx, req.Email, req.Password)
+	if err != nil {
+		return &idpgen.LoginByPasswordResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.LoginByPasswordResp{
+		Base:         okBase(),
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt,
+		UserID:       result.UserID,
+	}, nil
+}
+
+// RevokeUserTokens 撤销指定用户的所有 refresh token（角色变更后调用）。
+func (s *IDPImpl) RevokeUserTokens(ctx context.Context, req *idpgen.RevokeUserTokensReq) (*idpgen.RevokeUserTokensResp, error) {
+	if err := s.tokenBiz.RevokeUserTokens(ctx, req.UserID); err != nil {
+		return &idpgen.RevokeUserTokensResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.RevokeUserTokensResp{Base: okBase()}, nil
+}
+
+// BanUser 封禁用户（写封禁标记 + 撤销所有 refresh token）。
+func (s *IDPImpl) BanUser(ctx context.Context, req *idpgen.BanUserReq) (*idpgen.BanUserResp, error) {
+	if err := s.tokenBiz.BanUser(ctx, req.UserID); err != nil {
+		return &idpgen.BanUserResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.BanUserResp{Base: okBase()}, nil
+}
+
+// UnbanUser 解除封禁。
+func (s *IDPImpl) UnbanUser(ctx context.Context, req *idpgen.UnbanUserReq) (*idpgen.UnbanUserResp, error) {
+	if err := s.tokenBiz.UnbanUser(ctx, req.UserID); err != nil {
+		return &idpgen.UnbanUserResp{Base: errBase(err)}, nil
+	}
+	return &idpgen.UnbanUserResp{Base: okBase()}, nil
 }
 
 // ---- helpers ----

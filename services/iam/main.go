@@ -16,7 +16,9 @@ import (
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	mwkitex "github.com/castlexu/micro-service/pkg/middleware/kitex"
+	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	iambiz "github.com/castlexu/micro-service/services/iam/biz"
+	iamcache "github.com/castlexu/micro-service/services/iam/cache"
 	iammongo "github.com/castlexu/micro-service/services/iam/dal/mongo"
 	"github.com/castlexu/micro-service/services/iam/kitex_gen/iam/iamservice"
 )
@@ -27,20 +29,19 @@ type IAMConfig struct {
 		URI string `mapstructure:"uri"`
 		DB  string `mapstructure:"db"`
 	} `mapstructure:"mongo"`
+	Redis struct {
+		Addr string `mapstructure:"addr"`
+	} `mapstructure:"redis"`
 	Server struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
 }
 
 func main() {
-	// 初始化日志
 	_ = logger.Init(logger.Options{Service: "iam"})
 	defer logger.Sync()
-
-	// 注册 metainfo 提取器（trace_id 透传到日志）
 	mw.RegisterLoggerExtractor()
 
-	// 加载配置
 	cfgPath := os.Getenv("IAM_CONFIG")
 	if cfgPath == "" {
 		cfgPath = "deployments/config/iam.yaml"
@@ -50,7 +51,7 @@ func main() {
 		logger.L().Fatal("load config failed", zap.Error(err))
 	}
 
-	// 初始化 MongoDB
+	// MongoDB
 	mongoURI := cfg.Mongo.URI
 	if mongoURI == "" {
 		mongoURI = "mongodb://localhost:27017"
@@ -69,19 +70,42 @@ func main() {
 		_ = mongoClient.Close(ctx)
 	}()
 
+	// Redis
+	redisAddr := cfg.Redis.Addr
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	if err := pkgredis.Init(pkgredis.Config{Addr: redisAddr}); err != nil {
+		logger.L().Fatal("redis init failed", zap.Error(err))
+	}
+	defer func() { _ = pkgredis.Close() }()
+
 	// 建立索引
-	userRepo := iammongo.NewUserRepo(mongoClient)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := userRepo.EnsureIndexes(ctx, mongoClient); err != nil {
-		logger.L().Warn("ensure iam indexes failed", zap.Error(err))
+
+	userRepo := iammongo.NewUserRepo(mongoClient)
+	roleRepo := iammongo.NewRoleRepo(mongoClient)
+	permRepo := iammongo.NewPermissionRepo(mongoClient)
+
+	for _, fn := range []func() error{
+		func() error { return userRepo.EnsureIndexes(ctx, mongoClient) },
+		func() error { return roleRepo.EnsureIndexes(ctx, mongoClient) },
+		func() error { return permRepo.EnsureIndexes(ctx, mongoClient) },
+	} {
+		if err := fn(); err != nil {
+			logger.L().Warn("ensure indexes failed", zap.Error(err))
+		}
 	}
 
-	// 注入依赖
-	userBiz := iambiz.NewUserBiz(userRepo)
-	handler := NewIAMImpl(userBiz)
+	// 依赖组装
+	roleCache := iamcache.NewRoleCache(pkgredis.GetClient())
+	roleBiz := iambiz.NewRoleBiz(roleRepo, permRepo, roleCache)
+	permBiz := iambiz.NewPermissionBiz(permRepo)
+	userBiz := iambiz.NewUserBiz(userRepo, roleRepo)
+	handler := NewIAMImpl(userBiz, roleBiz, permBiz)
 
-	// 启动 Kitex server
+	// Kitex server
 	addr := cfg.Server.Addr
 	if addr == "" {
 		addr = ":38082"

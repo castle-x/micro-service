@@ -81,6 +81,14 @@ func (b *LoginBiz) LoginByGoogle(ctx context.Context, code, state string) (*Logi
 	if iamResp.GetBase() != nil && iamResp.Base.Code != 0 {
 		return nil, errno.ErrInternal.WithMessagef("idp: iam upsert error: %s", iamResp.Base.Message)
 	}
+	// 检查用户状态：disabled(2) 和 banned(3) 拒绝登录
+	if iamResp.Status == 2 || iamResp.Status == 3 {
+		return nil, errno.ErrAccountLocked.WithMessage("idp: account is disabled or banned")
+	}
+	// 检查用户状态：disabled(2) 和 banned(3) 拒绝登录
+	if iamResp.Status == 2 || iamResp.Status == 3 {
+		return nil, errno.ErrAccountLocked.WithMessage("idp: account is disabled or banned")
+	}
 
 	// 3. 更新 idp identity 映射
 	iamUserID, err := primitive.ObjectIDFromHex(iamResp.UserID)
@@ -91,8 +99,8 @@ func (b *LoginBiz) LoginByGoogle(ctx context.Context, code, state string) (*Logi
 		return nil, err
 	}
 
-	// 4. 签发 JWT
-	pair, err := b.tokenBiz.Issue(ctx, iamResp.UserID)
+	// 4. 签发 JWT（携带 role）
+	pair, err := b.tokenBiz.Issue(ctx, iamResp.UserID, iamResp.Role)
 	if err != nil {
 		return nil, err
 	}

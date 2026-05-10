@@ -19,6 +19,18 @@ type Identity struct {
 	Email       string             `bson:"email"`
 }
 
+// PasswordCredentialCollection 是 password_credentials 集合名。
+// 每条记录存储一个 email/password 凭据，与 IAM user_id 绑定。
+const PasswordCredentialCollection = "password_credentials"
+
+// PasswordCredential 存储账号密码凭据。
+type PasswordCredential struct {
+	db.BaseDoc   `bson:",inline"`
+	UserID       primitive.ObjectID `bson:"user_id"`       // iam 侧 user_id
+	Email        string             `bson:"email"`         // 唯一索引
+	PasswordHash string             `bson:"password_hash"` // bcrypt hash
+}
+
 // OAuthStateCollection 是 oauth_states 集合名（防 CSRF state 临时存储）。
 const OAuthStateCollection = "oauth_states"
 

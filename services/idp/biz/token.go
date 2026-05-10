@@ -48,14 +48,14 @@ func NewTokenBiz(secret []byte, tokenCache *idpcache.TokenCache) (*TokenBiz, err
 	}, nil
 }
 
-// Issue 为 userID 签发 access + refresh token pair。
-func (b *TokenBiz) Issue(ctx context.Context, userID string) (*TokenPair, error) {
+// Issue 为 userID 签发 access + refresh token pair，role 会嵌入 JWT。
+func (b *TokenBiz) Issue(ctx context.Context, userID, role string) (*TokenPair, error) {
 	// access token
-	accessToken, err := b.accessSign.Sign(pkgjwt.Claims{UserID: userID})
+	accessToken, err := b.accessSign.Sign(pkgjwt.Claims{UserID: userID, Role: role})
 	if err != nil {
 		return nil, err
 	}
-	// refresh token（独立 TTL）
+	// refresh token（独立 TTL，不嵌入 role，刷新时重新从 IAM 拿）
 	refreshSigner, err := pkgjwt.NewHS256Signer(b.secret, refreshTokenTTL, "idp-refresh")
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (b *TokenBiz) Issue(ctx context.Context, userID string) (*TokenPair, error)
 	if err != nil {
 		return nil, err
 	}
-	if saveErr := b.tokenCache.SaveRefreshToken(ctx, rc.ID, userID); saveErr != nil {
+	if saveErr := b.tokenCache.SaveRefreshToken(ctx, rc.ID, userID, role); saveErr != nil {
 		return nil, saveErr
 	}
 	ac, _ := b.accessVfy.Verify(accessToken)
@@ -94,7 +94,7 @@ func (b *TokenBiz) Refresh(ctx context.Context, refreshToken string) (*TokenPair
 	if err != nil {
 		return nil, errno.ErrTokenInvalid.WithMessagef("idp: refresh token invalid: %v", err)
 	}
-	userID, err := b.tokenCache.GetRefreshToken(ctx, rc.ID)
+	userID, role, err := b.tokenCache.GetRefreshToken(ctx, rc.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -102,10 +102,13 @@ func (b *TokenBiz) Refresh(ctx context.Context, refreshToken string) (*TokenPair
 		return nil, errno.ErrTokenInvalid.WithMessage("idp: refresh token user mismatch")
 	}
 	_ = b.tokenCache.DeleteRefreshToken(ctx, rc.ID)
-	return b.Issue(ctx, userID)
+	return b.Issue(ctx, userID, role)
 }
 
-// Verify 校验 access token，检查黑名单。
+// RevokeUserTokens 撤销指定用户的所有 refresh token。
+func (b *TokenBiz) RevokeUserTokens(ctx context.Context, userID string) error {
+	return b.tokenCache.RevokeAllUserTokens(ctx, userID)
+}
 func (b *TokenBiz) Verify(ctx context.Context, token string) (*pkgjwt.Claims, error) {
 	claims, err := b.accessVfy.Verify(token)
 	if err != nil {
@@ -118,5 +121,25 @@ func (b *TokenBiz) Verify(ctx context.Context, token string) (*pkgjwt.Claims, er
 	if blacklisted {
 		return nil, errno.ErrTokenInvalid.WithMessage("idp: token has been revoked")
 	}
+	// 检查用户封禁状态
+	if claims.UserID != "" {
+		banned, err := b.tokenCache.IsBanned(ctx, claims.UserID)
+		if err == nil && banned {
+			return nil, errno.ErrAccountLocked.WithMessage("idp: account is banned")
+		}
+	}
 	return claims, nil
+}
+
+// BanUser 封禁用户：写入封禁标记 + 撤销所有 refresh token。
+func (b *TokenBiz) BanUser(ctx context.Context, userID string) error {
+	if err := b.tokenCache.BanUser(ctx, userID); err != nil {
+		return err
+	}
+	return b.tokenCache.RevokeAllUserTokens(ctx, userID)
+}
+
+// UnbanUser 解除封禁。
+func (b *TokenBiz) UnbanUser(ctx context.Context, userID string) error {
+	return b.tokenCache.UnbanUser(ctx, userID)
 }

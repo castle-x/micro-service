@@ -37,14 +37,26 @@ type googleAuthURLResp struct {
 	State   string `json:"state"`
 }
 
-type refreshTokenReq struct {
-	RefreshToken string `json:"refresh_token"`
+type registerReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
 }
 
-type refreshTokenResp struct {
+type loginByPasswordReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type authTokenResp struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresAt    int64  `json:"expires_at"`
+	UserID       string `json:"user_id"`
+}
+
+type refreshTokenReq struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
 type logoutReq struct {
@@ -151,7 +163,7 @@ func (h *AuthHandler) RefreshToken(c context.Context, ctx *app.RequestContext) {
 	ctx.JSON(http.StatusOK, apiResp{
 		Code:    0,
 		Message: "ok",
-		Data: refreshTokenResp{
+		Data: authTokenResp{
 			AccessToken:  idpResp.AccessToken,
 			RefreshToken: idpResp.RefreshToken,
 			ExpiresAt:    idpResp.ExpiresAt,
@@ -238,6 +250,77 @@ func (h *AuthHandler) AlipayCallback(c context.Context, ctx *app.RequestContext)
 	)
 	ctx.Redirect(http.StatusFound, []byte(redirectURL))
 }
+// Register POST /api/v1/auth/register
+func (h *AuthHandler) Register(c context.Context, ctx *app.RequestContext) {
+	var req registerReq
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, apiResp{Code: errno.ErrInvalidParam.Code, Message: "invalid request body"})
+		return
+	}
+	var name *string
+	if req.Name != "" {
+		name = &req.Name
+	}
+	idpResp, err := h.idpClient.Register(c, &idpgen.RegisterReq{
+		Base:     &edgebase.BaseReq{},
+		Email:    req.Email,
+		Password: req.Password,
+		Name:     name,
+	})
+	if err != nil {
+		logger.Ctx(c).Error("idp.Register failed", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, apiResp{Code: errno.ErrInternal.Code, Message: err.Error()})
+		return
+	}
+	if idpResp.Base != nil && idpResp.Base.Code != 0 {
+		ctx.JSON(bizCodeToHTTP(idpResp.Base.Code), apiResp{Code: idpResp.Base.Code, Message: idpResp.Base.Message})
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{
+		Code:    0,
+		Message: "ok",
+		Data: authTokenResp{
+			AccessToken:  idpResp.AccessToken,
+			RefreshToken: idpResp.RefreshToken,
+			ExpiresAt:    idpResp.ExpiresAt,
+			UserID:       idpResp.UserID,
+		},
+	})
+}
+
+// LoginByPassword POST /api/v1/auth/login
+func (h *AuthHandler) LoginByPassword(c context.Context, ctx *app.RequestContext) {
+	var req loginByPasswordReq
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, apiResp{Code: errno.ErrInvalidParam.Code, Message: "invalid request body"})
+		return
+	}
+	idpResp, err := h.idpClient.LoginByPassword(c, &idpgen.LoginByPasswordReq{
+		Base:     &edgebase.BaseReq{},
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		logger.Ctx(c).Error("idp.LoginByPassword failed", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, apiResp{Code: errno.ErrInternal.Code, Message: err.Error()})
+		return
+	}
+	if idpResp.Base != nil && idpResp.Base.Code != 0 {
+		ctx.JSON(bizCodeToHTTP(idpResp.Base.Code), apiResp{Code: idpResp.Base.Code, Message: idpResp.Base.Message})
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{
+		Code:    0,
+		Message: "ok",
+		Data: authTokenResp{
+			AccessToken:  idpResp.AccessToken,
+			RefreshToken: idpResp.RefreshToken,
+			ExpiresAt:    idpResp.ExpiresAt,
+			UserID:       idpResp.UserID,
+		},
+	})
+}
+
 // bizCodeToHTTP 将业务错误码转换为 HTTP 状态码。
 func bizCodeToHTTP(code int32) int {
 	var e errno.Errno

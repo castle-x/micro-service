@@ -6,6 +6,7 @@ export interface User {
   name: string
   email: string
   avatar: string
+  role: string
 }
 
 interface AuthState {
@@ -13,11 +14,7 @@ interface AuthState {
   refreshToken: string | null
   userId: string | null
   user: User | null
-  setAuth: (params: {
-    accessToken: string
-    refreshToken: string
-    userId: string
-  }) => void
+  setAuth: (params: { accessToken: string; refreshToken: string; userId: string }) => void
   setUser: (user: User) => void
   logout: () => void
   isAuthenticated: () => boolean
@@ -47,8 +44,6 @@ export const useAuthStore = create<AuthState>()(
         return !!get().accessToken
       },
     }),
-    {
-      name: 'auth-storage',
-    }
+    { name: 'auth-storage' }
   )
 )

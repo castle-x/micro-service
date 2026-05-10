@@ -28,17 +28,18 @@ func TestTokenCache_SaveAndGet(t *testing.T) {
 	c, _ := setup(t)
 	ctx := context.Background()
 
-	err := c.SaveRefreshToken(ctx, "jti-001", "user-123")
+	err := c.SaveRefreshToken(ctx, "jti-001", "user-123", "user")
 	require.NoError(t, err)
 
-	userID, err := c.GetRefreshToken(ctx, "jti-001")
+	userID, role, err := c.GetRefreshToken(ctx, "jti-001")
 	require.NoError(t, err)
 	assert.Equal(t, "user-123", userID)
+	assert.Equal(t, "user", role)
 }
 
 func TestTokenCache_GetNotFound(t *testing.T) {
 	c, _ := setup(t)
-	_, err := c.GetRefreshToken(context.Background(), "nonexistent")
+	_, _, err := c.GetRefreshToken(context.Background(), "nonexistent")
 	require.Error(t, err)
 	var e errno.Errno
 	assert.ErrorAs(t, err, &e)
@@ -48,10 +49,10 @@ func TestTokenCache_DeleteRefreshToken(t *testing.T) {
 	c, _ := setup(t)
 	ctx := context.Background()
 
-	require.NoError(t, c.SaveRefreshToken(ctx, "jti-002", "user-456"))
+	require.NoError(t, c.SaveRefreshToken(ctx, "jti-002", "user-456", "user"))
 	require.NoError(t, c.DeleteRefreshToken(ctx, "jti-002"))
 
-	_, err := c.GetRefreshToken(ctx, "jti-002")
+	_, _, err := c.GetRefreshToken(ctx, "jti-002")
 	require.Error(t, err, "token should be gone after delete")
 }
 

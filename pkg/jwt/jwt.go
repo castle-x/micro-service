@@ -30,6 +30,7 @@ import (
 type Claims struct {
 	UserID   string `json:"user_id,omitempty"`
 	TenantID string `json:"tenant_id,omitempty"`
+	Role     string `json:"role,omitempty"`
 	jwtv5.RegisteredClaims
 }
 
