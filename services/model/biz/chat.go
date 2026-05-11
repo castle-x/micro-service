@@ -133,5 +133,9 @@ func (b *ChatBiz) ChatStream(ctx context.Context, slug string, messages []ChatMe
 	req := adapter.ChatRequest{Model: p.DefaultModel, Messages: toAdapterMessages(messages)}
 	applyOpts(&req, opts)
 
-	return adp.ChatStream(ctx, req)
+	ch, err := adp.ChatStream(ctx, req)
+	if err != nil {
+		return nil, errno.ErrUpstreamLLM.WithMessagef("chat stream with %s failed: %v", slug, err)
+	}
+	return ch, nil
 }
