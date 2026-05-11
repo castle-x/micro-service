@@ -228,6 +228,10 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 		req.Model = a.model
 	}
 	req.Stream = true
+	// 自动注入 include_usage，让上游在流末尾返回 token 用量（为将来统计做准备）
+	if req.StreamOptions == nil {
+		req.StreamOptions = &StreamOptions{IncludeUsage: true}
+	}
 
 	resp, err := a.client.DoStream(ctx, http.MethodPost, "/v1/chat/completions", req)
 	if err != nil {
