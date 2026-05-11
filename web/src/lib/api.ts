@@ -213,6 +213,10 @@ export interface StreamChunk {
   type: StreamChunkType
   content?: string
   message?: string
+  // token usage — only present when type === 'done'
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
 }
 
 /**

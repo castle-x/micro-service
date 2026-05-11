@@ -102,11 +102,15 @@ type StreamOptions struct {
 // ChatChunk 是流式响应的一个增量 chunk。
 // ReasoningContent 是 thinking 推理 token（如 deepseek-reasoner）。
 // ToolCalls 是 function call 的增量（需调用方自行拼接 arguments 字符串）。
+// Usage 仅在 Done=true 时有值（由 stream_options.include_usage 触发）。
 type ChatChunk struct {
 	Content          string
 	ReasoningContent string
-	ToolCalls        []ToolCall // function call delta
+	ToolCalls        []ToolCall
 	Done             bool
+	PromptTokens     int
+	CompletionTokens int
+	TotalTokens      int
 }
 
 // ImageRequest 是图像生成请求。
@@ -221,6 +225,12 @@ type streamChunk struct {
 		} `json:"delta"`
 		FinishReason *string `json:"finish_reason"`
 	} `json:"choices"`
+	// usage chunk：choices 为空时由 stream_options.include_usage 触发
+	Usage *struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage"`
 }
 
 func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan ChatChunk, error) {
@@ -254,7 +264,19 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 
 		err := httpclient.ReadSSELines(resp.Body, func(data string) error {
 			var chunk streamChunk
-			if err := json.Unmarshal([]byte(data), &chunk); err != nil || len(chunk.Choices) == 0 {
+			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+				return nil
+			}
+			// usage-only chunk（choices 为空，usage 有值）
+			if len(chunk.Choices) == 0 {
+				if chunk.Usage != nil {
+					send(ChatChunk{
+						Done:             true,
+						PromptTokens:     chunk.Usage.PromptTokens,
+						CompletionTokens: chunk.Usage.CompletionTokens,
+						TotalTokens:      chunk.Usage.TotalTokens,
+					})
+				}
 				return nil
 			}
 			c := chunk.Choices[0]
@@ -269,7 +291,7 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 				}
 			}
 			if c.FinishReason != nil && (*c.FinishReason == "stop" || *c.FinishReason == "tool_calls") {
-				send(ChatChunk{Done: true})
+				// done 由后续 usage chunk 发出（含 token 数），这里不重复发
 			}
 			return nil
 		})

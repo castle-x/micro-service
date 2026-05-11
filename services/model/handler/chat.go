@@ -86,9 +86,12 @@ func (h *ChatHandler) Chat(c context.Context, ctx *app.RequestContext) {
 
 // streamChunk 是 SSE 事件的 JSON payload。
 type streamChunk struct {
-	Type    string `json:"type"`              // "reasoning" | "content" | "done" | "error"
-	Content string `json:"content,omitempty"`
-	Message string `json:"message,omitempty"` // error 时使用
+	Type             string `json:"type"`              // "reasoning"|"content"|"done"|"error"
+	Content          string `json:"content,omitempty"`
+	Message          string `json:"message,omitempty"` // error 时使用
+	PromptTokens     int    `json:"prompt_tokens,omitempty"`
+	CompletionTokens int    `json:"completion_tokens,omitempty"`
+	TotalTokens      int    `json:"total_tokens,omitempty"`
 }
 
 // ChatStream POST /api/v1/model/chat/stream — SSE 流式输出
@@ -154,7 +157,12 @@ func (h *ChatHandler) ChatStream(c context.Context, ctx *app.RequestContext) {
 					return
 				}
 				if out.Done {
-					writeEvent(streamChunk{Type: "done"})
+					writeEvent(streamChunk{
+						Type:             "done",
+						PromptTokens:     out.PromptTokens,
+						CompletionTokens: out.CompletionTokens,
+						TotalTokens:      out.TotalTokens,
+					})
 					return
 				}
 				if out.ReasoningContent != "" {

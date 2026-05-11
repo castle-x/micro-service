@@ -6,6 +6,7 @@ interface Message {
   content: string
   reasoning?: string
   streaming?: boolean
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
 }
 
 // ---- 高级参数状态 ----
@@ -226,7 +227,17 @@ export default function ChatDebugPage() {
         } else if (chunk.type === 'done') {
           setMessages((prev) => {
             const next = [...prev]
-            next[assistantIdx] = { ...next[assistantIdx], streaming: false }
+            next[assistantIdx] = {
+              ...next[assistantIdx],
+              streaming: false,
+              ...(chunk.total_tokens ? {
+                usage: {
+                  promptTokens: chunk.prompt_tokens ?? 0,
+                  completionTokens: chunk.completion_tokens ?? 0,
+                  totalTokens: chunk.total_tokens,
+                }
+              } : {}),
+            }
             return next
           })
         } else if (chunk.type === 'error') {
@@ -365,6 +376,13 @@ export default function ChatDebugPage() {
               <div style={bubbleStyle(m.role)}>
                 {m.content || (m.streaming ? <span style={{ opacity: 0.4 }}>…</span> : '')}
               </div>
+              {m.role === 'assistant' && !m.streaming && m.usage && (
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 8 }}>
+                  <span>↑ {m.usage.promptTokens} prompt</span>
+                  <span>↓ {m.usage.completionTokens} completion</span>
+                  <span style={{ fontWeight: 600 }}>= {m.usage.totalTokens} tokens</span>
+                </div>
+              )}
             </div>
           </div>
         ))}
