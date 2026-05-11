@@ -15,10 +15,29 @@ type ChatMessage struct {
 	Content string `json:"content"`
 }
 
-// ChatOptions 是可选调用参数。
+// ResponseFormat mirrors adapter.ResponseFormat for biz-layer use.
+type ResponseFormat = adapter.ResponseFormat
+
+// Tool mirrors adapter.Tool for biz-layer use.
+type Tool = adapter.Tool
+
+// ThinkingConfig mirrors adapter.ThinkingConfig for biz-layer use.
+type ThinkingConfig = adapter.ThinkingConfig
+
+// ChatOptions 是可选调用参数，覆盖所有 OpenAI 兼容参数。
 type ChatOptions struct {
-	Temperature *float64 `json:"temperature,omitempty"`
-	MaxTokens   *int     `json:"max_tokens,omitempty"`
+	// 采样
+	Temperature *float64
+	MaxTokens   *int
+	TopP        *float64
+	Stop        []string
+	// 输出格式
+	ResponseFormat *ResponseFormat
+	// Tool Calling
+	Tools      []Tool
+	ToolChoice any
+	// Thinking（DeepSeek 私有）
+	Thinking *ThinkingConfig
 }
 
 // ChatBiz 处理 LLM 对话请求。
@@ -40,7 +59,20 @@ func toAdapterMessages(messages []ChatMessage) []adapter.Message {
 	return msgs
 }
 
-// buildLLMAdapter 从 provider 构建 LLM 适配器（已解密 APIKey）。
+// applyOpts 把 ChatOptions 写入 adapter.ChatRequest。
+func applyOpts(req *adapter.ChatRequest, opts *ChatOptions) {
+	if opts == nil {
+		return
+	}
+	req.Temperature = opts.Temperature
+	req.MaxTokens = opts.MaxTokens
+	req.TopP = opts.TopP
+	req.Stop = opts.Stop
+	req.ResponseFormat = opts.ResponseFormat
+	req.Tools = opts.Tools
+	req.ToolChoice = opts.ToolChoice
+	req.Thinking = opts.Thinking
+}
 func buildLLMAdapter(p *mdlmodel.Provider) (adapter.LLMAdapter, error) {
 	if p.Type != mdlmodel.ProviderTypeLLM {
 		return nil, errno.ErrAdapterUnsupported.WithMessagef("provider %s is not llm type", p.Slug)
@@ -75,10 +107,7 @@ func (b *ChatBiz) Chat(ctx context.Context, slug string, messages []ChatMessage,
 	}
 
 	req := adapter.ChatRequest{Model: p.DefaultModel, Messages: toAdapterMessages(messages)}
-	if opts != nil {
-		req.Temperature = opts.Temperature
-		req.MaxTokens = opts.MaxTokens
-	}
+	applyOpts(&req, opts)
 
 	content, err := adp.Chat(ctx, req)
 	if err != nil {
@@ -102,10 +131,7 @@ func (b *ChatBiz) ChatStream(ctx context.Context, slug string, messages []ChatMe
 	}
 
 	req := adapter.ChatRequest{Model: p.DefaultModel, Messages: toAdapterMessages(messages)}
-	if opts != nil {
-		req.Temperature = opts.Temperature
-		req.MaxTokens = opts.MaxTokens
-	}
+	applyOpts(&req, opts)
 
 	return adp.ChatStream(ctx, req)
 }

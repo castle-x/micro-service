@@ -22,25 +22,90 @@ import (
 // ---- 公共类型 ----
 
 // Message 是对话消息（与 OpenAI Chat API 对齐）。
+// Tool call 场景下 Content 可为空，ToolCalls 或 ToolCallID 会被填充。
 type Message struct {
-	Role    string `json:"role"`    // "system" | "user" | "assistant"
-	Content string `json:"content"`
+	Role       string     `json:"role"`                  // "system"|"user"|"assistant"|"tool"
+	Content    string     `json:"content"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`  // assistant 调用工具时填充
+	ToolCallID string     `json:"tool_call_id,omitempty"` // role=tool 时填充，对应 ToolCall.ID
 }
 
-// ChatRequest 是 LLM 对话请求参数。
+// ToolCall 是 assistant 消息里的工具调用请求。
+type ToolCall struct {
+	ID       string       `json:"id"`
+	Type     string       `json:"type"` // 目前固定 "function"
+	Function FunctionCall `json:"function"`
+}
+
+// FunctionCall 是工具调用的函数信息。
+type FunctionCall struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"` // JSON 字符串
+}
+
+// Tool 是可供模型调用的工具定义（Function Calling）。
+type Tool struct {
+	Type     string       `json:"type"` // 固定 "function"
+	Function ToolFunction `json:"function"`
+}
+
+// ToolFunction 描述一个可调用函数。
+type ToolFunction struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Parameters  any    `json:"parameters,omitempty"` // JSON Schema object
+}
+
+// ResponseFormat 控制模型输出格式。
+type ResponseFormat struct {
+	Type string `json:"type"` // "text" | "json_object"
+}
+
+// ThinkingConfig 控制 DeepSeek thinking 模式（其他厂商忽略未知字段）。
+type ThinkingConfig struct {
+	Type            string `json:"type"`                       // "enabled" | "disabled"
+	BudgetTokens    *int   `json:"budget_tokens,omitempty"`    // deepseek-v4-pro
+	ReasoningEffort string `json:"reasoning_effort,omitempty"` // "low"|"medium"|"high"
+}
+
+// ChatRequest 是 LLM 对话请求参数（覆盖所有 OpenAI 兼容厂商通用参数）。
 type ChatRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Stream      bool      `json:"stream"`
-	Temperature *float64  `json:"temperature,omitempty"`
-	MaxTokens   *int      `json:"max_tokens,omitempty"`
+	Model    string    `json:"model"`
+	Messages []Message `json:"messages"`
+	Stream   bool      `json:"stream"`
+
+	// 采样参数（通用）
+	Temperature *float64 `json:"temperature,omitempty"`
+	MaxTokens   *int     `json:"max_tokens,omitempty"`
+	TopP        *float64 `json:"top_p,omitempty"`
+	Stop        []string `json:"stop,omitempty"`
+
+	// 输出格式（通用）
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+
+	// Tool / Function Calling（通用）
+	Tools      []Tool `json:"tools,omitempty"`
+	ToolChoice any    `json:"tool_choice,omitempty"` // "none"|"auto"|"required"|{type,function}
+
+	// Thinking / Reasoning（DeepSeek 私有，其他厂商忽略）
+	Thinking *ThinkingConfig `json:"thinking,omitempty"`
+
+	// 流式 usage 统计（部分厂商支持）
+	StreamOptions *StreamOptions `json:"stream_options,omitempty"`
+}
+
+// StreamOptions 控制流式响应的附加选项。
+type StreamOptions struct {
+	IncludeUsage bool `json:"include_usage"`
 }
 
 // ChatChunk 是流式响应的一个增量 chunk。
-// ReasoningContent 是 thinking 推理 token（如 deepseek-reasoner 模型）。
+// ReasoningContent 是 thinking 推理 token（如 deepseek-reasoner）。
+// ToolCalls 是 function call 的增量（需调用方自行拼接 arguments 字符串）。
 type ChatChunk struct {
 	Content          string
 	ReasoningContent string
+	ToolCalls        []ToolCall // function call delta
 	Done             bool
 }
 
@@ -118,8 +183,9 @@ func newOpenAI(baseURL, apiKey, defaultModel string) LLMAdapter {
 type completionResp struct {
 	Choices []struct {
 		Message struct {
-			Content          string `json:"content"`
-			ReasoningContent string `json:"reasoning_content"`
+			Content          string     `json:"content"`
+			ReasoningContent string     `json:"reasoning_content"`
+			ToolCalls        []ToolCall `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
 	Error *struct {
@@ -149,8 +215,9 @@ func (a *openaiAdapter) Chat(ctx context.Context, req ChatRequest) (string, erro
 type streamChunk struct {
 	Choices []struct {
 		Delta struct {
-			Content          string `json:"content"`
-			ReasoningContent string `json:"reasoning_content"`
+			Content          string     `json:"content"`
+			ReasoningContent string     `json:"reasoning_content"`
+			ToolCalls        []ToolCall `json:"tool_calls"`
 		} `json:"delta"`
 		FinishReason *string `json:"finish_reason"`
 	} `json:"choices"`
@@ -187,13 +254,17 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 				return nil
 			}
 			c := chunk.Choices[0]
-			out := ChatChunk{Content: c.Delta.Content, ReasoningContent: c.Delta.ReasoningContent}
-			if out.Content != "" || out.ReasoningContent != "" {
+			out := ChatChunk{
+				Content:          c.Delta.Content,
+				ReasoningContent: c.Delta.ReasoningContent,
+				ToolCalls:        c.Delta.ToolCalls,
+			}
+			if out.Content != "" || out.ReasoningContent != "" || len(out.ToolCalls) > 0 {
 				if !send(out) {
 					return ctx.Err()
 				}
 			}
-			if c.FinishReason != nil && *c.FinishReason == "stop" {
+			if c.FinishReason != nil && (*c.FinishReason == "stop" || *c.FinishReason == "tool_calls") {
 				send(ChatChunk{Done: true})
 			}
 			return nil

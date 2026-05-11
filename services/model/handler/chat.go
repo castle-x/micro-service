@@ -26,17 +26,37 @@ func NewChatHandler(biz *mdlbiz.ChatBiz) *ChatHandler {
 }
 
 type chatReq struct {
-	Slug        string               `json:"slug"`
-	Messages    []mdlbiz.ChatMessage `json:"messages"`
-	Temperature *float64             `json:"temperature,omitempty"`
-	MaxTokens   *int                 `json:"max_tokens,omitempty"`
+	Slug     string               `json:"slug"`
+	Messages []mdlbiz.ChatMessage `json:"messages"`
+
+	// 采样参数
+	Temperature *float64 `json:"temperature,omitempty"`
+	MaxTokens   *int     `json:"max_tokens,omitempty"`
+	TopP        *float64 `json:"top_p,omitempty"`
+	Stop        []string `json:"stop,omitempty"`
+
+	// 输出格式
+	ResponseFormat *mdlbiz.ResponseFormat `json:"response_format,omitempty"`
+
+	// Tool / Function Calling
+	Tools      []mdlbiz.Tool `json:"tools,omitempty"`
+	ToolChoice any           `json:"tool_choice,omitempty"`
+
+	// Thinking（DeepSeek 私有）
+	Thinking *mdlbiz.ThinkingConfig `json:"thinking,omitempty"`
 }
 
 func (r *chatReq) toOpts() *mdlbiz.ChatOptions {
-	if r.Temperature == nil && r.MaxTokens == nil {
-		return nil
+	return &mdlbiz.ChatOptions{
+		Temperature:    r.Temperature,
+		MaxTokens:      r.MaxTokens,
+		TopP:           r.TopP,
+		Stop:           r.Stop,
+		ResponseFormat: r.ResponseFormat,
+		Tools:          r.Tools,
+		ToolChoice:     r.ToolChoice,
+		Thinking:       r.Thinking,
 	}
-	return &mdlbiz.ChatOptions{Temperature: r.Temperature, MaxTokens: r.MaxTokens}
 }
 
 // Chat POST /api/v1/model/chat — 非流式
