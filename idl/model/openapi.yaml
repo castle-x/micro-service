@@ -1,0 +1,337 @@
+openapi: "3.0.3"
+info:
+  title: Model Service API
+  description: |
+    AI 模型服务 HTTP 接口规范。
+
+    ## 架构说明
+    model service 使用 Hertz HTTP（而非 Kitex RPC），原因是 SSE 流式输出天然属于 HTTP 协议。
+    edge-api 通过 HTTP proxy 调用本服务：非流式端点缓冲响应，流式端点直接 pipe text/event-stream。
+
+    ## Adapter 层
+    所有 LLM 厂商通过统一 LLMAdapter 接口适配：
+    - OpenAI 兼容（DeepSeek、Moonshot、Qwen 等）：使用 adapter/openai 实现，配置不同 base_url
+    - 图像生成（Seedream 等）：使用 adapter/seedream 实现
+    新增厂商只需在 model_providers 集合中插入一条记录，无需修改代码。
+
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:38083
+    description: Local model service (direct)
+  - url: http://localhost:38080/api/v1/admin/models
+    description: Via edge-api proxy (requires model:admin permission)
+
+tags:
+  - name: providers
+    description: AI 模型供应商管理
+  - name: chat
+    description: LLM 对话接口
+
+paths:
+  /api/v1/model/providers:
+    get:
+      tags: [providers]
+      summary: 列出所有供应商
+      description: 返回所有 model_providers 记录，api_key 字段不返回。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderListResp"
+    post:
+      tags: [providers]
+      summary: 新增供应商
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProviderReq"
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateProviderResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/model/providers/{id}/enabled:
+    patch:
+      tags: [providers]
+      summary: 切换启用状态
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/model/providers/{id}/api_key:
+    patch:
+      tags: [providers]
+      summary: 更新 API Key（AES-256-GCM 加密后存储）
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_key]
+              properties:
+                api_key:
+                  type: string
+                  description: 明文 API Key，服务端加密后存储
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/model/chat:
+    post:
+      tags: [chat]
+      summary: 非流式对话（等待完整响应）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatReq"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/UpstreamError"
+
+  /api/v1/model/chat/stream:
+    post:
+      tags: [chat]
+      summary: 流式对话（SSE text/event-stream）
+      description: |
+        返回 `Content-Type: text/event-stream`，每个 SSE 事件格式：
+        ```
+        data: {"type":"reasoning","content":"..."}
+        data: {"type":"content","content":"..."}
+        data: {"type":"done"}
+        data: {"type":"error","message":"..."}
+        ```
+        - `reasoning`：thinking 推理 token（仅 reasoner 模型输出）
+        - `content`：普通回复 token
+        - `done`：流结束，客户端应关闭连接
+        - `error`：上游错误，流中断
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatReq"
+      responses:
+        "200":
+          description: SSE 流开始
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: "text/event-stream; charset=utf-8"
+            X-Accel-Buffering:
+              schema:
+                type: string
+                example: "no"
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+components:
+  parameters:
+    ProviderID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        description: MongoDB ObjectID (hex)
+
+  schemas:
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+          description: MongoDB ObjectID
+        name:
+          type: string
+          example: "DeepSeek"
+        slug:
+          type: string
+          description: 唯一标识符，用于 chat 请求的 slug 字段
+          example: "deepseek"
+        type:
+          type: string
+          enum: [llm, image]
+        base_url:
+          type: string
+          example: "https://api.deepseek.com"
+        default_model:
+          type: string
+          example: "deepseek-v4-pro"
+        enabled:
+          type: boolean
+        created_at:
+          type: integer
+          description: Unix timestamp (seconds)
+
+    CreateProviderReq:
+      type: object
+      required: [name, slug, type, base_url]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+          description: 全局唯一，用于 chat 的 slug 字段
+        type:
+          type: string
+          enum: [llm, image]
+        base_url:
+          type: string
+        api_key:
+          type: string
+          description: 可选，创建后可通过 PATCH /providers/{id}/api_key 更新
+        default_model:
+          type: string
+
+    CreateProviderResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+
+    ProviderListResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/Provider"
+
+    ChatReq:
+      type: object
+      required: [slug, messages]
+      properties:
+        slug:
+          type: string
+          description: provider slug，对应 model_providers.slug
+          example: "deepseek"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 2
+        max_tokens:
+          type: integer
+          minimum: 1
+
+    Message:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+        content:
+          type: string
+
+    ChatResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: 完整 assistant 回复
+
+    BaseResp:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 0 = 成功，非 0 = 错误码
+        message:
+          type: string
+
+  responses:
+    OK:
+      description: 操作成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseResp"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      ok:
+                        type: boolean
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"
+    NotFound:
+      description: Provider 不存在或未启用
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"
+    UpstreamError:
+      description: 上游 LLM 接口错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"

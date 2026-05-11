@@ -6,9 +6,10 @@ import (
 
 	"github.com/castlexu/micro-service/pkg/errno"
 	"github.com/castlexu/micro-service/services/model/adapter"
+	mdlmodel "github.com/castlexu/micro-service/services/model/dal/model"
 )
 
-// ChatMessage 是对话消息，与 adapter.Message 对齐。
+// ChatMessage 是对话消息。
 type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -22,13 +23,12 @@ type ChatOptions struct {
 
 // ChatBiz 处理 LLM 对话请求。
 type ChatBiz struct {
-	providerBiz    *ProviderBiz
-	adapterFactory func(baseURL, apiKey, defaultModel string) adapter.LLMAdapter
+	providerBiz *ProviderBiz
 }
 
 // NewChatBiz 构造 ChatBiz。
 func NewChatBiz(providerBiz *ProviderBiz) *ChatBiz {
-	return &ChatBiz{providerBiz: providerBiz, adapterFactory: adapter.NewDeepSeek}
+	return &ChatBiz{providerBiz: providerBiz}
 }
 
 // toAdapterMessages 转换 biz 消息格式到 adapter 消息格式。
@@ -40,7 +40,21 @@ func toAdapterMessages(messages []ChatMessage) []adapter.Message {
 	return msgs
 }
 
-// ChatWithAdapter 直接使用给定适配器对话，跳过 provider 查找（测试用）。
+// buildLLMAdapter 从 provider 构建 LLM 适配器（已解密 APIKey）。
+func buildLLMAdapter(p *mdlmodel.Provider) (adapter.LLMAdapter, error) {
+	if p.Type != mdlmodel.ProviderTypeLLM {
+		return nil, errno.ErrAdapterUnsupported.WithMessagef("provider %s is not llm type", p.Slug)
+	}
+	return adapter.BuildLLM(adapter.ProviderInfo{
+		Slug:         p.Slug,
+		Type:         string(p.Type),
+		BaseURL:      p.BaseURL,
+		APIKey:       p.APIKey,
+		DefaultModel: p.DefaultModel,
+	})
+}
+
+// ChatWithAdapter 直接使用给定适配器对话（测试用）。
 func (b *ChatBiz) ChatWithAdapter(ctx context.Context, adp adapter.LLMAdapter, messages []ChatMessage) (string, error) {
 	content, err := adp.Chat(ctx, adapter.ChatRequest{Messages: toAdapterMessages(messages)})
 	if err != nil {
@@ -55,20 +69,17 @@ func (b *ChatBiz) Chat(ctx context.Context, slug string, messages []ChatMessage,
 	if err != nil {
 		return "", err
 	}
-	if p.Type != "llm" {
-		return "", errno.ErrAdapterUnsupported.WithMessagef("provider %s is not an llm provider", slug)
+	adp, err := buildLLMAdapter(p)
+	if err != nil {
+		return "", err
 	}
 
-	req := adapter.ChatRequest{
-		Model:    p.DefaultModel,
-		Messages: toAdapterMessages(messages),
-	}
+	req := adapter.ChatRequest{Model: p.DefaultModel, Messages: toAdapterMessages(messages)}
 	if opts != nil {
 		req.Temperature = opts.Temperature
 		req.MaxTokens = opts.MaxTokens
 	}
 
-	adp := b.adapterFactory(p.BaseURL, p.APIKey, p.DefaultModel)
 	content, err := adp.Chat(ctx, req)
 	if err != nil {
 		return "", errno.ErrUpstreamLLM.WithMessagef("chat with %s failed: %v", slug, err)
@@ -80,25 +91,21 @@ func (b *ChatBiz) Chat(ctx context.Context, slug string, messages []ChatMessage,
 }
 
 // ChatStream 按 slug 找到 provider，发起流式对话，返回 chunk channel。
-// 调用方消费 channel 直到 ChatChunk.Done=true 或 channel 关闭。
 func (b *ChatBiz) ChatStream(ctx context.Context, slug string, messages []ChatMessage, opts *ChatOptions) (<-chan adapter.ChatChunk, error) {
 	p, err := b.providerBiz.GetBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
-	if p.Type != "llm" {
-		return nil, errno.ErrAdapterUnsupported.WithMessagef("provider %s is not an llm provider", slug)
+	adp, err := buildLLMAdapter(p)
+	if err != nil {
+		return nil, err
 	}
 
-	req := adapter.ChatRequest{
-		Model:    p.DefaultModel,
-		Messages: toAdapterMessages(messages),
-	}
+	req := adapter.ChatRequest{Model: p.DefaultModel, Messages: toAdapterMessages(messages)}
 	if opts != nil {
 		req.Temperature = opts.Temperature
 		req.MaxTokens = opts.MaxTokens
 	}
 
-	adp := b.adapterFactory(p.BaseURL, p.APIKey, p.DefaultModel)
 	return adp.ChatStream(ctx, req)
 }
