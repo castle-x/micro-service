@@ -202,8 +202,8 @@ export const modelUpdateAPIKey = async (id: string, apiKey: string) => {
   await api.patch(`/v1/admin/models/providers/${id}/api_key`, { api_key: apiKey })
 }
 
-export const modelChat = async (slug: string, messages: { role: string; content: string }[]): Promise<string> => {
-  const res = await chatApi.post<ApiResponse<{ content: string }>>('/v1/admin/models/chat', { slug, messages })
+export const modelChat = async (slug: string, messages: { role: string; content: string }[], extra: Record<string, unknown> = {}): Promise<string> => {
+  const res = await chatApi.post<ApiResponse<{ content: string }>>('/v1/admin/models/chat', { slug, messages, ...extra })
   return res.data.data.content
 }
 
@@ -227,6 +227,7 @@ export const modelChatStream = async (
   messages: { role: string; content: string }[],
   onChunk: (chunk: StreamChunk) => void,
   signal?: AbortSignal,
+  extra: Record<string, unknown> = {},
 ): Promise<void> => {
   const token = (await import('../store/auth')).useAuthStore.getState().accessToken
   const resp = await fetch('/api/v1/admin/models/chat/stream', {
@@ -235,7 +236,7 @@ export const modelChatStream = async (
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ slug, messages }),
+    body: JSON.stringify({ slug, messages, ...extra }),
     signal,
   })
 
