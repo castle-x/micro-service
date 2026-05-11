@@ -93,13 +93,18 @@ function AdvancedPanel({ params, setParams }: { params: AdvancedParams; setParam
       <div style={rowStyle}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Response Format</label>
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
             {(['', 'text', 'json_object'] as const).map(v => (
               <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'var(--text-primary)', fontSize: 12 }}>
                 <input type="radio" checked={params.responseFormat === v} onChange={() => set('responseFormat', v)} />
                 {v === '' ? '默认' : v}
               </label>
             ))}
+            {params.responseFormat === 'json_object' && (
+              <span style={{ fontSize: 11, color: 'rgb(234,179,8)', background: 'rgba(234,179,8,0.1)', padding: '1px 7px', borderRadius: 4 }}>
+                ⚠ 消息中需包含 "json" 字样
+              </span>
+            )}
           </div>
         </div>
         <div style={{ flex: 1 }}>

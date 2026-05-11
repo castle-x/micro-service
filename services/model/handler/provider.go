@@ -43,8 +43,15 @@ func errCode(err error) (int, string) {
 			return http.StatusBadRequest, e.Message
 		case errno.ErrProviderNotFound.Code:
 			return http.StatusNotFound, e.Message
+		case errno.ErrProviderDisabled.Code:
+			return http.StatusForbidden, e.Message
+		case errno.ErrAdapterUnsupported.Code:
+			return http.StatusUnprocessableEntity, e.Message
 		case errno.ErrNotImplemented.Code:
 			return http.StatusNotImplemented, e.Message
+		case errno.ErrUpstreamLLM.Code:
+			// 上游 LLM 错误：透传原始 message，用 502 区别于内部错误
+			return http.StatusBadGateway, e.Message
 		}
 		return http.StatusInternalServerError, e.Message
 	}
