@@ -6,23 +6,23 @@ import (
 	"regexp"
 	"unicode"
 
-	"golang.org/x/crypto/bcrypt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/castlexu/micro-service/pkg/errno"
+	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
 	iambase "github.com/castlexu/micro-service/services/idp/kitex_gen/base"
 	iamgen "github.com/castlexu/micro-service/services/idp/kitex_gen/iam"
 	iamclient "github.com/castlexu/micro-service/services/idp/kitex_gen/iam/iamservice"
-	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
 )
 
 var emailRe = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
 // PasswordLoginBiz 处理账号密码注册与登录。
 type PasswordLoginBiz struct {
-	tokenBiz     *TokenBiz
-	credRepo     *idpmongo.PasswordCredRepo
-	iamClient    iamclient.Client
+	tokenBiz  *TokenBiz
+	credRepo  *idpmongo.PasswordCredRepo
+	iamClient iamclient.Client
 }
 
 // NewPasswordLoginBiz 构造 PasswordLoginBiz。

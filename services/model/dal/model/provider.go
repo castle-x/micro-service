@@ -18,12 +18,12 @@ const (
 type Provider struct {
 	db.BaseDoc `bson:",inline"`
 
-	Name        string       `bson:"name"`         // 展示名称，如 "DeepSeek"
-	Slug        string       `bson:"slug"`         // 唯一标识符，如 "deepseek"
-	Type        ProviderType `bson:"type"`         // "llm" | "image"
-	BaseURL     string       `bson:"base_url"`     // 上游 API 地址
-	APIKey      string       `bson:"api_key"`      // 加密存储的 API Key
-	DefaultModel string      `bson:"default_model"` // 默认模型名，如 "deepseek-chat"
-	Enabled     bool         `bson:"enabled"`      // 是否启用
-	Extra       string       `bson:"extra,omitempty"` // 扩展 JSON，供适配器自定义
+	Name         string       `bson:"name"`            // 展示名称，如 "DeepSeek"
+	Slug         string       `bson:"slug"`            // 唯一标识符，如 "deepseek"
+	Type         ProviderType `bson:"type"`            // "llm" | "image"
+	BaseURL      string       `bson:"base_url"`        // 上游 API 地址
+	APIKey       string       `bson:"api_key"`         // 加密存储的 API Key
+	DefaultModel string       `bson:"default_model"`   // 默认模型名，如 "deepseek-chat"
+	Enabled      bool         `bson:"enabled"`         // 是否启用
+	Extra        string       `bson:"extra,omitempty"` // 扩展 JSON，供适配器自定义
 }

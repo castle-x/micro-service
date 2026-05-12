@@ -7,10 +7,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/castlexu/micro-service/pkg/errno"
+	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
 	iambase "github.com/castlexu/micro-service/services/idp/kitex_gen/base"
 	iamgen "github.com/castlexu/micro-service/services/idp/kitex_gen/iam"
 	iamclient "github.com/castlexu/micro-service/services/idp/kitex_gen/iam/iamservice"
-	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
 )
 
 // LoginBiz 处理 Google OAuth2 登录主链路。

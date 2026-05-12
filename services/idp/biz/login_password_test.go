@@ -9,13 +9,13 @@ func TestValidatePassword(t *testing.T) {
 		password string
 		wantErr  bool
 	}{
-		{"Sh0rt!", true},              // 长度不足（5位）
-		{"alllowercase1!", true},     // 缺大写
-		{"ALLUPPERCASE1!", true},     // 缺小写
-		{"NoDigitsHere!", true},      // 缺数字
-		{"NoSpecial123", true},       // 缺特殊字符
-		{"Valid1Pass!", false},       // 合法
-		{"Abcdefg1@", false},        // 合法
+		{"Sh0rt!", true},         // 长度不足（5位）
+		{"alllowercase1!", true}, // 缺大写
+		{"ALLUPPERCASE1!", true}, // 缺小写
+		{"NoDigitsHere!", true},  // 缺数字
+		{"NoSpecial123", true},   // 缺特殊字符
+		{"Valid1Pass!", false},   // 合法
+		{"Abcdefg1@", false},     // 合法
 	}
 	for _, c := range cases {
 		err := validatePassword(c.password)

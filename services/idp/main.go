@@ -7,21 +7,22 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudwego/kitex/client"
 	"github.com/cloudwego/kitex/server"
 	"go.uber.org/zap"
 
+	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	mwkitex "github.com/castlexu/micro-service/pkg/middleware/kitex"
+	pkgotel "github.com/castlexu/micro-service/pkg/otel"
 	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	idpbiz "github.com/castlexu/micro-service/services/idp/biz"
 	idpcache "github.com/castlexu/micro-service/services/idp/cache"
 	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
-	"github.com/castlexu/micro-service/services/idp/kitex_gen/idp/idpservice"
 	iamclient "github.com/castlexu/micro-service/services/idp/kitex_gen/iam/iamservice"
+	"github.com/castlexu/micro-service/services/idp/kitex_gen/idp/idpservice"
 )
 
 // IDPConfig 是 idp 服务配置结构。
@@ -37,8 +38,8 @@ type IDPConfig struct {
 		Secret string `mapstructure:"secret"` // 从环境变量 JWT_SECRET 注入
 	} `mapstructure:"jwt"`
 	Google struct {
-		ClientID     string `mapstructure:"client_id"`      // GOOGLE_CLIENT_ID
-		ClientSecret string `mapstructure:"client_secret"`  // GOOGLE_CLIENT_SECRET
+		ClientID     string `mapstructure:"client_id"`     // GOOGLE_CLIENT_ID
+		ClientSecret string `mapstructure:"client_secret"` // GOOGLE_CLIENT_SECRET
 		RedirectURL  string `mapstructure:"redirect_url"`
 	} `mapstructure:"google"`
 	Alipay struct {
@@ -63,9 +64,9 @@ type IDPConfig struct {
 	Server struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
-	IAM struct {
-		Addr string `mapstructure:"addr"` // iam service addr e.g. "127.0.0.1:38082"
-	} `mapstructure:"iam"`
+	Registry  cloudwego.RegistryConfig  `mapstructure:"registry"`
+	Discovery cloudwego.DiscoveryConfig `mapstructure:"discovery"`
+	OTel      pkgotel.Config            `mapstructure:"otel"`
 }
 
 func main() {
@@ -81,6 +82,17 @@ func main() {
 	if err := config.Load(cfgPath, &cfg); err != nil {
 		logger.L().Fatal("load config failed", zap.Error(err))
 	}
+	otelShutdown, err := pkgotel.Init(context.Background(), "idp", cfg.OTel)
+	if err != nil {
+		logger.L().Fatal("otel init failed", zap.Error(err))
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := otelShutdown(ctx); err != nil {
+			logger.L().Warn("otel shutdown failed", zap.Error(err))
+		}
+	}()
 
 	// MongoDB
 	mongoURI := cfg.Mongo.URI
@@ -138,11 +150,11 @@ func main() {
 		logger.L().Fatal("token biz init failed", zap.Error(err))
 	}
 
-	iamAddr := cfg.IAM.Addr
-	if iamAddr == "" {
-		iamAddr = "127.0.0.1:38082"
+	iamClientOpts, err := cloudwego.KitexClientOptions(cfg.Discovery)
+	if err != nil {
+		logger.L().Fatal("iam resolver init failed", zap.Error(err))
 	}
-	iamCli, err := iamclient.NewClient("iam", client.WithHostPorts(iamAddr))
+	iamCli, err := iamclient.NewClient("iam", iamClientOpts...)
 	if err != nil {
 		logger.L().Fatal("iam client init failed", zap.Error(err))
 	}
@@ -195,12 +207,18 @@ func main() {
 	if err != nil {
 		logger.L().Fatal("invalid server addr", zap.String("addr", addr), zap.Error(err))
 	}
-	svr := idpservice.NewServer(handler,
+	opts := []server.Option{
 		server.WithServiceAddr(tcpAddr),
 		server.WithMiddleware(mwkitex.Trace()),
 		server.WithMiddleware(mwkitex.Recovery()),
 		server.WithMiddleware(mwkitex.Logging()),
-	)
+	}
+	registryOpts, err := cloudwego.KitexRegistryOptions(cfg.Registry)
+	if err != nil {
+		logger.L().Fatal("kitex registry init failed", zap.Error(err))
+	}
+	opts = append(opts, registryOpts...)
+	svr := idpservice.NewServer(handler, opts...)
 	logger.L().Info("idp server listening", zap.String("addr", addr))
 	if err := svr.Run(); err != nil {
 		logger.L().Fatal("idp server stopped", zap.Error(err))

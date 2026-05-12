@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { modelListProviders, modelChatStream, type ModelProvider } from '../../lib/api'
+import { hasStreamUsage, modelListProviders, modelChatStream, type ModelProvider } from '../../lib/api'
 
 interface Message {
   role: 'user' | 'assistant' | 'system' | 'tool'
@@ -230,11 +230,11 @@ export default function ChatDebugPage() {
             next[assistantIdx] = {
               ...next[assistantIdx],
               streaming: false,
-              ...(chunk.total_tokens ? {
+              ...(hasStreamUsage(chunk) ? {
                 usage: {
                   promptTokens: chunk.prompt_tokens ?? 0,
                   completionTokens: chunk.completion_tokens ?? 0,
-                  totalTokens: chunk.total_tokens,
+                  totalTokens: chunk.total_tokens ?? 0,
                 }
               } : {}),
             }
@@ -250,8 +250,8 @@ export default function ChatDebugPage() {
         if (next[assistantIdx]?.streaming) next[assistantIdx] = { ...next[assistantIdx], streaming: false }
         return next
       })
-    } catch (e: any) {
-      if (e?.name === 'AbortError') {
+    } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
         setMessages((prev) => {
           const next = [...prev]
           if (next[assistantIdx]) next[assistantIdx] = { ...next[assistantIdx], streaming: false }
@@ -259,7 +259,7 @@ export default function ChatDebugPage() {
         })
         return
       }
-      const msg: string = e?.message ?? ''
+      const msg = e instanceof Error ? e.message : ''
       setError(msg.includes('timeout') || msg.includes('ECONNABORTED') ? '请求超时，请重试' : msg || '请求失败')
       setMessages((prev) => {
         const next = [...prev]
@@ -280,7 +280,11 @@ export default function ChatDebugPage() {
   const toggleReasoning = (i: number) => {
     setExpandedReasoning((prev) => {
       const next = new Set(prev)
-      next.has(i) ? next.delete(i) : next.add(i)
+      if (next.has(i)) {
+        next.delete(i)
+      } else {
+        next.add(i)
+      }
       return next
     })
   }

@@ -50,6 +50,10 @@ func asBaseDoc(ptr any) BaseDocument {
 // FindOne 根据 filter 查找单条，返回 nil 错误表示命中。
 // 未命中返回 mongo.ErrNoDocuments（可用 IsNotFound 判定）。
 func (r *Repository[T]) FindOne(ctx context.Context, filter any, opts ...FindOptions) (*T, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "findOne")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	o := firstFindOptions(opts)
 	f := filter
 	if !o.IncludeDeleted {
@@ -61,12 +65,15 @@ func (r *Repository[T]) FindOne(ctx context.Context, filter any, opts ...FindOpt
 	if err := result.Err(); err != nil {
 		// ErrNoDocuments 原样返回（不要 wrap），业务用 errors.Is 判断。
 		if errors.Is(err, mongo.ErrNoDocuments) {
+			opErr = err
 			return nil, err
 		}
-		return nil, errorf(err, "db: find one")
+		opErr = errorf(err, "db: find one")
+		return nil, opErr
 	}
 	if err := result.Decode(&out); err != nil {
-		return nil, errorf(err, "db: decode find one")
+		opErr = errorf(err, "db: decode find one")
+		return nil, opErr
 	}
 	return &out, nil
 }
@@ -79,6 +86,10 @@ func (r *Repository[T]) FindByID(ctx context.Context, id primitive.ObjectID, opt
 // Find 根据 filter 查多条。
 // 结果集大小受调用方控制（FindOptions.Limit），不设默认 Limit，避免踩旧实现的"默认 1 条"坑。
 func (r *Repository[T]) Find(ctx context.Context, filter any, opts ...FindOptions) ([]*T, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "find")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	o := firstFindOptions(opts)
 	f := filter
 	if !o.IncludeDeleted {
@@ -87,20 +98,26 @@ func (r *Repository[T]) Find(ctx context.Context, filter any, opts ...FindOption
 
 	cursor, err := r.coll.Find(ctx, f, o.toMongoFindOptions())
 	if err != nil {
-		return nil, errorf(err, "db: find")
+		opErr = errorf(err, "db: find")
+		return nil, opErr
 	}
 	defer cursor.Close(ctx)
 
 	out := make([]*T, 0)
 	// 用调用方 ctx，而非老实现的 context.TODO()，保证随请求取消。
 	if err := cursor.All(ctx, &out); err != nil {
-		return nil, errorf(err, "db: cursor all")
+		opErr = errorf(err, "db: cursor all")
+		return nil, opErr
 	}
 	return out, nil
 }
 
 // Count 根据 filter 统计文档数量。
 func (r *Repository[T]) Count(ctx context.Context, filter any, opts ...FindOptions) (int64, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "count")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	o := firstFindOptions(opts)
 	f := filter
 	if !o.IncludeDeleted {
@@ -112,7 +129,8 @@ func (r *Repository[T]) Count(ctx context.Context, filter any, opts ...FindOptio
 	}
 	n, err := r.coll.CountDocuments(ctx, f, o.toMongoCountOptions())
 	if err != nil {
-		return 0, errorf(err, "db: count")
+		opErr = errorf(err, "db: count")
+		return 0, opErr
 	}
 	return n, nil
 }
@@ -131,13 +149,18 @@ func (r *Repository[T]) Exists(ctx context.Context, filter any, opts ...FindOpti
 // InsertOne 插入一条文档。会在入库前调用 SetTimestamps(NowUnix) 填充 created_at / updated_at。
 // 返回生成的 ObjectID。
 func (r *Repository[T]) InsertOne(ctx context.Context, doc *T) (primitive.ObjectID, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "insertOne")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	bd := asBaseDoc(doc)
 	now := utils.NowUnix()
 	bd.SetTimestamps(now)
 
 	res, err := r.coll.InsertOne(ctx, doc)
 	if err != nil {
-		return primitive.NilObjectID, errorf(err, "db: insert one")
+		opErr = errorf(err, "db: insert one")
+		return primitive.NilObjectID, opErr
 	}
 	id, ok := res.InsertedID.(primitive.ObjectID)
 	if ok {
@@ -151,6 +174,10 @@ func (r *Repository[T]) InsertMany(ctx context.Context, docs []*T) ([]primitive.
 	if len(docs) == 0 {
 		return nil, nil
 	}
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "insertMany")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	now := utils.NowUnix()
 	payload := make([]any, 0, len(docs))
 	for _, d := range docs {
@@ -159,7 +186,8 @@ func (r *Repository[T]) InsertMany(ctx context.Context, docs []*T) ([]primitive.
 	}
 	res, err := r.coll.InsertMany(ctx, payload)
 	if err != nil {
-		return nil, errorf(err, "db: insert many")
+		opErr = errorf(err, "db: insert many")
+		return nil, opErr
 	}
 	ids := make([]primitive.ObjectID, 0, len(res.InsertedIDs))
 	for _, raw := range res.InsertedIDs {
@@ -183,6 +211,10 @@ func (r *Repository[T]) UpdateOne(
 	update any,
 	opts ...UpdateOptions,
 ) (int64, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "updateOne")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	o := firstUpdateOptions(opts)
 
 	f := applySoftDeleteFilter(filter)
@@ -190,9 +222,11 @@ func (r *Repository[T]) UpdateOne(
 
 	res, err := r.coll.UpdateOne(ctx, f, update, o.toMongoUpdateOptions())
 	if err != nil {
-		return 0, errorf(err, "db: update one")
+		opErr = errorf(err, "db: update one")
+		return 0, opErr
 	}
 	if !o.Upsert && res != nil && res.MatchedCount == 0 {
+		opErr = mongo.ErrNoDocuments
 		return 0, mongo.ErrNoDocuments
 	}
 	return res.MatchedCount, nil
@@ -205,6 +239,10 @@ func (r *Repository[T]) UpdateMany(
 	update any,
 	opts ...UpdateOptions,
 ) (int64, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "updateMany")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	o := firstUpdateOptions(opts)
 
 	f := applySoftDeleteFilter(filter)
@@ -212,7 +250,8 @@ func (r *Repository[T]) UpdateMany(
 
 	res, err := r.coll.UpdateMany(ctx, f, update, o.toMongoUpdateOptions())
 	if err != nil {
-		return 0, errorf(err, "db: update many")
+		opErr = errorf(err, "db: update many")
+		return 0, opErr
 	}
 	return res.MatchedCount, nil
 }
@@ -225,6 +264,10 @@ func (r *Repository[T]) FindOneAndUpdate(
 	update any,
 	opts ...FindAndUpdateOptions,
 ) (*T, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "findOneAndUpdate")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	o := firstFindAndUpdateOptions(opts)
 
 	f := applySoftDeleteFilter(filter)
@@ -234,9 +277,11 @@ func (r *Repository[T]) FindOneAndUpdate(
 	err := r.coll.FindOneAndUpdate(ctx, f, update, o.toMongoFindAndUpdateOptions()).Decode(&out)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
+			opErr = err
 			return nil, err
 		}
-		return nil, errorf(err, "db: find one and update")
+		opErr = errorf(err, "db: find one and update")
+		return nil, opErr
 	}
 	return &out, nil
 }
@@ -259,11 +304,17 @@ func (r *Repository[T]) DeleteMany(ctx context.Context, filter any) (int64, erro
 
 // HardDeleteOne 物理删除一条（绕过软删除过滤）。谨慎使用。
 func (r *Repository[T]) HardDeleteOne(ctx context.Context, filter any) error {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "deleteOne")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	res, err := r.coll.DeleteOne(ctx, filter)
 	if err != nil {
-		return errorf(err, "db: hard delete one")
+		opErr = errorf(err, "db: hard delete one")
+		return opErr
 	}
 	if res.DeletedCount == 0 {
+		opErr = mongo.ErrNoDocuments
 		return mongo.ErrNoDocuments
 	}
 	return nil
@@ -271,17 +322,27 @@ func (r *Repository[T]) HardDeleteOne(ctx context.Context, filter any) error {
 
 // HardDeleteMany 物理批量删除（绕过软删除过滤）。返回删除数量。
 func (r *Repository[T]) HardDeleteMany(ctx context.Context, filter any) (int64, error) {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "deleteMany")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	res, err := r.coll.DeleteMany(ctx, filter)
 	if err != nil {
-		return 0, errorf(err, "db: hard delete many")
+		opErr = errorf(err, "db: hard delete many")
+		return 0, opErr
 	}
 	return res.DeletedCount, nil
 }
 
 // Drop 丢弃整个集合。仅在测试 / 迁移脚本中使用。
 func (r *Repository[T]) Drop(ctx context.Context) error {
+	ctx, end := startMongoOperation(ctx, r.coll.Name(), "drop")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	if err := r.coll.Drop(ctx); err != nil {
-		return errorf(err, "db: drop")
+		opErr = errorf(err, "db: drop")
+		return opErr
 	}
 	return nil
 }

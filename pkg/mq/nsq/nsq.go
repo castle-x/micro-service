@@ -13,10 +13,10 @@ import (
 
 // Config NSQ 配置（预留）。
 type Config struct {
-	NSQDAddrs       []string `mapstructure:"nsqd_addrs"`        // 生产者连接地址
-	LookupdAddrs    []string `mapstructure:"lookupd_addrs"`     // 消费者服务发现地址
-	MaxInFlight     int      `mapstructure:"max_in_flight"`     // 消费者并发
-	ConsumerChannel string   `mapstructure:"consumer_channel"`  // 消费者 channel 名
+	NSQDAddrs       []string `mapstructure:"nsqd_addrs"`       // 生产者连接地址
+	LookupdAddrs    []string `mapstructure:"lookupd_addrs"`    // 消费者服务发现地址
+	MaxInFlight     int      `mapstructure:"max_in_flight"`    // 消费者并发
+	ConsumerChannel string   `mapstructure:"consumer_channel"` // 消费者 channel 名
 }
 
 // Producer NSQ 生产者（占位）。
@@ -31,10 +31,11 @@ func NewProducer(cfg Config) (mq.Producer, error) {
 
 // Publish 占位。
 func (p *Producer) Publish(ctx context.Context, topic string, payload []byte) error {
-	_ = ctx
-	_ = topic
+	_, end := mq.StartPublishSpan(ctx, topic)
 	_ = payload
-	return errno.ErrNotImplemented.WithMessage("nsq.Publish: not implemented (Phase 02 skeleton)")
+	err := errno.ErrNotImplemented.WithMessage("nsq.Publish: not implemented (Phase 02 skeleton)")
+	end(err)
+	return err
 }
 
 // Close 占位。
@@ -53,8 +54,7 @@ func NewConsumer(cfg Config) (mq.Consumer, error) {
 // Subscribe 占位。
 func (c *Consumer) Subscribe(ctx context.Context, topic string, handler mq.HandlerFunc) error {
 	_ = ctx
-	_ = topic
-	_ = handler
+	_ = mq.InstrumentHandler(topic, handler)
 	return errno.ErrNotImplemented.WithMessage("nsq.Subscribe: not implemented")
 }
 

@@ -1,17 +1,21 @@
 // Package config 提供统一的服务配置加载能力。
 //
 // 设计目标（见 SPEC.md §10）：
+//
 //   - yaml 文件承载非敏感配置；
+//
 //   - 密钥 / Secret 强制走环境变量，yaml 中可用 ${VAR} 占位引用；
+//
 //   - 环境变量可直接覆盖任意配置项（key 中的 . 替换为 _，并统一大写）；
+//
 //   - 典型用法：
 //
-//	type IdpConfig struct {
-//	    Mongo struct{ URI, DB string } `mapstructure:"mongo"`
-//	    JWT   struct{ Secret string; AccessTTL int } `mapstructure:"jwt"`
-//	}
-//	var cfg IdpConfig
-//	if err := config.Load("deployments/config/idp.yaml", &cfg); err != nil { ... }
+//     type IdpConfig struct {
+//     Mongo struct{ URI, DB string } `mapstructure:"mongo"`
+//     JWT   struct{ Secret string; AccessTTL int } `mapstructure:"jwt"`
+//     }
+//     var cfg IdpConfig
+//     if err := config.Load("deployments/config/idp.yaml", &cfg); err != nil { ... }
 //
 // 加载顺序：
 //  1. 读取 yaml 文件（允许不存在，此时仅使用环境变量与默认值）；
@@ -24,6 +28,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -62,8 +67,8 @@ func Load[T any](path string, out *T) error {
 			if rerr != nil {
 				return errno.ErrInternal.WithMessagef("config.Load: read %s: %v", path, rerr)
 			}
-			// ${VAR} 展开：允许 yaml 引用环境变量（未设置则替换为空串，与 os.ExpandEnv 一致）。
-			expanded := os.ExpandEnv(string(raw))
+			// ${VAR} / ${VAR:default} 展开：允许 yaml 引用环境变量并提供本地默认值。
+			expanded := expandEnv(string(raw))
 			if err := v.ReadConfig(strings.NewReader(expanded)); err != nil {
 				return errno.ErrInternal.WithMessagef("config.Load: parse %s: %v", path, err)
 			}
@@ -76,6 +81,24 @@ func Load[T any](path string, out *T) error {
 		return errno.ErrInternal.WithMessagef("config.Load: unmarshal: %v", err)
 	}
 	return nil
+}
+
+var envExprRe = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?}`)
+
+func expandEnv(raw string) string {
+	return envExprRe.ReplaceAllStringFunc(raw, func(expr string) string {
+		match := envExprRe.FindStringSubmatch(expr)
+		if len(match) == 0 {
+			return expr
+		}
+		if value, ok := os.LookupEnv(match[1]); ok {
+			return value
+		}
+		if len(match) > 2 {
+			return match[2]
+		}
+		return ""
+	})
 }
 
 // MustLoad 封装 Load，失败时 panic。仅在服务启动阶段使用。

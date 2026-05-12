@@ -3,5 +3,38 @@
 server:
   addr: ":38080"
 
-idp:
-  addr: "${IDP_ADDR:127.0.0.1:38081}"
+model:
+  service_name: "model"
+
+jwt:
+  secret: "${JWT_SECRET}"
+
+redis:
+  addr: "${REDIS_ADDR:localhost:6379}"
+
+registry:
+  type: "${REGISTRY_TYPE:etcd}"
+  endpoints:
+    - "${ETCD_ENDPOINT:127.0.0.1:2379}"
+  prefix: "${REGISTRY_PREFIX:micro-service}"
+  service_name: "edge-api"
+  addr: "${EDGE_REGISTRY_ADDR:127.0.0.1:38080}"
+  weight: 10
+  tags:
+    env: "${APP_ENV:local}"
+
+discovery:
+  type: "${DISCOVERY_TYPE:etcd}"
+  endpoints:
+    - "${ETCD_ENDPOINT:127.0.0.1:2379}"
+  prefix: "${DISCOVERY_PREFIX:micro-service}"
+
+otel:
+  enabled: ${OTEL_ENABLED:false}
+  endpoint: "${OTEL_ENDPOINT}"
+  protocol: "${OTEL_PROTOCOL:grpc}"
+  environment: "${APP_ENV:local}"
+  service_version: "${APP_VERSION:dev}"
+  sample_ratio: ${OTEL_SAMPLE_RATIO:1}
+  insecure: ${OTEL_INSECURE:true}
+  strict: ${OTEL_STRICT:false}

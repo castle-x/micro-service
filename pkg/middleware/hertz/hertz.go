@@ -14,9 +14,14 @@ package hertz
 import (
 	"context"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/app"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
 	"github.com/castlexu/micro-service/pkg/errno"
@@ -39,7 +44,29 @@ const (
 // logger ctx key（logger.Ctx 直接读到）。
 func Trace() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
+		c = otel.GetTextMapPropagator().Extract(c, requestHeaderCarrier{ctx: ctx})
+
 		traceID := string(ctx.GetHeader(HeaderTraceID))
+		tracer := otel.Tracer("github.com/castlexu/micro-service/pkg/middleware/hertz")
+		spanName := httpSpanName(ctx)
+		c, span := tracer.Start(c, spanName, trace.WithSpanKind(trace.SpanKindServer))
+		defer func() {
+			route := routeLabel(ctx)
+			span.SetName(httpSpanName(ctx))
+			span.SetAttributes(
+				attribute.String("http.request.method", string(ctx.Method())),
+				attribute.String("url.path", route),
+				attribute.Int("http.response.status_code", ctx.Response.StatusCode()),
+			)
+			if ctx.Response.StatusCode() >= 500 {
+				span.SetStatus(codes.Error, "http server error")
+			}
+			span.End()
+		}()
+
+		if traceID == "" {
+			traceID = spanTraceID(span)
+		}
 		if traceID == "" {
 			traceID = utils.NewID()
 		}
@@ -59,17 +86,69 @@ func Trace() app.HandlerFunc {
 	}
 }
 
+type requestHeaderCarrier struct {
+	ctx *app.RequestContext
+}
+
+func (c requestHeaderCarrier) Get(key string) string {
+	return string(c.ctx.Request.Header.Peek(key))
+}
+
+func (c requestHeaderCarrier) Set(key, value string) {
+	c.ctx.Request.Header.Set(key, value)
+}
+
+func (c requestHeaderCarrier) Keys() []string {
+	var keys []string
+	c.ctx.Request.Header.VisitAll(func(k, _ []byte) {
+		keys = append(keys, string(k))
+	})
+	return keys
+}
+
+func httpSpanName(ctx *app.RequestContext) string {
+	return "HTTP " + string(ctx.Method()) + " " + routeLabel(ctx)
+}
+
+func routeLabel(ctx *app.RequestContext) string {
+	if route := ctx.FullPath(); route != "" {
+		return route
+	}
+	path := string(ctx.Path())
+	if path == "" {
+		return "unknown"
+	}
+	return path
+}
+
+func spanTraceID(span trace.Span) string {
+	sc := span.SpanContext()
+	if !sc.IsValid() || !sc.TraceID().IsValid() {
+		return ""
+	}
+	traceID := sc.TraceID().String()
+	if strings.Trim(traceID, "0") == "" {
+		return ""
+	}
+	return traceID
+}
+
 // Recovery 兜住 panic，写 500 + errno.ErrInternal。
 func Recovery() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
 		defer func() {
 			if r := recover(); r != nil {
 				stack := string(debug.Stack())
+				e := errno.ErrInternal.WithMessagef("panic: %v", r)
+				span := trace.SpanFromContext(c)
+				span.RecordError(e)
+				span.SetStatus(codes.Error, e.Message)
+				span.SetAttributes(attribute.Int64("error.code", int64(e.Code)))
 				logger.Ctx(c).Error("hertz panic recovered",
 					zap.Any("panic", r),
 					zap.String("stack", stack),
+					zap.Int32("error_code", e.Code),
 				)
-				e := errno.ErrInternal.WithMessagef("panic: %v", r)
 				ctx.AbortWithStatusJSON(500, map[string]any{
 					"code":    e.Code,
 					"message": e.Message,

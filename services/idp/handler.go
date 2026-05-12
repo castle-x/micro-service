@@ -5,19 +5,19 @@ import (
 	"errors"
 
 	"github.com/castlexu/micro-service/pkg/errno"
-	idpbase "github.com/castlexu/micro-service/services/idp/kitex_gen/base"
 	idpbiz "github.com/castlexu/micro-service/services/idp/biz"
+	idpbase "github.com/castlexu/micro-service/services/idp/kitex_gen/base"
 	idpgen "github.com/castlexu/micro-service/services/idp/kitex_gen/idp"
 )
 
 // IDPImpl 实现 Kitex 生成的 IDPService 接口。
 type IDPImpl struct {
-	loginBiz        *idpbiz.LoginBiz
-	alipayLoginBiz  *idpbiz.AlipayLoginBiz
+	loginBiz         *idpbiz.LoginBiz
+	alipayLoginBiz   *idpbiz.AlipayLoginBiz
 	passwordLoginBiz *idpbiz.PasswordLoginBiz
-	tokenBiz        *idpbiz.TokenBiz
-	oauthBiz        *idpbiz.OAuthBiz
-	alipayBiz       *idpbiz.AlipayBiz
+	tokenBiz         *idpbiz.TokenBiz
+	oauthBiz         *idpbiz.OAuthBiz
+	alipayBiz        *idpbiz.AlipayBiz
 }
 
 // NewIDPImpl 构造 IDPImpl。

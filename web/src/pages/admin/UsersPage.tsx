@@ -3,6 +3,7 @@ import {
   adminListUsers, adminListRoles, adminUpdateUserRole, adminUpdateUserStatus,
   type AdminUser, type AdminRole
 } from '../../lib/api'
+import { getErrorMessage } from '../../lib/error'
 
 const STATUS_LABEL: Record<number, string> = { 1: 'Active', 2: 'Disabled', 3: 'Banned' }
 const STATUS_COLOR: Record<number, string> = {
@@ -47,14 +48,16 @@ export default function UsersPage() {
       setUsers(ud.users ?? [])
       setTotal(ud.total)
       setRoles(rd)
-    } catch (e: any) {
-      setError(e.response?.data?.message || e.message)
+    } catch (e: unknown) {
+      setError(getErrorMessage(e))
     } finally {
       setLoading(false)
     }
   }, [page])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    queueMicrotask(() => { void load() })
+  }, [load])
 
   const saveRole = async () => {
     if (!roleModal) return
@@ -62,9 +65,9 @@ export default function UsersPage() {
     try {
       await adminUpdateUserRole(roleModal.user.UserID, roleModal.newRole)
       setRoleModal(null)
-      load()
-    } catch (e: any) {
-      alert(e.response?.data?.message || e.message)
+      void load()
+    } catch (e: unknown) {
+      alert(getErrorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -76,9 +79,9 @@ export default function UsersPage() {
     try {
       await adminUpdateUserStatus(statusModal.user.UserID, statusModal.newStatus)
       setStatusModal(null)
-      load()
-    } catch (e: any) {
-      alert(e.response?.data?.message || e.message)
+      void load()
+    } catch (e: unknown) {
+      alert(getErrorMessage(e))
     } finally {
       setSaving(false)
     }

@@ -70,8 +70,8 @@ var (
 
 // ---- Model 16001 - 16999 ----
 var (
-	ErrProviderNotFound    = New(16001, "model provider not found")
-	ErrProviderDisabled    = New(16002, "model provider disabled")
-	ErrAdapterUnsupported  = New(16003, "model adapter unsupported")
-	ErrUpstreamLLM         = New(16004, "upstream llm error")
+	ErrProviderNotFound   = New(16001, "model provider not found")
+	ErrProviderDisabled   = New(16002, "model provider disabled")
+	ErrAdapterUnsupported = New(16003, "model adapter unsupported")
+	ErrUpstreamLLM        = New(16004, "upstream llm error")
 )

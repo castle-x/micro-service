@@ -7,10 +7,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/castlexu/micro-service/pkg/errno"
+	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
 	iambase "github.com/castlexu/micro-service/services/idp/kitex_gen/base"
 	iamgen "github.com/castlexu/micro-service/services/idp/kitex_gen/iam"
 	iamclient "github.com/castlexu/micro-service/services/idp/kitex_gen/iam/iamservice"
-	idpmongo "github.com/castlexu/micro-service/services/idp/dal/mongo"
 )
 
 // AlipayLoginBiz 处理支付宝扫码登录主链路。

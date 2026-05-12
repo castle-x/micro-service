@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -56,6 +57,44 @@ func TestCtx_InjectsAllMetaFields(t *testing.T) {
 	assert.Equal(t, "u-123", fm["user_id"])
 	assert.Equal(t, "tn-7", fm["tenant_id"])
 	assert.Equal(t, "v", fm["k"])
+}
+
+func TestCtx_InjectsOTelTraceAndSpanID(t *testing.T) {
+	recorded := newObservedLogger(t, zapcore.DebugLevel)
+
+	traceID := trace.TraceID{0x4b, 0xf9, 0x2f, 0x35, 0x77, 0xb3, 0x4d, 0xa6, 0xa3, 0xce, 0x92, 0x9d, 0x0e, 0x0e, 0x47, 0x36}
+	spanID := trace.SpanID{0x00, 0xf0, 0x67, 0xaa, 0x0b, 0xa9, 0x02, 0xb7}
+	sc := trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID: traceID,
+		SpanID:  spanID,
+	})
+	ctx := trace.ContextWithSpanContext(context.Background(), sc)
+
+	Ctx(ctx).Info("with-span")
+
+	entries := recorded.All()
+	if !assert.Len(t, entries, 1) {
+		return
+	}
+	fm := entries[0].ContextMap()
+	assert.Equal(t, traceID.String(), fm["trace_id"])
+	assert.Equal(t, spanID.String(), fm["span_id"])
+}
+
+func TestCtx_KeepsLegacyTraceIDWhenNoOTelSpan(t *testing.T) {
+	recorded := newObservedLogger(t, zapcore.DebugLevel)
+
+	ctx := WithTraceID(context.Background(), "legacy-trace")
+	Ctx(ctx).Info("legacy")
+
+	entries := recorded.All()
+	if !assert.Len(t, entries, 1) {
+		return
+	}
+	fm := entries[0].ContextMap()
+	assert.Equal(t, "legacy-trace", fm["trace_id"])
+	_, hasSpanID := fm["span_id"]
+	assert.False(t, hasSpanID)
 }
 
 func TestCtx_NilCtxEqualsGlobal(t *testing.T) {

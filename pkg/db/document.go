@@ -41,12 +41,12 @@ type BaseDoc struct {
 	DeletedAt *int64             `bson:"deleted_at,omitempty" json:"-"`
 }
 
-func (b *BaseDoc) GetID() primitive.ObjectID      { return b.ID }
-func (b *BaseDoc) SetID(id primitive.ObjectID)    { b.ID = id }
-func (b *BaseDoc) GetCreatedAt() int64            { return b.CreatedAt }
-func (b *BaseDoc) GetUpdatedAt() int64            { return b.UpdatedAt }
-func (b *BaseDoc) GetDeletedAt() *int64           { return b.DeletedAt }
-func (b *BaseDoc) SetTimestamps(now int64)        { b.CreatedAt = now; b.UpdatedAt = now }
-func (b *BaseDoc) Touch(now int64)                { b.UpdatedAt = now }
-func (b *BaseDoc) SoftDelete(now int64)           { b.DeletedAt = &now; b.UpdatedAt = now }
-func (b *BaseDoc) IsDeleted() bool                { return b.DeletedAt != nil }
+func (b *BaseDoc) GetID() primitive.ObjectID   { return b.ID }
+func (b *BaseDoc) SetID(id primitive.ObjectID) { b.ID = id }
+func (b *BaseDoc) GetCreatedAt() int64         { return b.CreatedAt }
+func (b *BaseDoc) GetUpdatedAt() int64         { return b.UpdatedAt }
+func (b *BaseDoc) GetDeletedAt() *int64        { return b.DeletedAt }
+func (b *BaseDoc) SetTimestamps(now int64)     { b.CreatedAt = now; b.UpdatedAt = now }
+func (b *BaseDoc) Touch(now int64)             { b.UpdatedAt = now }
+func (b *BaseDoc) SoftDelete(now int64)        { b.DeletedAt = &now; b.UpdatedAt = now }
+func (b *BaseDoc) IsDeleted() bool             { return b.DeletedAt != nil }

@@ -27,13 +27,14 @@ export default function AuthCallbackPage() {
           name: data.name,
           email: data.email,
           avatar: data.avatar_url,
+          role: data.role || '',
         })
         navigate('/')
       })
       .catch(() => {
         navigate('/')
       })
-  }, [])
+  }, [navigate, setAuth, setUser])
 
   return (
     <div

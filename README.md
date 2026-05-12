@@ -70,5 +70,5 @@ make build
 ## 更多
 
 - 当前 AI 协作入口与项目规范：[`AGENTS.md`](./AGENTS.md)
-- 当前阶段进度与路线图：[`.phase/STATUS.md`](./.phase/STATUS.md)
-- 旧 `SPEC.md` / `初步设计参考.md` 已降级为历史入口，立项初始设计参考见 [`.phase/phase-00-initial-design-reference.md`](./.phase/phase-00-initial-design-reference.md)。
+- 当前阶段进度与路线图：[`.axm/progress/platform/roadmap.md`](./.axm/progress/platform/roadmap.md)
+- 旧 `SPEC.md` / `初步设计参考.md` 已降级为历史入口，立项初始设计参考见 [`.axm/progress/platform/decisions.md`](./.axm/progress/platform/decisions.md)。

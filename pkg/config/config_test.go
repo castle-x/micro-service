@@ -79,6 +79,20 @@ jwt:
 	assert.Equal(t, 3600, c.JWT.AccessTTL)
 }
 
+func TestLoad_VarExpansionWithDefault(t *testing.T) {
+	dir := t.TempDir()
+	path := writeFile(t, dir, "c.yaml", `
+mongo:
+  uri: ${MONGO_URI:mongodb://localhost:27017/platform}
+  db: ${MONGO_DB:platform}
+`)
+
+	var c testCfg
+	require.NoError(t, Load(path, &c))
+	assert.Equal(t, "mongodb://localhost:27017/platform", c.Mongo.URI)
+	assert.Equal(t, "platform", c.Mongo.DB)
+}
+
 func TestLoad_FileNotExist_OK(t *testing.T) {
 	// 文件不存在：不报错，仅走 env + 零值。
 	t.Setenv("LOG_LEVEL", "warn")

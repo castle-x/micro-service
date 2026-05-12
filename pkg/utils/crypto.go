@@ -92,4 +92,3 @@ func DecryptAESGCM(key []byte, ciphertext string) (string, error) {
 	}
 	return string(plain), nil
 }
-

@@ -2,7 +2,7 @@
 
 > 始终反映**当前最新状态**。每个 Phase 结束时更新此文件。
 >
-> 最后更新：2026-05-08
+> 最后更新：2026-05-11
 
 ---
 
@@ -25,6 +25,7 @@
 | 01 | pkg 基础设施（logger / db / utils） | ✅ 已完成 | `pkg/logger` · `pkg/db` · `pkg/utils`，全量 vet/build/test 通过 |
 | 02 | pkg 业务骨架（config / errno / redis / middleware / jwt + registry/mq 占位） | ✅ 已完成 | 13 个 pkg 子包全绿，Makefile lint/test 真实命令就位 |
 | 03 | idp + iam（含 Google 登录端到端） | ✅ 已完成 | IDL 补齐、Kitex 桩生成、identities/oauth_states、edge-api 回调、JWT 签发、单测全绿 |
+| 04a | Kong + etcd 接入路线图 | 🧭 Roadmap | [`phase-04-kong-etcd-roadmap.md`](./phase-04-kong-etcd-roadmap.md)，服务发现与网关接入前置规划；[`phase-04a-etcd-implementation-plan.md`](./phase-04a-etcd-implementation-plan.md)，etcd 详细实现方案已确认 |
 | 04 | iam RBAC / 权限 | ⏸ 待启动 | `iam.CheckPermission`，缓存到 Redis |
 | 05 | billing + credits + mq 异步事件 | ⏳ 计划中 | `pkg/mq` L2 升级 + 事件驱动 |
 | 06 | notification + 可观测性 + 部署 | ⏳ 计划中 | Prometheus / Jaeger / docker-compose |
