@@ -124,43 +124,62 @@ func (c *Client) Raw() *redisv9.Client { return c.rdb }
 
 // Ping 探活。
 func (c *Client) Ping(ctx context.Context) error {
-	return c.rdb.Ping(ctx).Err()
+	ctx, end := startRedisOperation(ctx, "PING")
+	err := c.rdb.Ping(ctx).Err()
+	end(err)
+	return err
 }
 
 // ---- 高频常用方法（薄封装，直接 error 语义）----
 
 // Set 写入字符串值，expiration = 0 表示不过期。
 func (c *Client) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
-	return c.rdb.Set(ctx, key, value, expiration).Err()
+	ctx, end := startRedisOperation(ctx, "SET")
+	err := c.rdb.Set(ctx, key, value, expiration).Err()
+	end(err)
+	return err
 }
 
 // Get 读取字符串值。key 不存在时返回 (""、errno.ErrCacheMiss)，便于业务层统一处理。
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
+	ctx, end := startRedisOperation(ctx, "GET")
 	v, err := c.rdb.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redisv9.Nil) {
+			end(errno.ErrCacheMiss)
 			return "", errno.ErrCacheMiss
 		}
-		return "", errno.ErrInternal.WithMessagef("redis get %s: %v", key, err)
+		err = errno.ErrInternal.WithMessagef("redis get %s: %v", key, err)
+		end(err)
+		return "", err
 	}
+	end(nil)
 	return v, nil
 }
 
 // Del 删除一个或多个 key，返回被删除的数量。
 func (c *Client) Del(ctx context.Context, keys ...string) (int64, error) {
+	ctx, end := startRedisOperation(ctx, "DEL")
 	n, err := c.rdb.Del(ctx, keys...).Result()
 	if err != nil {
-		return 0, errno.ErrInternal.WithMessagef("redis del: %v", err)
+		err = errno.ErrInternal.WithMessagef("redis del: %v", err)
+		end(err)
+		return 0, err
 	}
+	end(nil)
 	return n, nil
 }
 
 // SetNX 原子写入（key 不存在时才写）。返回是否写入成功。
 func (c *Client) SetNX(ctx context.Context, key string, value any, expiration time.Duration) (bool, error) {
+	ctx, end := startRedisOperation(ctx, "SETNX")
 	ok, err := c.rdb.SetNX(ctx, key, value, expiration).Result()
 	if err != nil {
-		return false, errno.ErrInternal.WithMessagef("redis setnx %s: %v", key, err)
+		err = errno.ErrInternal.WithMessagef("redis setnx %s: %v", key, err)
+		end(err)
+		return false, err
 	}
+	end(nil)
 	return ok, nil
 }
 
@@ -178,12 +197,18 @@ func Key(parts ...string) string {
 
 // SAdd 向 Set 类型的 key 中添加成员，并设置 TTL（若 TTL > 0）。
 func (c *Client) SAdd(ctx context.Context, key string, member string, expiration time.Duration) error {
+	ctx, end := startRedisOperation(ctx, "SADD")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	if err := c.rdb.SAdd(ctx, key, member).Err(); err != nil {
-		return errno.ErrInternal.WithMessagef("redis sadd %s: %v", key, err)
+		opErr = errno.ErrInternal.WithMessagef("redis sadd %s: %v", key, err)
+		return opErr
 	}
 	if expiration > 0 {
 		if err := c.rdb.Expire(ctx, key, expiration).Err(); err != nil {
-			return errno.ErrInternal.WithMessagef("redis expire %s: %v", key, err)
+			opErr = errno.ErrInternal.WithMessagef("redis expire %s: %v", key, err)
+			return opErr
 		}
 	}
 	return nil
@@ -191,9 +216,13 @@ func (c *Client) SAdd(ctx context.Context, key string, member string, expiration
 
 // SMembers 返回 Set key 中所有成员。key 不存在时返回空切片。
 func (c *Client) SMembers(ctx context.Context, key string) ([]string, error) {
+	ctx, end := startRedisOperation(ctx, "SMEMBERS")
 	members, err := c.rdb.SMembers(ctx, key).Result()
 	if err != nil {
-		return nil, errno.ErrInternal.WithMessagef("redis smembers %s: %v", key, err)
+		err = errno.ErrInternal.WithMessagef("redis smembers %s: %v", key, err)
+		end(err)
+		return nil, err
 	}
+	end(nil)
 	return members, nil
 }

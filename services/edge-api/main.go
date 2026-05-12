@@ -2,15 +2,19 @@
 package main
 
 import (
+	"context"
 	"os"
+	"time"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/cloudwego/kitex/client"
+	hertzconfig "github.com/cloudwego/hertz/pkg/common/config"
 	"go.uber.org/zap"
 
+	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
+	pkgotel "github.com/castlexu/micro-service/pkg/otel"
 	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	"github.com/castlexu/micro-service/services/edge-api/handler"
 	iamclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam/iamservice"
@@ -22,14 +26,8 @@ type EdgeConfig struct {
 	Server struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
-	IDP struct {
-		Addr string `mapstructure:"addr"`
-	} `mapstructure:"idp"`
-	IAM struct {
-		Addr string `mapstructure:"addr"`
-	} `mapstructure:"iam"`
 	Model struct {
-		Addr string `mapstructure:"addr"`
+		ServiceName string `mapstructure:"service_name"`
 	} `mapstructure:"model"`
 	JWT struct {
 		Secret string `mapstructure:"secret"`
@@ -37,6 +35,9 @@ type EdgeConfig struct {
 	Redis struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"redis"`
+	Registry  cloudwego.RegistryConfig  `mapstructure:"registry"`
+	Discovery cloudwego.DiscoveryConfig `mapstructure:"discovery"`
+	OTel      pkgotel.Config            `mapstructure:"otel"`
 }
 
 func main() {
@@ -52,6 +53,17 @@ func main() {
 	if err := config.Load(cfgPath, &cfg); err != nil {
 		logger.L().Fatal("load config failed", zap.Error(err))
 	}
+	otelShutdown, err := pkgotel.Init(context.Background(), "edge-api", cfg.OTel)
+	if err != nil {
+		logger.L().Fatal("otel init failed", zap.Error(err))
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := otelShutdown(ctx); err != nil {
+			logger.L().Warn("otel shutdown failed", zap.Error(err))
+		}
+	}()
 
 	// JWT secret（与 idp 服务共享同一个 secret）
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
@@ -79,21 +91,21 @@ func main() {
 	defer func() { _ = pkgredis.Close() }()
 
 	// IDP Kitex 客户端
-	idpAddr := cfg.IDP.Addr
-	if idpAddr == "" {
-		idpAddr = "127.0.0.1:38081"
+	idpClientOpts, err := cloudwego.KitexClientOptions(cfg.Discovery)
+	if err != nil {
+		logger.L().Fatal("idp resolver init failed", zap.Error(err))
 	}
-	idpCli, err := idpclient.NewClient("idp", client.WithHostPorts(idpAddr))
+	idpCli, err := idpclient.NewClient("idp", idpClientOpts...)
 	if err != nil {
 		logger.L().Fatal("idp client init failed", zap.Error(err))
 	}
 
 	// IAM Kitex 客户端
-	iamAddr := cfg.IAM.Addr
-	if iamAddr == "" {
-		iamAddr = "127.0.0.1:38082"
+	iamClientOpts, err := cloudwego.KitexClientOptions(cfg.Discovery)
+	if err != nil {
+		logger.L().Fatal("iam resolver init failed", zap.Error(err))
 	}
-	iamCli, err := iamclient.NewClient("iam", client.WithHostPorts(iamAddr))
+	iamCli, err := iamclient.NewClient("iam", iamClientOpts...)
 	if err != nil {
 		logger.L().Fatal("iam client init failed", zap.Error(err))
 	}
@@ -104,18 +116,30 @@ func main() {
 	adminHandler := handler.NewAdminHandler(iamCli, idpCli)
 
 	// Model service 代理
-	modelAddr := cfg.Model.Addr
-	if modelAddr == "" {
-		modelAddr = "127.0.0.1:38083"
+	modelServiceName := cfg.Model.ServiceName
+	if modelServiceName == "" {
+		modelServiceName = "model"
 	}
-	modelProxy := handler.NewModelProxy(modelAddr)
+	modelResolver, err := cloudwego.NewHertzServiceResolver(cfg.Discovery, modelServiceName)
+	if err != nil {
+		logger.L().Fatal("model resolver init failed", zap.Error(err))
+	}
+	modelProxy := handler.NewModelProxy(modelResolver)
 
 	// Hertz server
 	addr := cfg.Server.Addr
 	if addr == "" {
 		addr = ":38080"
 	}
-	h := server.Default(server.WithHostPorts(addr))
+	hertzOpts := []hertzconfig.Option{
+		server.WithHostPorts(addr),
+	}
+	registryOpts, err := cloudwego.HertzServerOptions(cfg.Registry, addr)
+	if err != nil {
+		logger.L().Fatal("hertz registry init failed", zap.Error(err))
+	}
+	hertzOpts = append(hertzOpts, registryOpts...)
+	h := server.Default(hertzOpts...)
 	RegisterRoutes(h, authHandler, userHandler, adminHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
 
 	logger.L().Info("edge-api listening", zap.String("addr", addr))

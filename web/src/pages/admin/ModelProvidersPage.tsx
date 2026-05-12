@@ -1,10 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   modelListProviders, modelCreateProvider, modelSetEnabled, modelUpdateAPIKey,
   type ModelProvider,
 } from '../../lib/api'
+import { getErrorMessage } from '../../lib/error'
 
 const TYPE_LABEL: Record<string, string> = { llm: 'LLM', image: '图像生成' }
+type ProviderForm = {
+  name: string
+  slug: string
+  type: 'llm' | 'image'
+  base_url: string
+  api_key: string
+  default_model: string
+}
+const PROVIDER_TEXT_FIELDS: Array<{ label: string; key: Exclude<keyof ProviderForm, 'type'>; placeholder: string }> = [
+  { label: '名称 *', key: 'name', placeholder: 'DeepSeek' },
+  { label: 'Slug *', key: 'slug', placeholder: 'deepseek' },
+  { label: 'Base URL *', key: 'base_url', placeholder: 'https://api.deepseek.com' },
+  { label: 'API Key', key: 'api_key', placeholder: 'sk-...' },
+  { label: '默认模型', key: 'default_model', placeholder: 'deepseek-chat' },
+]
 
 export default function ModelProvidersPage() {
   const [providers, setProviders] = useState<ModelProvider[]>([])
@@ -14,7 +30,7 @@ export default function ModelProvidersPage() {
   // create modal
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProviderForm>({
     name: 'DeepSeek',
     slug: 'deepseek',
     type: 'llm' as 'llm' | 'image',
@@ -32,21 +48,23 @@ export default function ModelProvidersPage() {
     setError(null)
     try {
       setProviders(await modelListProviders())
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e.message ?? 'Failed to load providers')
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Failed to load providers'))
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    queueMicrotask(() => { void load() })
+  }, [load])
 
   const toggleEnabled = async (p: ModelProvider) => {
     try {
       await modelSetEnabled(p.id, !p.enabled)
       setProviders((prev) => prev.map((x) => x.id === p.id ? { ...x, enabled: !p.enabled } : x))
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? e.message ?? 'Failed')
+    } catch (e: unknown) {
+      alert(getErrorMessage(e, 'Failed'))
     }
   }
 
@@ -61,8 +79,8 @@ export default function ModelProvidersPage() {
       setShowCreate(false)
       setForm({ name: '', slug: '', type: 'llm', base_url: '', api_key: '', default_model: '' })
       await load()
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? e.message ?? 'Failed')
+    } catch (e: unknown) {
+      alert(getErrorMessage(e, 'Failed'))
     } finally {
       setCreating(false)
     }
@@ -74,8 +92,8 @@ export default function ModelProvidersPage() {
     try {
       await modelUpdateAPIKey(apiKeyModal.id, apiKeyModal.value.trim())
       setAPIKeyModal(null)
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? e.message ?? 'Failed')
+    } catch (e: unknown) {
+      alert(getErrorMessage(e, 'Failed'))
     } finally {
       setSavingKey(false)
     }
@@ -171,17 +189,11 @@ export default function ModelProvidersPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: 'var(--bg-primary)', borderRadius: 12, padding: 28, width: 440, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
             <h3 style={{ margin: '0 0 20px', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>新增供应商</h3>
-            {[
-              { label: '名称 *', key: 'name', placeholder: 'DeepSeek' },
-              { label: 'Slug *', key: 'slug', placeholder: 'deepseek' },
-              { label: 'Base URL *', key: 'base_url', placeholder: 'https://api.deepseek.com' },
-              { label: 'API Key', key: 'api_key', placeholder: 'sk-...' },
-              { label: '默认模型', key: 'default_model', placeholder: 'deepseek-chat' },
-            ].map(({ label, key, placeholder }) => (
+            {PROVIDER_TEXT_FIELDS.map(({ label, key, placeholder }) => (
               <div key={key} style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</label>
                 <input
-                  value={(form as any)[key]}
+                  value={form[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   placeholder={placeholder}
                   style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 13 }}

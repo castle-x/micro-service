@@ -7,12 +7,15 @@ import (
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
+	hertzconfig "github.com/cloudwego/hertz/pkg/common/config"
 	"go.uber.org/zap"
 
+	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
+	pkgotel "github.com/castlexu/micro-service/pkg/otel"
 	mdlbiz "github.com/castlexu/micro-service/services/model/biz"
 	mdlmongo "github.com/castlexu/micro-service/services/model/dal/mongo"
 	mdlhandler "github.com/castlexu/micro-service/services/model/handler"
@@ -31,6 +34,8 @@ type ModelConfig struct {
 		// Key 是 32 字节 base64 或原始字符串，优先读 MODEL_ENCRYPT_KEY 环境变量
 		Key string `mapstructure:"key"`
 	} `mapstructure:"encrypt"`
+	Registry cloudwego.RegistryConfig `mapstructure:"registry"`
+	OTel     pkgotel.Config           `mapstructure:"otel"`
 }
 
 func main() {
@@ -46,6 +51,17 @@ func main() {
 	if err := config.Load(cfgPath, &cfg); err != nil {
 		logger.L().Fatal("load config failed", zap.Error(err))
 	}
+	otelShutdown, err := pkgotel.Init(context.Background(), "model", cfg.OTel)
+	if err != nil {
+		logger.L().Fatal("otel init failed", zap.Error(err))
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := otelShutdown(ctx); err != nil {
+			logger.L().Warn("otel shutdown failed", zap.Error(err))
+		}
+	}()
 
 	// 加密主密钥（32 字节），优先读环境变量
 	encKeyStr := os.Getenv("MODEL_ENCRYPT_KEY")
@@ -97,7 +113,15 @@ func main() {
 	if addr == "" {
 		addr = ":38083"
 	}
-	h := server.Default(server.WithHostPorts(addr))
+	hertzOpts := []hertzconfig.Option{
+		server.WithHostPorts(addr),
+	}
+	registryOpts, err := cloudwego.HertzServerOptions(cfg.Registry, addr)
+	if err != nil {
+		logger.L().Fatal("hertz registry init failed", zap.Error(err))
+	}
+	hertzOpts = append(hertzOpts, registryOpts...)
+	h := server.Default(hertzOpts...)
 	RegisterRoutes(h, providerHandler, chatHandler)
 
 	logger.L().Info("model service listening", zap.String("addr", addr))

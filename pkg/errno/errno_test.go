@@ -80,13 +80,13 @@ func TestFromDBError_Fallback_Internal(t *testing.T) {
 // 区段边界冒烟：每个区段至少一个码，避免忘记更新 code.go。
 func TestCodeRanges(t *testing.T) {
 	cases := map[string]int32{
-		"sys-lower":          ErrInternal.Code,
-		"sys-upper":          ErrDuplicateKey.Code,
-		"idp":                ErrInvalidCredentials.Code,
-		"iam":                ErrUserNotFound.Code,
-		"billing":            ErrOrderNotFound.Code,
-		"credits":            ErrInsufficientCredits.Code,
-		"notification":       ErrTemplateNotFound.Code,
+		"sys-lower":    ErrInternal.Code,
+		"sys-upper":    ErrDuplicateKey.Code,
+		"idp":          ErrInvalidCredentials.Code,
+		"iam":          ErrUserNotFound.Code,
+		"billing":      ErrOrderNotFound.Code,
+		"credits":      ErrInsufficientCredits.Code,
+		"notification": ErrTemplateNotFound.Code,
 	}
 	ranges := map[string][2]int32{
 		"sys-lower":    {10001, 10999},

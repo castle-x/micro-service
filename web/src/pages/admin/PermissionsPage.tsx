@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { adminListPermissions, adminCreatePermission, type AdminPermission } from '../../lib/api'
+import { getErrorMessage } from '../../lib/error'
 
 export default function PermissionsPage() {
   const [perms, setPerms] = useState<AdminPermission[]>([])
@@ -14,14 +15,16 @@ export default function PermissionsPage() {
     setError(null)
     try {
       setPerms(await adminListPermissions())
-    } catch (e: any) {
-      setError(e.response?.data?.message || e.message)
+    } catch (e: unknown) {
+      setError(getErrorMessage(e))
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    queueMicrotask(() => { void load() })
+  }, [load])
 
   const save = async () => {
     setSaving(true)
@@ -29,9 +32,9 @@ export default function PermissionsPage() {
       await adminCreatePermission(form.code, form.displayName, form.description)
       setCreateModal(false)
       setForm({ code: '', displayName: '', description: '' })
-      load()
-    } catch (e: any) {
-      alert(e.response?.data?.message || e.message)
+      void load()
+    } catch (e: unknown) {
+      alert(getErrorMessage(e))
     } finally {
       setSaving(false)
     }

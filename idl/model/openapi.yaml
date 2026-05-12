@@ -138,12 +138,12 @@ paths:
         ```
         data: {"type":"reasoning","content":"..."}
         data: {"type":"content","content":"..."}
-        data: {"type":"done"}
+        data: {"type":"done","prompt_tokens":12,"completion_tokens":8,"total_tokens":20}
         data: {"type":"error","message":"..."}
         ```
         - `reasoning`：thinking 推理 token（仅 reasoner 模型输出）
         - `content`：普通回复 token
-        - `done`：流结束，客户端应关闭连接
+        - `done`：流结束，客户端应关闭连接；provider 支持时会携带本次问答 token usage
         - `error`：上游错误，流中断
       requestBody:
         required: true

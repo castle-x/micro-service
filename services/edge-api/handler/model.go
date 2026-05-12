@@ -11,19 +11,20 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"go.uber.org/zap"
 
+	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/logger"
 )
 
 // ModelProxy 将 /api/v1/admin/models/* 转发到 model service。
 type ModelProxy struct {
-	modelBaseURL string
-	httpClient   *http.Client
+	resolver   *cloudwego.HertzServiceResolver
+	httpClient *http.Client
 }
 
-// NewModelProxy 构造 ModelProxy。modelAddr 示例："127.0.0.1:38083"。
-func NewModelProxy(modelAddr string) *ModelProxy {
+// NewModelProxy 构造 ModelProxy。
+func NewModelProxy(resolver *cloudwego.HertzServiceResolver) *ModelProxy {
 	return &ModelProxy{
-		modelBaseURL: "http://" + modelAddr,
+		resolver: resolver,
 		// chat 接口 LLM 响应可能需要 120s，proxy 超时需覆盖该时间
 		httpClient: &http.Client{Timeout: 150 * time.Second},
 	}
@@ -38,7 +39,13 @@ func (p *ModelProxy) ProxyModels(c context.Context, ctx *app.RequestContext) {
 		upstream += origPath[len(prefix):]
 	}
 
-	targetURL := p.modelBaseURL + upstream
+	modelBaseURL, err := p.resolver.BaseURL(c)
+	if err != nil {
+		logger.Ctx(c).Error("model proxy: resolve upstream failed", zap.Error(err))
+		ctx.JSON(http.StatusBadGateway, map[string]any{"code": 10007, "message": "model service unavailable"})
+		return
+	}
+	targetURL := modelBaseURL + upstream
 	if qs := string(ctx.URI().QueryString()); qs != "" {
 		targetURL += "?" + qs
 	}
@@ -69,8 +76,11 @@ func (p *ModelProxy) ProxyModels(c context.Context, ctx *app.RequestContext) {
 		req.ContentLength = int64(len(bodyBytes))
 	}
 
+	proxyCtx, finishProxy := startModelProxyRequest(c, req, upstream, false)
+	req = req.WithContext(proxyCtx)
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
+		finishProxy(0, err)
 		logger.Ctx(c).Error("model proxy: upstream failed", zap.Error(err), zap.String("url", targetURL))
 		msg := fmt.Sprintf("model service error: %v", err)
 		if isTimeout(err) {
@@ -88,6 +98,7 @@ func (p *ModelProxy) ProxyModels(c context.Context, ctx *app.RequestContext) {
 		}
 	}
 	body, _ := io.ReadAll(resp.Body)
+	finishProxy(resp.StatusCode, nil)
 	ctx.Write(body) //nolint:errcheck
 }
 
@@ -112,7 +123,13 @@ func (p *ModelProxy) ProxyStream(c context.Context, ctx *app.RequestContext) {
 		upstream += origPath[len(prefix):]
 	}
 
-	targetURL := p.modelBaseURL + upstream
+	modelBaseURL, err := p.resolver.BaseURL(c)
+	if err != nil {
+		logger.Ctx(c).Error("model stream proxy: resolve upstream failed", zap.Error(err))
+		ctx.JSON(http.StatusBadGateway, map[string]any{"code": 10007, "message": "model service unavailable"})
+		return
+	}
+	targetURL := modelBaseURL + upstream
 
 	bodyBytes := ctx.Request.Body()
 	var bodyReader io.Reader
@@ -138,9 +155,12 @@ func (p *ModelProxy) ProxyStream(c context.Context, ctx *app.RequestContext) {
 	}
 
 	// 流式请求不设全局超时，依赖 ctx 取消
+	proxyCtx, finishProxy := startModelProxyRequest(c, req, upstream, true)
+	req = req.WithContext(proxyCtx)
 	streamClient := &http.Client{}
 	resp, err := streamClient.Do(req)
 	if err != nil {
+		finishProxy(0, err)
 		logger.Ctx(c).Error("model stream proxy: upstream failed", zap.Error(err))
 		ctx.JSON(http.StatusBadGateway, map[string]any{"code": 10007, "message": fmt.Sprintf("model service error: %v", err)})
 		return
@@ -155,5 +175,5 @@ func (p *ModelProxy) ProxyStream(c context.Context, ctx *app.RequestContext) {
 	}
 
 	// 直接 pipe：不缓冲，上游每写一个 SSE event，框架立即推给客户端
-	ctx.Response.SetBodyStream(resp.Body, -1)
+	ctx.Response.SetBodyStream(&modelProxyBody{ReadCloser: resp.Body, finish: finishProxy, status: resp.StatusCode}, -1)
 }

@@ -14,9 +14,9 @@ import (
 
 // RoleBiz 处理角色管理业务。
 type RoleBiz struct {
-	roleRepo   *iammongo.RoleRepo
-	permRepo   *iammongo.PermissionRepo
-	roleCache  *iamcache.RoleCache
+	roleRepo  *iammongo.RoleRepo
+	permRepo  *iammongo.PermissionRepo
+	roleCache *iamcache.RoleCache
 }
 
 // NewRoleBiz 构造 RoleBiz。

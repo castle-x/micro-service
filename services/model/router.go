@@ -9,7 +9,7 @@ import (
 
 // RegisterRoutes 注册 model service 所有路由。
 func RegisterRoutes(h *server.Hertz, ph *mdlhandler.ProviderHandler, ch *mdlhandler.ChatHandler) {
-	h.Use(mwhertz.Recovery(), mwhertz.Trace(), mwhertz.Logging())
+	h.Use(mwhertz.Trace(), mwhertz.Recovery(), mwhertz.Logging())
 
 	v1 := h.Group("/api/v1/model")
 	{

@@ -250,6 +250,7 @@ func (h *AuthHandler) AlipayCallback(c context.Context, ctx *app.RequestContext)
 	)
 	ctx.Redirect(http.StatusFound, []byte(redirectURL))
 }
+
 // Register POST /api/v1/auth/register
 func (h *AuthHandler) Register(c context.Context, ctx *app.RequestContext) {
 	var req registerReq

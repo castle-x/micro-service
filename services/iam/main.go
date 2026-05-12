@@ -11,11 +11,13 @@ import (
 	"github.com/cloudwego/kitex/server"
 	"go.uber.org/zap"
 
+	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	mwkitex "github.com/castlexu/micro-service/pkg/middleware/kitex"
+	pkgotel "github.com/castlexu/micro-service/pkg/otel"
 	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	iambiz "github.com/castlexu/micro-service/services/iam/biz"
 	iamcache "github.com/castlexu/micro-service/services/iam/cache"
@@ -35,6 +37,8 @@ type IAMConfig struct {
 	Server struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
+	Registry cloudwego.RegistryConfig `mapstructure:"registry"`
+	OTel     pkgotel.Config           `mapstructure:"otel"`
 }
 
 func main() {
@@ -50,6 +54,17 @@ func main() {
 	if err := config.Load(cfgPath, &cfg); err != nil {
 		logger.L().Fatal("load config failed", zap.Error(err))
 	}
+	otelShutdown, err := pkgotel.Init(context.Background(), "iam", cfg.OTel)
+	if err != nil {
+		logger.L().Fatal("otel init failed", zap.Error(err))
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := otelShutdown(ctx); err != nil {
+			logger.L().Warn("otel shutdown failed", zap.Error(err))
+		}
+	}()
 
 	// MongoDB
 	mongoURI := cfg.Mongo.URI
@@ -114,12 +129,18 @@ func main() {
 	if err != nil {
 		logger.L().Fatal("invalid server addr", zap.String("addr", addr), zap.Error(err))
 	}
-	svr := iamservice.NewServer(handler,
+	opts := []server.Option{
 		server.WithServiceAddr(tcpAddr),
 		server.WithMiddleware(mwkitex.Trace()),
 		server.WithMiddleware(mwkitex.Recovery()),
 		server.WithMiddleware(mwkitex.Logging()),
-	)
+	}
+	registryOpts, err := cloudwego.KitexRegistryOptions(cfg.Registry)
+	if err != nil {
+		logger.L().Fatal("kitex registry init failed", zap.Error(err))
+	}
+	opts = append(opts, registryOpts...)
+	svr := iamservice.NewServer(handler, opts...)
 	logger.L().Info(fmt.Sprintf("iam server listening on %s", addr))
 	if err := svr.Run(); err != nil {
 		logger.L().Fatal("iam server stopped", zap.Error(err))

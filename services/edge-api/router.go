@@ -9,9 +9,9 @@ import (
 
 	mwhertz "github.com/castlexu/micro-service/pkg/middleware/hertz"
 	"github.com/castlexu/micro-service/services/edge-api/handler"
-	edgemw "github.com/castlexu/micro-service/services/edge-api/middleware"
 	iamclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam/iamservice"
 	idpclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/idp/idpservice"
+	edgemw "github.com/castlexu/micro-service/services/edge-api/middleware"
 )
 
 func corsMiddleware(frontendURL string) app.HandlerFunc {
@@ -43,7 +43,7 @@ func RegisterRoutes(
 	jwtSecret []byte,
 	frontendURL string,
 ) {
-	h.Use(mwhertz.Recovery(), mwhertz.Trace(), mwhertz.Logging())
+	h.Use(mwhertz.Trace(), mwhertz.Recovery(), mwhertz.Logging())
 	h.Use(corsMiddleware(frontendURL))
 
 	authMw := edgemw.Auth(jwtSecret, idpCli)

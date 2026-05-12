@@ -10,13 +10,13 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/castlexu/micro-service/pkg/errno"
-	"github.com/castlexu/micro-service/pkg/logger"
 	pkgjwt "github.com/castlexu/micro-service/pkg/jwt"
+	"github.com/castlexu/micro-service/pkg/logger"
 	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	iambase "github.com/castlexu/micro-service/services/edge-api/kitex_gen/base"
+	idpbase "github.com/castlexu/micro-service/services/edge-api/kitex_gen/base"
 	iamgen "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam"
 	iamclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam/iamservice"
-	idpbase "github.com/castlexu/micro-service/services/edge-api/kitex_gen/base"
 	idpgen "github.com/castlexu/micro-service/services/edge-api/kitex_gen/idp"
 	idpclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/idp/idpservice"
 )

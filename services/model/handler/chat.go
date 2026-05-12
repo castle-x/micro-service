@@ -86,7 +86,7 @@ func (h *ChatHandler) Chat(c context.Context, ctx *app.RequestContext) {
 
 // streamChunk 是 SSE 事件的 JSON payload。
 type streamChunk struct {
-	Type             string `json:"type"`              // "reasoning"|"content"|"done"|"error"
+	Type             string `json:"type"` // "reasoning"|"content"|"done"|"error"
 	Content          string `json:"content,omitempty"`
 	Message          string `json:"message,omitempty"` // error 时使用
 	PromptTokens     int    `json:"prompt_tokens,omitempty"`

@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -83,9 +84,16 @@ func Ctx(ctx context.Context) *Logger {
 		return &Logger{z: base}
 	}
 	traceID, caller, userID, tenantID := extractMeta(ctx)
-	fields := make([]zap.Field, 0, 4)
+	otelTraceID, spanID := otelIDs(ctx)
+	if otelTraceID != "" {
+		traceID = otelTraceID
+	}
+	fields := make([]zap.Field, 0, 5)
 	if traceID != "" {
 		fields = append(fields, zap.String("trace_id", traceID))
+	}
+	if spanID != "" {
+		fields = append(fields, zap.String("span_id", spanID))
 	}
 	if caller != "" {
 		fields = append(fields, zap.String("caller", caller))
@@ -100,6 +108,20 @@ func Ctx(ctx context.Context) *Logger {
 		return &Logger{z: base}
 	}
 	return &Logger{z: base.With(fields...)}
+}
+
+func otelIDs(ctx context.Context) (traceID, spanID string) {
+	sc := trace.SpanContextFromContext(ctx)
+	if !sc.IsValid() {
+		return "", ""
+	}
+	if sc.TraceID().IsValid() {
+		traceID = sc.TraceID().String()
+	}
+	if sc.SpanID().IsValid() {
+		spanID = sc.SpanID().String()
+	}
+	return traceID, spanID
 }
 
 // Logger 是对 *zap.Logger 的薄封装，额外提供 Printf 式方法（Debugf/Infof/...）。

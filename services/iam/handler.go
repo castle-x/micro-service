@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/castlexu/micro-service/pkg/errno"
-	iambase "github.com/castlexu/micro-service/services/iam/kitex_gen/base"
-	iamgen "github.com/castlexu/micro-service/services/iam/kitex_gen/iam"
 	"github.com/castlexu/micro-service/services/iam/biz"
 	iammodel "github.com/castlexu/micro-service/services/iam/dal/model"
+	iambase "github.com/castlexu/micro-service/services/iam/kitex_gen/base"
+	iamgen "github.com/castlexu/micro-service/services/iam/kitex_gen/iam"
 )
 
 // IAMImpl 实现 Kitex 生成的 IAMService 接口。

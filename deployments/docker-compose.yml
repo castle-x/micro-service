@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
 
   etcd:
-    image: bitnami/etcd:3.5
+    image: bitnamilegacy/etcd:3.5
     container_name: platform-etcd
     environment:
       ALLOW_NONE_AUTHENTICATION: "yes"

@@ -20,7 +20,7 @@ export default function AppLayout() {
         }))
         .catch(() => {/* token 失效由 axios 拦截器处理 */})
     }
-  }, [accessToken])
+  }, [accessToken, setUser, user?.role])
 
   return (
     <div

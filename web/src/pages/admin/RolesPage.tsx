@@ -3,6 +3,7 @@ import {
   adminListRoles, adminListPermissions, adminCreateRole, adminUpdateRole, adminDeleteRole,
   type AdminRole, type AdminPermission
 } from '../../lib/api'
+import { getErrorMessage } from '../../lib/error'
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<AdminRole[]>([])
@@ -27,14 +28,16 @@ export default function RolesPage() {
       const [r, p] = await Promise.all([adminListRoles(), adminListPermissions()])
       setRoles(r)
       setPerms(p)
-    } catch (e: any) {
-      setError(e.response?.data?.message || e.message)
+    } catch (e: unknown) {
+      setError(getErrorMessage(e))
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    queueMicrotask(() => { void load() })
+  }, [load])
 
   const openCreate = () => setEditModal({ mode: 'create', name: '', displayName: '', selectedPerms: [] })
   const openEdit = (r: AdminRole) => setEditModal({ mode: 'edit', role: r, name: r.Name, displayName: r.DisplayName, selectedPerms: [...r.Permissions] })
@@ -49,9 +52,9 @@ export default function RolesPage() {
         await adminUpdateRole(editModal.role.RoleID, editModal.displayName, editModal.selectedPerms)
       }
       setEditModal(null)
-      load()
-    } catch (e: any) {
-      alert(e.response?.data?.message || e.message)
+      void load()
+    } catch (e: unknown) {
+      alert(getErrorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -61,9 +64,9 @@ export default function RolesPage() {
     if (!confirm(`确认删除角色 "${role.DisplayName}"？`)) return
     try {
       await adminDeleteRole(role.RoleID)
-      load()
-    } catch (e: any) {
-      alert(e.response?.data?.message || e.message)
+      void load()
+    } catch (e: unknown) {
+      alert(getErrorMessage(e))
     }
   }
 

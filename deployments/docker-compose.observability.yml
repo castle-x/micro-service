@@ -1,0 +1,38 @@
+# 本地可观测平台：OpenObserve + OpenTelemetry Collector
+# 启动：make obs-up    停止：make obs-down
+
+services:
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    container_name: platform-openobserve
+    environment:
+      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_USER_EMAIL:-root@example.com}
+      ZO_ROOT_USER_PASSWORD: ${OPENOBSERVE_ROOT_USER_PASSWORD:-Complexpass123}
+      ZO_DATA_DIR: /data
+    ports:
+      - "5080:5080"
+      - "5081:5081"
+    volumes:
+      - openobserve_data:/data
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: platform-otel-collector
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    environment:
+      OPENOBSERVE_AUTH_HEADER: ${OPENOBSERVE_AUTH_HEADER:-Basic cm9vdEBleGFtcGxlLmNvbTpDb21wbGV4cGFzczEyMw==}
+      OPENOBSERVE_ORG: ${OPENOBSERVE_ORG:-default}
+      OPENOBSERVE_STREAM: ${OPENOBSERVE_STREAM:-default}
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+    depends_on:
+      - openobserve
+    restart: unless-stopped
+
+volumes:
+  openobserve_data:

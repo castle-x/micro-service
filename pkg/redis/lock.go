@@ -32,11 +32,17 @@ type LockOptions struct {
 //     业务可 errors.Is(err, errno.ErrRateLimit) 判定并做排队 / 降级。
 //   - 其他错误包装为 errno.ErrInternal。
 func (c *Client) ObtainLock(ctx context.Context, key string, ttl time.Duration, opts ...LockOptions) (*Lock, error) {
+	ctx, end := startRedisOperation(ctx, "LOCK")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	if c == nil || c.locker == nil {
-		return nil, errno.ErrServiceUnavailable.WithMessage("redis: client not initialized")
+		opErr = errno.ErrServiceUnavailable.WithMessage("redis: client not initialized")
+		return nil, opErr
 	}
 	if key == "" || ttl <= 0 {
-		return nil, errno.ErrInvalidParam.WithMessage("redis: ObtainLock requires non-empty key and positive ttl")
+		opErr = errno.ErrInvalidParam.WithMessage("redis: ObtainLock requires non-empty key and positive ttl")
+		return nil, opErr
 	}
 
 	var o LockOptions
@@ -55,15 +61,21 @@ func (c *Client) ObtainLock(ctx context.Context, key string, ttl time.Duration, 
 	l, err := c.locker.Obtain(ctx, key, ttl, lockOpts)
 	if err != nil {
 		if errors.Is(err, redislock.ErrNotObtained) {
-			return nil, errno.ErrRateLimit.WithMessagef("redis: lock held: %s", key)
+			opErr = errno.ErrRateLimit.WithMessagef("redis: lock held: %s", key)
+			return nil, opErr
 		}
-		return nil, errno.ErrInternal.WithMessagef("redis: obtain lock %s: %v", key, err)
+		opErr = errno.ErrInternal.WithMessagef("redis: obtain lock %s: %v", key, err)
+		return nil, opErr
 	}
 	return &Lock{inner: l}, nil
 }
 
 // Release 释放锁。重复释放或锁已过期返回 nil（幂等），其他错误包装为 ErrInternal。
 func (l *Lock) Release(ctx context.Context) error {
+	ctx, end := startRedisOperation(ctx, "UNLOCK")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	if l == nil || l.inner == nil {
 		return nil
 	}
@@ -71,7 +83,8 @@ func (l *Lock) Release(ctx context.Context) error {
 		if errors.Is(err, redislock.ErrLockNotHeld) {
 			return nil
 		}
-		return errno.ErrInternal.WithMessagef("redis: release lock: %v", err)
+		opErr = errno.ErrInternal.WithMessagef("redis: release lock: %v", err)
+		return opErr
 	}
 	return nil
 }
@@ -90,11 +103,17 @@ func (l *Lock) TTL(ctx context.Context) time.Duration {
 
 // Refresh 延长锁 TTL。通常在长任务中定期续期。
 func (l *Lock) Refresh(ctx context.Context, ttl time.Duration) error {
+	ctx, end := startRedisOperation(ctx, "LOCK_REFRESH")
+	var opErr error
+	defer func() { end(opErr) }()
+
 	if l == nil || l.inner == nil {
-		return errno.ErrInvalidParam.WithMessage("redis: lock is nil")
+		opErr = errno.ErrInvalidParam.WithMessage("redis: lock is nil")
+		return opErr
 	}
 	if err := l.inner.Refresh(ctx, ttl, nil); err != nil {
-		return errno.ErrInternal.WithMessagef("redis: refresh lock: %v", err)
+		opErr = errno.ErrInternal.WithMessagef("redis: refresh lock: %v", err)
+		return opErr
 	}
 	return nil
 }

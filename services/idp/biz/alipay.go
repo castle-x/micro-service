@@ -101,9 +101,9 @@ func (b *AlipayBiz) GetAuthURL(ctx context.Context, overrideRedirect string) (au
 
 // AlipayUserInfo 支付宝用户信息。
 type AlipayUserInfo struct {
-	UserID    string // 支付宝 user_id（2088 开头）
-	NickName  string
-	Avatar    string
+	UserID   string // 支付宝 user_id（2088 开头）
+	NickName string
+	Avatar   string
 	// 支付宝不返回 email，以 user_id@alipay 作为内部 email 唯一标识
 }
 

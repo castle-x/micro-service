@@ -68,14 +68,14 @@ func (h *ProviderHandler) ListProviders(c context.Context, ctx *app.RequestConte
 	}
 	// 不暴露 api_key
 	type item struct {
-		ID           string               `json:"id"`
-		Name         string               `json:"name"`
-		Slug         string               `json:"slug"`
+		ID           string                `json:"id"`
+		Name         string                `json:"name"`
+		Slug         string                `json:"slug"`
 		Type         mdlmodel.ProviderType `json:"type"`
-		BaseURL      string               `json:"base_url"`
-		DefaultModel string               `json:"default_model"`
-		Enabled      bool                 `json:"enabled"`
-		CreatedAt    int64                `json:"created_at"`
+		BaseURL      string                `json:"base_url"`
+		DefaultModel string                `json:"default_model"`
+		Enabled      bool                  `json:"enabled"`
+		CreatedAt    int64                 `json:"created_at"`
 	}
 	result := make([]item, 0, len(providers))
 	for _, p := range providers {

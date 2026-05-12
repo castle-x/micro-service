@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getGoogleAuthUrl, getAlipayAuthUrl, loginByPassword, register } from '../lib/api'
+import { getErrorMessage } from '../lib/error'
 import { useAuthStore } from '../store/auth'
 
 type Mode = 'login' | 'register'
@@ -68,17 +69,15 @@ export default function LoginPage() {
   const [loadingPassword, setLoadingPassword] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [loadingAlipay, setLoadingAlipay] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [searchParams] = useSearchParams()
+  const [error, setError] = useState<string | null>(() => {
+    const urlError = searchParams.get('error')
+    return urlError ? decodeURIComponent(urlError) : null
+  })
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
 
-  useEffect(() => {
-    const urlError = searchParams.get('error')
-    if (urlError) setError(decodeURIComponent(urlError))
-  }, [])
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
     if (mode === 'register' && password !== confirm) {
@@ -92,9 +91,8 @@ export default function LoginPage() {
         : await register(email, password, name || undefined)
       setAuth({ accessToken: data.access_token, refreshToken: data.refresh_token, userId: data.user_id })
       navigate('/dashboard')
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Request failed'
-      setError(msg)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setLoadingPassword(false)
     }

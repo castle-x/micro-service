@@ -219,6 +219,12 @@ export interface StreamChunk {
   total_tokens?: number
 }
 
+export const hasStreamUsage = (chunk: StreamChunk): boolean => (
+  chunk.prompt_tokens !== undefined ||
+  chunk.completion_tokens !== undefined ||
+  chunk.total_tokens !== undefined
+)
+
 /**
  * modelChatStream — 使用 fetch + ReadableStream 消费 SSE 流式输出。
  * @param slug      provider slug

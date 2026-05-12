@@ -41,5 +41,29 @@ alipay:
 server:
   addr: ":38081"
 
-iam:
-  addr: "${IAM_ADDR:127.0.0.1:38082}"
+registry:
+  type: "${REGISTRY_TYPE:etcd}"
+  endpoints:
+    - "${ETCD_ENDPOINT:127.0.0.1:2379}"
+  prefix: "${REGISTRY_PREFIX:micro-service}"
+  service_name: "idp"
+  addr: "${IDP_REGISTRY_ADDR:127.0.0.1:38081}"
+  weight: 10
+  tags:
+    env: "${APP_ENV:local}"
+
+discovery:
+  type: "${DISCOVERY_TYPE:etcd}"
+  endpoints:
+    - "${ETCD_ENDPOINT:127.0.0.1:2379}"
+  prefix: "${DISCOVERY_PREFIX:micro-service}"
+
+otel:
+  enabled: ${OTEL_ENABLED:false}
+  endpoint: "${OTEL_ENDPOINT}"
+  protocol: "${OTEL_PROTOCOL:grpc}"
+  environment: "${APP_ENV:local}"
+  service_version: "${APP_VERSION:dev}"
+  sample_ratio: ${OTEL_SAMPLE_RATIO:1}
+  insecure: ${OTEL_INSECURE:true}
+  strict: ${OTEL_STRICT:false}

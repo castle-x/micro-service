@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getUserMe } from '../lib/api'
+import { getErrorMessage, getResponseStatus } from '../lib/error'
 import { useAuthStore } from '../store/auth'
 import api from '../lib/api'
 
@@ -29,7 +30,7 @@ export default function SettingsPage() {
         setProfile(data)
         setName(data.name || '')
       })
-      .catch((e) => setError(e?.message ?? 'Failed to load profile'))
+      .catch((e: unknown) => setError(getErrorMessage(e, 'Failed to load profile')))
       .finally(() => setLoading(false))
   }, [])
 
@@ -43,9 +44,9 @@ export default function SettingsPage() {
       await api.put('/v1/user/profile', { name: name.trim() })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e?.message ?? 'Save failed'
-      if (e?.response?.status === 404) {
+    } catch (e: unknown) {
+      const msg = getErrorMessage(e, 'Save failed')
+      if (getResponseStatus(e) === 404) {
         // 接口未实现，本地更新 store 即可
         useAuthStore.getState().setUser({
           ...(useAuthStore.getState().user ?? { userId: '', email: '', avatar: '', role: '' }),

@@ -17,6 +17,7 @@ import (
 
 	"github.com/castlexu/micro-service/pkg/errno"
 	"github.com/castlexu/micro-service/pkg/httpclient"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // ---- 公共类型 ----
@@ -24,9 +25,9 @@ import (
 // Message 是对话消息（与 OpenAI Chat API 对齐）。
 // Tool call 场景下 Content 可为空，ToolCalls 或 ToolCallID 会被填充。
 type Message struct {
-	Role       string     `json:"role"`                  // "system"|"user"|"assistant"|"tool"
+	Role       string     `json:"role"` // "system"|"user"|"assistant"|"tool"
 	Content    string     `json:"content"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`  // assistant 调用工具时填充
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`   // assistant 调用工具时填充
 	ToolCallID string     `json:"tool_call_id,omitempty"` // role=tool 时填充，对应 ToolCall.ID
 }
 
@@ -157,7 +158,7 @@ func BuildLLM(p ProviderInfo) (LLMAdapter, error) {
 	if p.Type != "llm" {
 		return nil, fmt.Errorf("adapter: provider %s is not llm type", p.Slug)
 	}
-	return newOpenAI(p.BaseURL, p.APIKey, p.DefaultModel), nil
+	return newOpenAI(p.Slug, p.BaseURL, p.APIKey, p.DefaultModel), nil
 }
 
 // BuildImage 根据 provider 信息构造 ImageAdapter。
@@ -171,16 +172,21 @@ func BuildImage(p ProviderInfo) (ImageAdapter, error) {
 // ---- OpenAI 兼容实现 ----
 
 type openaiAdapter struct {
-	client *httpclient.Client
-	model  string
+	client   *httpclient.Client
+	provider string
+	model    string
 }
 
-func newOpenAI(baseURL, apiKey, defaultModel string) LLMAdapter {
+func newOpenAI(provider, baseURL, apiKey, defaultModel string) LLMAdapter {
+	if provider == "" {
+		provider = "openai"
+	}
 	return &openaiAdapter{
 		client: httpclient.New(baseURL, 120*time.Second, map[string]string{
 			"Authorization": "Bearer " + apiKey,
 		}),
-		model: defaultModel,
+		provider: provider,
+		model:    defaultModel,
 	}
 }
 
@@ -192,6 +198,11 @@ type completionResp struct {
 			ToolCalls        []ToolCall `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
+	Usage *struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage,omitempty"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
@@ -202,16 +213,35 @@ func (a *openaiAdapter) Chat(ctx context.Context, req ChatRequest) (string, erro
 		req.Model = a.model
 	}
 	req.Stream = false
+	ctx, span, finish, _ := startLLMRequest(ctx, a.provider, req.Model, false)
+	defer func() {
+		finish(nil, nil, 0)
+		span.End()
+	}()
 
 	var resp completionResp
 	if err := a.client.Do(ctx, http.MethodPost, "/v1/chat/completions", req, &resp); err != nil {
+		finish(err, nil, 0)
 		return "", fmt.Errorf("openai chat: %w", err)
 	}
 	if resp.Error != nil {
-		return "", fmt.Errorf("openai error: %s", resp.Error.Message)
+		err := fmt.Errorf("openai error: %s", resp.Error.Message)
+		finish(err, nil, 0)
+		return "", err
 	}
 	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("openai: empty choices")
+		err := fmt.Errorf("openai: empty choices")
+		finish(err, nil, 0)
+		return "", err
+	}
+	if resp.Usage != nil {
+		usage := streamUsage{
+			PromptTokens:     resp.Usage.PromptTokens,
+			CompletionTokens: resp.Usage.CompletionTokens,
+			TotalTokens:      resp.Usage.TotalTokens,
+		}
+		finish(nil, &usage, 0)
+		return resp.Choices[0].Message.Content, nil
 	}
 	return resp.Choices[0].Message.Content, nil
 }
@@ -233,6 +263,12 @@ type streamChunk struct {
 	} `json:"usage"`
 }
 
+type streamUsage struct {
+	PromptTokens     int
+	CompletionTokens int
+	TotalTokens      int
+}
+
 func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan ChatChunk, error) {
 	if req.Model == "" {
 		req.Model = a.model
@@ -243,8 +279,12 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 		req.StreamOptions = &StreamOptions{IncludeUsage: true}
 	}
 
+	ctx, span, finish, start := startLLMRequest(ctx, a.provider, req.Model, true)
+
 	resp, err := a.client.DoStream(ctx, http.MethodPost, "/v1/chat/completions", req)
 	if err != nil {
+		finish(err, nil, 0)
+		span.End()
 		return nil, fmt.Errorf("openai stream: %w", err)
 	}
 
@@ -252,6 +292,7 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 	go func() {
 		defer resp.Body.Close()
 		defer close(ch)
+		defer span.End()
 
 		send := func(out ChatChunk) bool {
 			select {
@@ -262,21 +303,23 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 			}
 		}
 
+		var pendingUsage *streamUsage
+		var firstTokenDurationMS int64
+
 		err := httpclient.ReadSSELines(resp.Body, func(data string) error {
 			var chunk streamChunk
 			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 				return nil
 			}
-			// usage-only chunk（choices 为空，usage 有值）
-			if len(chunk.Choices) == 0 {
-				if chunk.Usage != nil {
-					send(ChatChunk{
-						Done:             true,
-						PromptTokens:     chunk.Usage.PromptTokens,
-						CompletionTokens: chunk.Usage.CompletionTokens,
-						TotalTokens:      chunk.Usage.TotalTokens,
-					})
+			if chunk.Usage != nil {
+				pendingUsage = &streamUsage{
+					PromptTokens:     chunk.Usage.PromptTokens,
+					CompletionTokens: chunk.Usage.CompletionTokens,
+					TotalTokens:      chunk.Usage.TotalTokens,
 				}
+			}
+			// usage-only chunk（choices 为空，usage 有值）— 暂存，等 finish 后一起发
+			if len(chunk.Choices) == 0 {
 				return nil
 			}
 			c := chunk.Choices[0]
@@ -286,21 +329,33 @@ func (a *openaiAdapter) ChatStream(ctx context.Context, req ChatRequest) (<-chan
 				ToolCalls:        c.Delta.ToolCalls,
 			}
 			if out.Content != "" || out.ReasoningContent != "" || len(out.ToolCalls) > 0 {
+				if firstTokenDurationMS == 0 {
+					firstTokenDurationMS = time.Since(start).Milliseconds()
+					span.SetAttributes(attribute.Int64("llm.first_token.duration_ms", firstTokenDurationMS))
+				}
 				if !send(out) {
 					return ctx.Err()
 				}
 			}
 			if c.FinishReason != nil && (*c.FinishReason == "stop" || *c.FinishReason == "tool_calls") {
-				// done 由后续 usage chunk 发出（含 token 数），这里不重复发
+				// finish_reason 到达时 usage chunk 可能还没来，先不发 done
+				// 让 SSE 流继续读完，usage chunk 会更新 pendingUsage，最后统一发
 			}
 			return nil
 		})
-		if err != nil && err != io.EOF {
-			select {
-			case ch <- ChatChunk{Done: true}:
-			default:
-			}
+		// 流读完后发 done（含 usage 如果有）
+		doneChunk := ChatChunk{Done: true}
+		if pendingUsage != nil {
+			doneChunk.PromptTokens = pendingUsage.PromptTokens
+			doneChunk.CompletionTokens = pendingUsage.CompletionTokens
+			doneChunk.TotalTokens = pendingUsage.TotalTokens
 		}
+		send(doneChunk)
+		if err != nil && err != io.EOF {
+			finish(err, pendingUsage, firstTokenDurationMS)
+			return
+		}
+		finish(nil, pendingUsage, firstTokenDurationMS)
 	}()
 
 	return ch, nil
