@@ -37,6 +37,7 @@ func RegisterRoutes(
 	authHandler *handler.AuthHandler,
 	userHandler *handler.UserHandler,
 	adminHandler *handler.AdminHandler,
+	assetHandler *handler.AssetHandler,
 	modelProxy *handler.ModelProxy,
 	idpCli idpclient.Client,
 	iamCli iamclient.Client,
@@ -67,6 +68,34 @@ func RegisterRoutes(
 		user := v1.Group("/user", authMw)
 		{
 			user.GET("/me", userHandler.GetMe)
+		}
+
+		// ---- 个人资产库路由 ----
+		assets := v1.Group("/assets", authMw)
+		{
+			assets.POST("/types", assetHandler.CreateAssetType)
+			assets.GET("/types", assetHandler.ListAssetTypes)
+			assets.GET("/types/:id", assetHandler.GetAssetType)
+			assets.PUT("/types/:id", assetHandler.UpdateAssetType)
+			assets.DELETE("/types/:id", assetHandler.DeleteAssetType)
+
+			assets.POST("/categories", assetHandler.CreateAssetCategory)
+			assets.GET("/categories", assetHandler.ListAssetCategories)
+			assets.PUT("/categories/:id", assetHandler.UpdateAssetCategory)
+			assets.DELETE("/categories/:id", assetHandler.DeleteAssetCategory)
+
+			assets.POST("/", assetHandler.CreateAsset)
+			assets.GET("/", assetHandler.ListAssets)
+			assets.POST("/:id/versions", assetHandler.CreateAssetVersion)
+			assets.GET("/:id/versions", assetHandler.ListAssetVersions)
+			assets.GET("/:id/versions/current", assetHandler.GetCurrentAssetVersion)
+			assets.PUT("/:id/versions/current", assetHandler.SetCurrentAssetVersion)
+			assets.GET("/:id/versions/:version", assetHandler.GetAssetVersion)
+			assets.POST("/:id/versions/:version/copy", assetHandler.CopyAssetVersion)
+			assets.GET("/:id", assetHandler.GetAsset)
+			assets.PUT("/:id", assetHandler.UpdateAsset)
+			assets.PUT("/:id/library-state", assetHandler.SetAssetLibraryState)
+			assets.DELETE("/:id", assetHandler.DeleteAsset)
 		}
 
 		// ---- 管理后台路由（需要登录 + 对应权限）----

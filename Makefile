@@ -1,7 +1,7 @@
 .PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services lint fmt clean help model-start model-stop model-restart
 
 MODULE := github.com/castlexu/micro-service
-SERVICES := idp iam billing credits notification
+SERVICES := idp iam billing credits notification asset
 ALL_SERVICES := edge-api model $(SERVICES)
 BIN_DIR := bin
 OBS_COMPOSE_FILE := deployments/docker-compose.observability.yml
@@ -207,10 +207,13 @@ model-restart: infra-up obs-up model-stop build
 gen:
 	@for svc in $(SERVICES); do \
 		echo ">>> Generating $$svc..."; \
+		idl_svc=$$svc; \
 		cd services/$$svc && \
-			kitex -module $(MODULE)/services/$$svc ../../idl/$$svc/$$svc.thrift && \
+			kitex -module $(MODULE)/services/$$svc ../../idl/$$idl_svc/$$idl_svc.thrift && \
 			cd ../..; \
 	done
+	@echo ">>> Generating edge-api asset client..."
+	@cd services/edge-api && kitex -module $(MODULE)/services/edge-api ../../idl/asset/asset.thrift && cd ../..
 
 # Build all services
 build:

@@ -17,6 +17,7 @@ import (
 	pkgotel "github.com/castlexu/micro-service/pkg/otel"
 	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	"github.com/castlexu/micro-service/services/edge-api/handler"
+	assetclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/asset/assetservice"
 	iamclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam/iamservice"
 	idpclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/idp/idpservice"
 )
@@ -29,6 +30,9 @@ type EdgeConfig struct {
 	Model struct {
 		ServiceName string `mapstructure:"service_name"`
 	} `mapstructure:"model"`
+	Asset struct {
+		ServiceName string `mapstructure:"service_name"`
+	} `mapstructure:"asset"`
 	JWT struct {
 		Secret string `mapstructure:"secret"`
 	} `mapstructure:"jwt"`
@@ -110,10 +114,25 @@ func main() {
 		logger.L().Fatal("iam client init failed", zap.Error(err))
 	}
 
+	// Asset Kitex 客户端
+	assetServiceName := cfg.Asset.ServiceName
+	if assetServiceName == "" {
+		assetServiceName = "asset"
+	}
+	assetClientOpts, err := cloudwego.KitexClientOptions(cfg.Discovery)
+	if err != nil {
+		logger.L().Fatal("asset resolver init failed", zap.Error(err))
+	}
+	assetCli, err := assetclient.NewClient(assetServiceName, assetClientOpts...)
+	if err != nil {
+		logger.L().Fatal("asset client init failed", zap.Error(err))
+	}
+
 	// 注入 handler
 	authHandler := handler.NewAuthHandler(idpCli, frontendURL)
 	userHandler := handler.NewUserHandler(idpCli, iamCli)
 	adminHandler := handler.NewAdminHandler(iamCli, idpCli)
+	assetHandler := handler.NewAssetHandler(assetCli)
 
 	// Model service 代理
 	modelServiceName := cfg.Model.ServiceName
@@ -140,7 +159,7 @@ func main() {
 	}
 	hertzOpts = append(hertzOpts, registryOpts...)
 	h := server.Default(hertzOpts...)
-	RegisterRoutes(h, authHandler, userHandler, adminHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
+	RegisterRoutes(h, authHandler, userHandler, adminHandler, assetHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
 
 	logger.L().Info("edge-api listening", zap.String("addr", addr))
 	h.Spin()

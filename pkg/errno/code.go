@@ -8,7 +8,7 @@
 //   - Credits     : 14001 - 14999
 //   - Notification: 15001 - 15999
 //   - Model       : 16001 - 16999
-//   - Model       : 16001 - 16999
+//   - Asset       : 17001 - 17999
 //
 // 使用规则：
 //   - 业务层禁止 errors.New / 裸 fmt.Errorf，必须返回本包预定义的 Errno。
@@ -74,4 +74,17 @@ var (
 	ErrProviderDisabled   = New(16002, "model provider disabled")
 	ErrAdapterUnsupported = New(16003, "model adapter unsupported")
 	ErrUpstreamLLM        = New(16004, "upstream llm error")
+)
+
+// ---- Asset 17001 - 17999 ----
+var (
+	ErrAssetTypeNotFound          = New(17001, "asset type not found")
+	ErrAssetNotFound              = New(17002, "asset not found")
+	ErrAssetVersionNotFound       = New(17003, "asset version not found")
+	ErrMediaObjectNotFound        = New(17004, "media object not found")
+	ErrAssetUploadSessionNotFound = New(17005, "asset upload session not found")
+	ErrAssetConflict              = New(17006, "asset conflict")
+	ErrAssetInvalidPart           = New(17007, "asset invalid part")
+	ErrAssetStorageError          = New(17008, "asset storage error")
+	ErrAssetCategoryNotFound      = New(17009, "asset category not found")
 )

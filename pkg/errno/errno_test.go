@@ -87,6 +87,7 @@ func TestCodeRanges(t *testing.T) {
 		"billing":      ErrOrderNotFound.Code,
 		"credits":      ErrInsufficientCredits.Code,
 		"notification": ErrTemplateNotFound.Code,
+		"asset":        ErrAssetNotFound.Code,
 	}
 	ranges := map[string][2]int32{
 		"sys-lower":    {10001, 10999},
@@ -96,10 +97,16 @@ func TestCodeRanges(t *testing.T) {
 		"billing":      {13001, 13999},
 		"credits":      {14001, 14999},
 		"notification": {15001, 15999},
+		"asset":        {17001, 17999},
 	}
 	for name, code := range cases {
 		r := ranges[name]
 		assert.GreaterOrEqual(t, code, r[0], name)
 		assert.LessOrEqual(t, code, r[1], name)
 	}
+}
+
+func TestAssetCategoryNotFoundCode(t *testing.T) {
+	assert.Equal(t, int32(17009), ErrAssetCategoryNotFound.Code)
+	assert.True(t, errors.Is(ErrAssetCategoryNotFound, ErrAssetCategoryNotFound.WithMessage("missing category")))
 }

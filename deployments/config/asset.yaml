@@ -1,36 +1,25 @@
-# edge-api 服务配置（非敏感字段）
+# asset 服务配置（非敏感字段）
 
-server:
-  addr: ":38080"
-
-model:
-  service_name: "model"
-
-asset:
-  service_name: "asset"
-
-jwt:
-  secret: "${JWT_SECRET}"
+mongo:
+  uri: "${MONGO_URI:mongodb://localhost:27017/platform}"
+  db: "platform"
 
 redis:
   addr: "${REDIS_ADDR:localhost:6379}"
+
+server:
+  addr: ":38084"
 
 registry:
   type: "${REGISTRY_TYPE:etcd}"
   endpoints:
     - "${ETCD_ENDPOINT:127.0.0.1:2379}"
   prefix: "${REGISTRY_PREFIX:micro-service}"
-  service_name: "edge-api"
-  addr: "${EDGE_REGISTRY_ADDR:127.0.0.1:38080}"
+  service_name: "asset"
+  addr: "${ASSET_REGISTRY_ADDR:127.0.0.1:38084}"
   weight: 10
   tags:
     env: "${APP_ENV:local}"
-
-discovery:
-  type: "${DISCOVERY_TYPE:etcd}"
-  endpoints:
-    - "${ETCD_ENDPOINT:127.0.0.1:2379}"
-  prefix: "${DISCOVERY_PREFIX:micro-service}"
 
 otel:
   enabled: ${OTEL_ENABLED:false}
