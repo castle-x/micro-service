@@ -38,10 +38,15 @@ type AssetVersionBiz struct {
 	versionRepo AssetVersionRepository
 	assetRepo   AssetRepository
 	typeRepo    AssetTypeRepository
+	mediaRepo   MediaObjectRepository
 }
 
-func NewAssetVersionBiz(versionRepo AssetVersionRepository, assetRepo AssetRepository, typeRepo AssetTypeRepository) *AssetVersionBiz {
-	return &AssetVersionBiz{versionRepo: versionRepo, assetRepo: assetRepo, typeRepo: typeRepo}
+func NewAssetVersionBiz(versionRepo AssetVersionRepository, assetRepo AssetRepository, typeRepo AssetTypeRepository, mediaRepo ...MediaObjectRepository) *AssetVersionBiz {
+	var mr MediaObjectRepository
+	if len(mediaRepo) > 0 {
+		mr = mediaRepo[0]
+	}
+	return &AssetVersionBiz{versionRepo: versionRepo, assetRepo: assetRepo, typeRepo: typeRepo, mediaRepo: mr}
 }
 
 func (b *AssetVersionBiz) Create(ctx context.Context, userID, assetID string, input AssetVersionInput) (*assetmodel.AssetVersion, error) {
@@ -51,6 +56,9 @@ func (b *AssetVersionBiz) Create(ctx context.Context, userID, assetID string, in
 	}
 	parts := cloneParts(input.Parts)
 	if err := validateAssetParts(assetType.PartSchemas, parts); err != nil {
+		return nil, err
+	}
+	if err := b.validateAssetPartMediaRefs(ctx, workspaceID, parts); err != nil {
 		return nil, err
 	}
 	version, err := b.versionRepo.NextAssetVersionNumber(ctx, asset.ID)
@@ -93,6 +101,9 @@ func (b *AssetVersionBiz) Copy(ctx context.Context, userID, assetID string, from
 		parts[key] = clonePartValue(value)
 	}
 	if err := validateAssetParts(assetType.PartSchemas, parts); err != nil {
+		return nil, err
+	}
+	if err := b.validateAssetPartMediaRefs(ctx, workspaceID, parts); err != nil {
 		return nil, err
 	}
 	version, err := b.versionRepo.NextAssetVersionNumber(ctx, asset.ID)
@@ -210,6 +221,29 @@ func validateAssetParts(schemas []assetmodel.AssetPartSchema, parts map[string]a
 		if schema.Required {
 			if _, ok := parts[schema.Key]; !ok {
 				return errno.ErrAssetInvalidPart
+			}
+		}
+	}
+	return nil
+}
+
+func (b *AssetVersionBiz) validateAssetPartMediaRefs(ctx context.Context, workspaceID string, parts map[string]assetmodel.AssetPartValue) error {
+	if b.mediaRepo == nil {
+		return nil
+	}
+	for _, value := range parts {
+		if value.ValueKind != assetmodel.AssetValueKindMedia && value.ValueKind != assetmodel.AssetValueKindMixed {
+			continue
+		}
+		for _, id := range value.MediaIDs {
+			if id.IsZero() {
+				return errno.ErrAssetInvalidPart
+			}
+			if _, err := b.mediaRepo.FindMediaObjectByID(ctx, workspaceID, id); err != nil {
+				if errors.Is(err, errno.ErrMediaObjectNotFound) {
+					return errno.ErrAssetInvalidPart
+				}
+				return mapAssetVersionRepoErr(err)
 			}
 		}
 	}

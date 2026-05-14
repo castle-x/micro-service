@@ -335,10 +335,13 @@ func bizCodeToHTTP(code int32) int {
 		return http.StatusForbidden
 	case errors.Is(e, errno.ErrNotFound), errors.Is(e, errno.ErrUserNotFound),
 		errors.Is(e, errno.ErrAssetTypeNotFound), errors.Is(e, errno.ErrAssetNotFound),
-		errors.Is(e, errno.ErrAssetCategoryNotFound), errors.Is(e, errno.ErrAssetVersionNotFound):
+		errors.Is(e, errno.ErrAssetCategoryNotFound), errors.Is(e, errno.ErrAssetVersionNotFound),
+		errors.Is(e, errno.ErrMediaObjectNotFound), errors.Is(e, errno.ErrAssetUploadSessionNotFound):
 		return http.StatusNotFound
 	case errors.Is(e, errno.ErrAssetConflict), errors.Is(e, errno.ErrDuplicateKey):
 		return http.StatusConflict
+	case errors.Is(e, errno.ErrAssetStorageError):
+		return http.StatusBadGateway
 	case errors.Is(e, errno.ErrRateLimit):
 		return http.StatusTooManyRequests
 	default:

@@ -161,6 +161,17 @@ struct StorageUploadSessionDTO {
     8: required string CreatedBy
     9: required i64 CreatedAt
     10: optional i64 FinalizedAt
+    11: optional string ContentType
+    12: optional i64 Size
+    13: optional string SHA256
+    14: optional string MediaID
+}
+
+struct StoragePresignedURLDTO {
+    1: required string Method
+    2: required string URL
+    3: optional map<string, string> Headers
+    4: required i64 ExpiresAt
 }
 
 // ---- Health ----
@@ -433,6 +444,71 @@ struct SetCurrentAssetVersionResp {
     3: optional AssetVersionDTO Version
 }
 
+// ---- Media Storage ----
+
+struct CreateStorageUploadSessionReq {
+    1: required base.BaseReq Base
+    2: required string ContentType
+    3: required i64 Size
+    4: optional string Filename
+    5: optional string SHA256
+}
+
+struct CreateStorageUploadSessionResp {
+    1: required base.BaseResp Base
+    2: optional StorageUploadSessionDTO Session
+    3: optional StoragePresignedURLDTO Upload
+}
+
+struct FinalizeStorageUploadSessionReq {
+    1: required base.BaseReq Base
+    2: required string SessionID
+    3: optional string SHA256
+    4: optional i32 Width
+    5: optional i32 Height
+}
+
+struct FinalizeStorageUploadSessionResp {
+    1: required base.BaseResp Base
+    2: optional StorageUploadSessionDTO Session
+    3: optional MediaObjectDTO Media
+}
+
+struct GetMediaObjectReq {
+    1: required base.BaseReq Base
+    2: required string MediaID
+}
+
+struct GetMediaObjectResp {
+    1: required base.BaseResp Base
+    2: optional MediaObjectDTO Media
+}
+
+struct ListMediaObjectsReq {
+    1: required base.BaseReq Base
+    2: required base.PageReq Page
+    3: optional AssetSource Source
+    4: optional string ContentType
+}
+
+struct ListMediaObjectsResp {
+    1: required base.BaseResp Base
+    2: required list<MediaObjectDTO> Media
+    3: required base.PageResp Page
+}
+
+struct GetMediaObjectAccessURLReq {
+    1: required base.BaseReq Base
+    2: required string MediaID
+    3: optional i32 ExpiresInSeconds
+}
+
+struct GetMediaObjectAccessURLResp {
+    1: required base.BaseResp Base
+    2: optional MediaObjectDTO Media
+    3: optional StoragePresignedURLDTO Access
+}
+
 service AssetService {
     HealthResp Health(1: HealthReq req)
     CreateAssetTypeResp CreateAssetType(1: CreateAssetTypeReq req)
@@ -456,4 +532,9 @@ service AssetService {
     GetCurrentAssetVersionResp GetCurrentAssetVersion(1: GetCurrentAssetVersionReq req)
     ListAssetVersionsResp ListAssetVersions(1: ListAssetVersionsReq req)
     SetCurrentAssetVersionResp SetCurrentAssetVersion(1: SetCurrentAssetVersionReq req)
+    CreateStorageUploadSessionResp CreateStorageUploadSession(1: CreateStorageUploadSessionReq req)
+    FinalizeStorageUploadSessionResp FinalizeStorageUploadSession(1: FinalizeStorageUploadSessionReq req)
+    GetMediaObjectResp GetMediaObject(1: GetMediaObjectReq req)
+    ListMediaObjectsResp ListMediaObjects(1: ListMediaObjectsReq req)
+    GetMediaObjectAccessURLResp GetMediaObjectAccessURL(1: GetMediaObjectAccessURLReq req)
 }

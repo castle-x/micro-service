@@ -33,6 +33,11 @@ type Client interface {
 	GetCurrentAssetVersion(ctx context.Context, req *asset.GetCurrentAssetVersionReq, callOptions ...callopt.Option) (r *asset.GetCurrentAssetVersionResp, err error)
 	ListAssetVersions(ctx context.Context, req *asset.ListAssetVersionsReq, callOptions ...callopt.Option) (r *asset.ListAssetVersionsResp, err error)
 	SetCurrentAssetVersion(ctx context.Context, req *asset.SetCurrentAssetVersionReq, callOptions ...callopt.Option) (r *asset.SetCurrentAssetVersionResp, err error)
+	CreateStorageUploadSession(ctx context.Context, req *asset.CreateStorageUploadSessionReq, callOptions ...callopt.Option) (r *asset.CreateStorageUploadSessionResp, err error)
+	FinalizeStorageUploadSession(ctx context.Context, req *asset.FinalizeStorageUploadSessionReq, callOptions ...callopt.Option) (r *asset.FinalizeStorageUploadSessionResp, err error)
+	GetMediaObject(ctx context.Context, req *asset.GetMediaObjectReq, callOptions ...callopt.Option) (r *asset.GetMediaObjectResp, err error)
+	ListMediaObjects(ctx context.Context, req *asset.ListMediaObjectsReq, callOptions ...callopt.Option) (r *asset.ListMediaObjectsResp, err error)
+	GetMediaObjectAccessURL(ctx context.Context, req *asset.GetMediaObjectAccessURLReq, callOptions ...callopt.Option) (r *asset.GetMediaObjectAccessURLResp, err error)
 }
 
 // NewClient creates a client for the service defined in IDL.
@@ -172,4 +177,29 @@ func (p *kAssetServiceClient) ListAssetVersions(ctx context.Context, req *asset.
 func (p *kAssetServiceClient) SetCurrentAssetVersion(ctx context.Context, req *asset.SetCurrentAssetVersionReq, callOptions ...callopt.Option) (r *asset.SetCurrentAssetVersionResp, err error) {
 	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
 	return p.kClient.SetCurrentAssetVersion(ctx, req)
+}
+
+func (p *kAssetServiceClient) CreateStorageUploadSession(ctx context.Context, req *asset.CreateStorageUploadSessionReq, callOptions ...callopt.Option) (r *asset.CreateStorageUploadSessionResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.CreateStorageUploadSession(ctx, req)
+}
+
+func (p *kAssetServiceClient) FinalizeStorageUploadSession(ctx context.Context, req *asset.FinalizeStorageUploadSessionReq, callOptions ...callopt.Option) (r *asset.FinalizeStorageUploadSessionResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.FinalizeStorageUploadSession(ctx, req)
+}
+
+func (p *kAssetServiceClient) GetMediaObject(ctx context.Context, req *asset.GetMediaObjectReq, callOptions ...callopt.Option) (r *asset.GetMediaObjectResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.GetMediaObject(ctx, req)
+}
+
+func (p *kAssetServiceClient) ListMediaObjects(ctx context.Context, req *asset.ListMediaObjectsReq, callOptions ...callopt.Option) (r *asset.ListMediaObjectsResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.ListMediaObjects(ctx, req)
+}
+
+func (p *kAssetServiceClient) GetMediaObjectAccessURL(ctx context.Context, req *asset.GetMediaObjectAccessURLReq, callOptions ...callopt.Option) (r *asset.GetMediaObjectAccessURLResp, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.GetMediaObjectAccessURL(ctx, req)
 }

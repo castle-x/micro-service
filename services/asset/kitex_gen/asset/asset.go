@@ -1426,6 +1426,10 @@ type StorageUploadSessionDTO struct {
 	CreatedBy   string              `thrift:"CreatedBy,8,required" frugal:"8,required,string" json:"CreatedBy"`
 	CreatedAt   int64               `thrift:"CreatedAt,9,required" frugal:"9,required,i64" json:"CreatedAt"`
 	FinalizedAt *int64              `thrift:"FinalizedAt,10,optional" frugal:"10,optional,i64" json:"FinalizedAt,omitempty"`
+	ContentType *string             `thrift:"ContentType,11,optional" frugal:"11,optional,string" json:"ContentType,omitempty"`
+	Size        *int64              `thrift:"Size,12,optional" frugal:"12,optional,i64" json:"Size,omitempty"`
+	SHA256      *string             `thrift:"SHA256,13,optional" frugal:"13,optional,string" json:"SHA256,omitempty"`
+	MediaID     *string             `thrift:"MediaID,14,optional" frugal:"14,optional,string" json:"MediaID,omitempty"`
 }
 
 func NewStorageUploadSessionDTO() *StorageUploadSessionDTO {
@@ -1479,6 +1483,42 @@ func (p *StorageUploadSessionDTO) GetFinalizedAt() (v int64) {
 	}
 	return *p.FinalizedAt
 }
+
+var StorageUploadSessionDTO_ContentType_DEFAULT string
+
+func (p *StorageUploadSessionDTO) GetContentType() (v string) {
+	if !p.IsSetContentType() {
+		return StorageUploadSessionDTO_ContentType_DEFAULT
+	}
+	return *p.ContentType
+}
+
+var StorageUploadSessionDTO_Size_DEFAULT int64
+
+func (p *StorageUploadSessionDTO) GetSize() (v int64) {
+	if !p.IsSetSize() {
+		return StorageUploadSessionDTO_Size_DEFAULT
+	}
+	return *p.Size
+}
+
+var StorageUploadSessionDTO_SHA256_DEFAULT string
+
+func (p *StorageUploadSessionDTO) GetSHA256() (v string) {
+	if !p.IsSetSHA256() {
+		return StorageUploadSessionDTO_SHA256_DEFAULT
+	}
+	return *p.SHA256
+}
+
+var StorageUploadSessionDTO_MediaID_DEFAULT string
+
+func (p *StorageUploadSessionDTO) GetMediaID() (v string) {
+	if !p.IsSetMediaID() {
+		return StorageUploadSessionDTO_MediaID_DEFAULT
+	}
+	return *p.MediaID
+}
 func (p *StorageUploadSessionDTO) SetSessionID(val string) {
 	p.SessionID = val
 }
@@ -1509,9 +1549,37 @@ func (p *StorageUploadSessionDTO) SetCreatedAt(val int64) {
 func (p *StorageUploadSessionDTO) SetFinalizedAt(val *int64) {
 	p.FinalizedAt = val
 }
+func (p *StorageUploadSessionDTO) SetContentType(val *string) {
+	p.ContentType = val
+}
+func (p *StorageUploadSessionDTO) SetSize(val *int64) {
+	p.Size = val
+}
+func (p *StorageUploadSessionDTO) SetSHA256(val *string) {
+	p.SHA256 = val
+}
+func (p *StorageUploadSessionDTO) SetMediaID(val *string) {
+	p.MediaID = val
+}
 
 func (p *StorageUploadSessionDTO) IsSetFinalizedAt() bool {
 	return p.FinalizedAt != nil
+}
+
+func (p *StorageUploadSessionDTO) IsSetContentType() bool {
+	return p.ContentType != nil
+}
+
+func (p *StorageUploadSessionDTO) IsSetSize() bool {
+	return p.Size != nil
+}
+
+func (p *StorageUploadSessionDTO) IsSetSHA256() bool {
+	return p.SHA256 != nil
+}
+
+func (p *StorageUploadSessionDTO) IsSetMediaID() bool {
+	return p.MediaID != nil
 }
 
 func (p *StorageUploadSessionDTO) String() string {
@@ -1532,6 +1600,75 @@ var fieldIDToName_StorageUploadSessionDTO = map[int16]string{
 	8:  "CreatedBy",
 	9:  "CreatedAt",
 	10: "FinalizedAt",
+	11: "ContentType",
+	12: "Size",
+	13: "SHA256",
+	14: "MediaID",
+}
+
+type StoragePresignedURLDTO struct {
+	Method    string            `thrift:"Method,1,required" frugal:"1,required,string" json:"Method"`
+	URL       string            `thrift:"URL,2,required" frugal:"2,required,string" json:"URL"`
+	Headers   map[string]string `thrift:"Headers,3,optional" frugal:"3,optional,map<string:string>" json:"Headers,omitempty"`
+	ExpiresAt int64             `thrift:"ExpiresAt,4,required" frugal:"4,required,i64" json:"ExpiresAt"`
+}
+
+func NewStoragePresignedURLDTO() *StoragePresignedURLDTO {
+	return &StoragePresignedURLDTO{}
+}
+
+func (p *StoragePresignedURLDTO) InitDefault() {
+}
+
+func (p *StoragePresignedURLDTO) GetMethod() (v string) {
+	return p.Method
+}
+
+func (p *StoragePresignedURLDTO) GetURL() (v string) {
+	return p.URL
+}
+
+var StoragePresignedURLDTO_Headers_DEFAULT map[string]string
+
+func (p *StoragePresignedURLDTO) GetHeaders() (v map[string]string) {
+	if !p.IsSetHeaders() {
+		return StoragePresignedURLDTO_Headers_DEFAULT
+	}
+	return p.Headers
+}
+
+func (p *StoragePresignedURLDTO) GetExpiresAt() (v int64) {
+	return p.ExpiresAt
+}
+func (p *StoragePresignedURLDTO) SetMethod(val string) {
+	p.Method = val
+}
+func (p *StoragePresignedURLDTO) SetURL(val string) {
+	p.URL = val
+}
+func (p *StoragePresignedURLDTO) SetHeaders(val map[string]string) {
+	p.Headers = val
+}
+func (p *StoragePresignedURLDTO) SetExpiresAt(val int64) {
+	p.ExpiresAt = val
+}
+
+func (p *StoragePresignedURLDTO) IsSetHeaders() bool {
+	return p.Headers != nil
+}
+
+func (p *StoragePresignedURLDTO) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("StoragePresignedURLDTO(%+v)", *p)
+}
+
+var fieldIDToName_StoragePresignedURLDTO = map[int16]string{
+	1: "Method",
+	2: "URL",
+	3: "Headers",
+	4: "ExpiresAt",
 }
 
 type HealthReq struct {
@@ -4367,6 +4504,746 @@ var fieldIDToName_SetCurrentAssetVersionResp = map[int16]string{
 	3: "Version",
 }
 
+type CreateStorageUploadSessionReq struct {
+	Base        *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	ContentType string        `thrift:"ContentType,2,required" frugal:"2,required,string" json:"ContentType"`
+	Size        int64         `thrift:"Size,3,required" frugal:"3,required,i64" json:"Size"`
+	Filename    *string       `thrift:"Filename,4,optional" frugal:"4,optional,string" json:"Filename,omitempty"`
+	SHA256      *string       `thrift:"SHA256,5,optional" frugal:"5,optional,string" json:"SHA256,omitempty"`
+}
+
+func NewCreateStorageUploadSessionReq() *CreateStorageUploadSessionReq {
+	return &CreateStorageUploadSessionReq{}
+}
+
+func (p *CreateStorageUploadSessionReq) InitDefault() {
+}
+
+var CreateStorageUploadSessionReq_Base_DEFAULT *base.BaseReq
+
+func (p *CreateStorageUploadSessionReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return CreateStorageUploadSessionReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *CreateStorageUploadSessionReq) GetContentType() (v string) {
+	return p.ContentType
+}
+
+func (p *CreateStorageUploadSessionReq) GetSize() (v int64) {
+	return p.Size
+}
+
+var CreateStorageUploadSessionReq_Filename_DEFAULT string
+
+func (p *CreateStorageUploadSessionReq) GetFilename() (v string) {
+	if !p.IsSetFilename() {
+		return CreateStorageUploadSessionReq_Filename_DEFAULT
+	}
+	return *p.Filename
+}
+
+var CreateStorageUploadSessionReq_SHA256_DEFAULT string
+
+func (p *CreateStorageUploadSessionReq) GetSHA256() (v string) {
+	if !p.IsSetSHA256() {
+		return CreateStorageUploadSessionReq_SHA256_DEFAULT
+	}
+	return *p.SHA256
+}
+func (p *CreateStorageUploadSessionReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *CreateStorageUploadSessionReq) SetContentType(val string) {
+	p.ContentType = val
+}
+func (p *CreateStorageUploadSessionReq) SetSize(val int64) {
+	p.Size = val
+}
+func (p *CreateStorageUploadSessionReq) SetFilename(val *string) {
+	p.Filename = val
+}
+func (p *CreateStorageUploadSessionReq) SetSHA256(val *string) {
+	p.SHA256 = val
+}
+
+func (p *CreateStorageUploadSessionReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *CreateStorageUploadSessionReq) IsSetFilename() bool {
+	return p.Filename != nil
+}
+
+func (p *CreateStorageUploadSessionReq) IsSetSHA256() bool {
+	return p.SHA256 != nil
+}
+
+func (p *CreateStorageUploadSessionReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CreateStorageUploadSessionReq(%+v)", *p)
+}
+
+var fieldIDToName_CreateStorageUploadSessionReq = map[int16]string{
+	1: "Base",
+	2: "ContentType",
+	3: "Size",
+	4: "Filename",
+	5: "SHA256",
+}
+
+type CreateStorageUploadSessionResp struct {
+	Base    *base.BaseResp           `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Session *StorageUploadSessionDTO `thrift:"Session,2,optional" frugal:"2,optional,StorageUploadSessionDTO" json:"Session,omitempty"`
+	Upload  *StoragePresignedURLDTO  `thrift:"Upload,3,optional" frugal:"3,optional,StoragePresignedURLDTO" json:"Upload,omitempty"`
+}
+
+func NewCreateStorageUploadSessionResp() *CreateStorageUploadSessionResp {
+	return &CreateStorageUploadSessionResp{}
+}
+
+func (p *CreateStorageUploadSessionResp) InitDefault() {
+}
+
+var CreateStorageUploadSessionResp_Base_DEFAULT *base.BaseResp
+
+func (p *CreateStorageUploadSessionResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return CreateStorageUploadSessionResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var CreateStorageUploadSessionResp_Session_DEFAULT *StorageUploadSessionDTO
+
+func (p *CreateStorageUploadSessionResp) GetSession() (v *StorageUploadSessionDTO) {
+	if !p.IsSetSession() {
+		return CreateStorageUploadSessionResp_Session_DEFAULT
+	}
+	return p.Session
+}
+
+var CreateStorageUploadSessionResp_Upload_DEFAULT *StoragePresignedURLDTO
+
+func (p *CreateStorageUploadSessionResp) GetUpload() (v *StoragePresignedURLDTO) {
+	if !p.IsSetUpload() {
+		return CreateStorageUploadSessionResp_Upload_DEFAULT
+	}
+	return p.Upload
+}
+func (p *CreateStorageUploadSessionResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *CreateStorageUploadSessionResp) SetSession(val *StorageUploadSessionDTO) {
+	p.Session = val
+}
+func (p *CreateStorageUploadSessionResp) SetUpload(val *StoragePresignedURLDTO) {
+	p.Upload = val
+}
+
+func (p *CreateStorageUploadSessionResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *CreateStorageUploadSessionResp) IsSetSession() bool {
+	return p.Session != nil
+}
+
+func (p *CreateStorageUploadSessionResp) IsSetUpload() bool {
+	return p.Upload != nil
+}
+
+func (p *CreateStorageUploadSessionResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CreateStorageUploadSessionResp(%+v)", *p)
+}
+
+var fieldIDToName_CreateStorageUploadSessionResp = map[int16]string{
+	1: "Base",
+	2: "Session",
+	3: "Upload",
+}
+
+type FinalizeStorageUploadSessionReq struct {
+	Base      *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	SessionID string        `thrift:"SessionID,2,required" frugal:"2,required,string" json:"SessionID"`
+	SHA256    *string       `thrift:"SHA256,3,optional" frugal:"3,optional,string" json:"SHA256,omitempty"`
+	Width     *int32        `thrift:"Width,4,optional" frugal:"4,optional,i32" json:"Width,omitempty"`
+	Height    *int32        `thrift:"Height,5,optional" frugal:"5,optional,i32" json:"Height,omitempty"`
+}
+
+func NewFinalizeStorageUploadSessionReq() *FinalizeStorageUploadSessionReq {
+	return &FinalizeStorageUploadSessionReq{}
+}
+
+func (p *FinalizeStorageUploadSessionReq) InitDefault() {
+}
+
+var FinalizeStorageUploadSessionReq_Base_DEFAULT *base.BaseReq
+
+func (p *FinalizeStorageUploadSessionReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return FinalizeStorageUploadSessionReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *FinalizeStorageUploadSessionReq) GetSessionID() (v string) {
+	return p.SessionID
+}
+
+var FinalizeStorageUploadSessionReq_SHA256_DEFAULT string
+
+func (p *FinalizeStorageUploadSessionReq) GetSHA256() (v string) {
+	if !p.IsSetSHA256() {
+		return FinalizeStorageUploadSessionReq_SHA256_DEFAULT
+	}
+	return *p.SHA256
+}
+
+var FinalizeStorageUploadSessionReq_Width_DEFAULT int32
+
+func (p *FinalizeStorageUploadSessionReq) GetWidth() (v int32) {
+	if !p.IsSetWidth() {
+		return FinalizeStorageUploadSessionReq_Width_DEFAULT
+	}
+	return *p.Width
+}
+
+var FinalizeStorageUploadSessionReq_Height_DEFAULT int32
+
+func (p *FinalizeStorageUploadSessionReq) GetHeight() (v int32) {
+	if !p.IsSetHeight() {
+		return FinalizeStorageUploadSessionReq_Height_DEFAULT
+	}
+	return *p.Height
+}
+func (p *FinalizeStorageUploadSessionReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *FinalizeStorageUploadSessionReq) SetSessionID(val string) {
+	p.SessionID = val
+}
+func (p *FinalizeStorageUploadSessionReq) SetSHA256(val *string) {
+	p.SHA256 = val
+}
+func (p *FinalizeStorageUploadSessionReq) SetWidth(val *int32) {
+	p.Width = val
+}
+func (p *FinalizeStorageUploadSessionReq) SetHeight(val *int32) {
+	p.Height = val
+}
+
+func (p *FinalizeStorageUploadSessionReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *FinalizeStorageUploadSessionReq) IsSetSHA256() bool {
+	return p.SHA256 != nil
+}
+
+func (p *FinalizeStorageUploadSessionReq) IsSetWidth() bool {
+	return p.Width != nil
+}
+
+func (p *FinalizeStorageUploadSessionReq) IsSetHeight() bool {
+	return p.Height != nil
+}
+
+func (p *FinalizeStorageUploadSessionReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("FinalizeStorageUploadSessionReq(%+v)", *p)
+}
+
+var fieldIDToName_FinalizeStorageUploadSessionReq = map[int16]string{
+	1: "Base",
+	2: "SessionID",
+	3: "SHA256",
+	4: "Width",
+	5: "Height",
+}
+
+type FinalizeStorageUploadSessionResp struct {
+	Base    *base.BaseResp           `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Session *StorageUploadSessionDTO `thrift:"Session,2,optional" frugal:"2,optional,StorageUploadSessionDTO" json:"Session,omitempty"`
+	Media   *MediaObjectDTO          `thrift:"Media,3,optional" frugal:"3,optional,MediaObjectDTO" json:"Media,omitempty"`
+}
+
+func NewFinalizeStorageUploadSessionResp() *FinalizeStorageUploadSessionResp {
+	return &FinalizeStorageUploadSessionResp{}
+}
+
+func (p *FinalizeStorageUploadSessionResp) InitDefault() {
+}
+
+var FinalizeStorageUploadSessionResp_Base_DEFAULT *base.BaseResp
+
+func (p *FinalizeStorageUploadSessionResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return FinalizeStorageUploadSessionResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var FinalizeStorageUploadSessionResp_Session_DEFAULT *StorageUploadSessionDTO
+
+func (p *FinalizeStorageUploadSessionResp) GetSession() (v *StorageUploadSessionDTO) {
+	if !p.IsSetSession() {
+		return FinalizeStorageUploadSessionResp_Session_DEFAULT
+	}
+	return p.Session
+}
+
+var FinalizeStorageUploadSessionResp_Media_DEFAULT *MediaObjectDTO
+
+func (p *FinalizeStorageUploadSessionResp) GetMedia() (v *MediaObjectDTO) {
+	if !p.IsSetMedia() {
+		return FinalizeStorageUploadSessionResp_Media_DEFAULT
+	}
+	return p.Media
+}
+func (p *FinalizeStorageUploadSessionResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *FinalizeStorageUploadSessionResp) SetSession(val *StorageUploadSessionDTO) {
+	p.Session = val
+}
+func (p *FinalizeStorageUploadSessionResp) SetMedia(val *MediaObjectDTO) {
+	p.Media = val
+}
+
+func (p *FinalizeStorageUploadSessionResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *FinalizeStorageUploadSessionResp) IsSetSession() bool {
+	return p.Session != nil
+}
+
+func (p *FinalizeStorageUploadSessionResp) IsSetMedia() bool {
+	return p.Media != nil
+}
+
+func (p *FinalizeStorageUploadSessionResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("FinalizeStorageUploadSessionResp(%+v)", *p)
+}
+
+var fieldIDToName_FinalizeStorageUploadSessionResp = map[int16]string{
+	1: "Base",
+	2: "Session",
+	3: "Media",
+}
+
+type GetMediaObjectReq struct {
+	Base    *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	MediaID string        `thrift:"MediaID,2,required" frugal:"2,required,string" json:"MediaID"`
+}
+
+func NewGetMediaObjectReq() *GetMediaObjectReq {
+	return &GetMediaObjectReq{}
+}
+
+func (p *GetMediaObjectReq) InitDefault() {
+}
+
+var GetMediaObjectReq_Base_DEFAULT *base.BaseReq
+
+func (p *GetMediaObjectReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return GetMediaObjectReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *GetMediaObjectReq) GetMediaID() (v string) {
+	return p.MediaID
+}
+func (p *GetMediaObjectReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *GetMediaObjectReq) SetMediaID(val string) {
+	p.MediaID = val
+}
+
+func (p *GetMediaObjectReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetMediaObjectReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetMediaObjectReq(%+v)", *p)
+}
+
+var fieldIDToName_GetMediaObjectReq = map[int16]string{
+	1: "Base",
+	2: "MediaID",
+}
+
+type GetMediaObjectResp struct {
+	Base  *base.BaseResp  `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Media *MediaObjectDTO `thrift:"Media,2,optional" frugal:"2,optional,MediaObjectDTO" json:"Media,omitempty"`
+}
+
+func NewGetMediaObjectResp() *GetMediaObjectResp {
+	return &GetMediaObjectResp{}
+}
+
+func (p *GetMediaObjectResp) InitDefault() {
+}
+
+var GetMediaObjectResp_Base_DEFAULT *base.BaseResp
+
+func (p *GetMediaObjectResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return GetMediaObjectResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var GetMediaObjectResp_Media_DEFAULT *MediaObjectDTO
+
+func (p *GetMediaObjectResp) GetMedia() (v *MediaObjectDTO) {
+	if !p.IsSetMedia() {
+		return GetMediaObjectResp_Media_DEFAULT
+	}
+	return p.Media
+}
+func (p *GetMediaObjectResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *GetMediaObjectResp) SetMedia(val *MediaObjectDTO) {
+	p.Media = val
+}
+
+func (p *GetMediaObjectResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetMediaObjectResp) IsSetMedia() bool {
+	return p.Media != nil
+}
+
+func (p *GetMediaObjectResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetMediaObjectResp(%+v)", *p)
+}
+
+var fieldIDToName_GetMediaObjectResp = map[int16]string{
+	1: "Base",
+	2: "Media",
+}
+
+type ListMediaObjectsReq struct {
+	Base        *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	Page        *base.PageReq `thrift:"Page,2,required" frugal:"2,required,base.PageReq" json:"Page"`
+	Source      *AssetSource  `thrift:"Source,3,optional" frugal:"3,optional,AssetSource" json:"Source,omitempty"`
+	ContentType *string       `thrift:"ContentType,4,optional" frugal:"4,optional,string" json:"ContentType,omitempty"`
+}
+
+func NewListMediaObjectsReq() *ListMediaObjectsReq {
+	return &ListMediaObjectsReq{}
+}
+
+func (p *ListMediaObjectsReq) InitDefault() {
+}
+
+var ListMediaObjectsReq_Base_DEFAULT *base.BaseReq
+
+func (p *ListMediaObjectsReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return ListMediaObjectsReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var ListMediaObjectsReq_Page_DEFAULT *base.PageReq
+
+func (p *ListMediaObjectsReq) GetPage() (v *base.PageReq) {
+	if !p.IsSetPage() {
+		return ListMediaObjectsReq_Page_DEFAULT
+	}
+	return p.Page
+}
+
+var ListMediaObjectsReq_Source_DEFAULT AssetSource
+
+func (p *ListMediaObjectsReq) GetSource() (v AssetSource) {
+	if !p.IsSetSource() {
+		return ListMediaObjectsReq_Source_DEFAULT
+	}
+	return *p.Source
+}
+
+var ListMediaObjectsReq_ContentType_DEFAULT string
+
+func (p *ListMediaObjectsReq) GetContentType() (v string) {
+	if !p.IsSetContentType() {
+		return ListMediaObjectsReq_ContentType_DEFAULT
+	}
+	return *p.ContentType
+}
+func (p *ListMediaObjectsReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *ListMediaObjectsReq) SetPage(val *base.PageReq) {
+	p.Page = val
+}
+func (p *ListMediaObjectsReq) SetSource(val *AssetSource) {
+	p.Source = val
+}
+func (p *ListMediaObjectsReq) SetContentType(val *string) {
+	p.ContentType = val
+}
+
+func (p *ListMediaObjectsReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListMediaObjectsReq) IsSetPage() bool {
+	return p.Page != nil
+}
+
+func (p *ListMediaObjectsReq) IsSetSource() bool {
+	return p.Source != nil
+}
+
+func (p *ListMediaObjectsReq) IsSetContentType() bool {
+	return p.ContentType != nil
+}
+
+func (p *ListMediaObjectsReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListMediaObjectsReq(%+v)", *p)
+}
+
+var fieldIDToName_ListMediaObjectsReq = map[int16]string{
+	1: "Base",
+	2: "Page",
+	3: "Source",
+	4: "ContentType",
+}
+
+type ListMediaObjectsResp struct {
+	Base  *base.BaseResp    `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Media []*MediaObjectDTO `thrift:"Media,2,required" frugal:"2,required,list<MediaObjectDTO>" json:"Media"`
+	Page  *base.PageResp    `thrift:"Page,3,required" frugal:"3,required,base.PageResp" json:"Page"`
+}
+
+func NewListMediaObjectsResp() *ListMediaObjectsResp {
+	return &ListMediaObjectsResp{}
+}
+
+func (p *ListMediaObjectsResp) InitDefault() {
+}
+
+var ListMediaObjectsResp_Base_DEFAULT *base.BaseResp
+
+func (p *ListMediaObjectsResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return ListMediaObjectsResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *ListMediaObjectsResp) GetMedia() (v []*MediaObjectDTO) {
+	return p.Media
+}
+
+var ListMediaObjectsResp_Page_DEFAULT *base.PageResp
+
+func (p *ListMediaObjectsResp) GetPage() (v *base.PageResp) {
+	if !p.IsSetPage() {
+		return ListMediaObjectsResp_Page_DEFAULT
+	}
+	return p.Page
+}
+func (p *ListMediaObjectsResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *ListMediaObjectsResp) SetMedia(val []*MediaObjectDTO) {
+	p.Media = val
+}
+func (p *ListMediaObjectsResp) SetPage(val *base.PageResp) {
+	p.Page = val
+}
+
+func (p *ListMediaObjectsResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *ListMediaObjectsResp) IsSetPage() bool {
+	return p.Page != nil
+}
+
+func (p *ListMediaObjectsResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ListMediaObjectsResp(%+v)", *p)
+}
+
+var fieldIDToName_ListMediaObjectsResp = map[int16]string{
+	1: "Base",
+	2: "Media",
+	3: "Page",
+}
+
+type GetMediaObjectAccessURLReq struct {
+	Base             *base.BaseReq `thrift:"Base,1,required" frugal:"1,required,base.BaseReq" json:"Base"`
+	MediaID          string        `thrift:"MediaID,2,required" frugal:"2,required,string" json:"MediaID"`
+	ExpiresInSeconds *int32        `thrift:"ExpiresInSeconds,3,optional" frugal:"3,optional,i32" json:"ExpiresInSeconds,omitempty"`
+}
+
+func NewGetMediaObjectAccessURLReq() *GetMediaObjectAccessURLReq {
+	return &GetMediaObjectAccessURLReq{}
+}
+
+func (p *GetMediaObjectAccessURLReq) InitDefault() {
+}
+
+var GetMediaObjectAccessURLReq_Base_DEFAULT *base.BaseReq
+
+func (p *GetMediaObjectAccessURLReq) GetBase() (v *base.BaseReq) {
+	if !p.IsSetBase() {
+		return GetMediaObjectAccessURLReq_Base_DEFAULT
+	}
+	return p.Base
+}
+
+func (p *GetMediaObjectAccessURLReq) GetMediaID() (v string) {
+	return p.MediaID
+}
+
+var GetMediaObjectAccessURLReq_ExpiresInSeconds_DEFAULT int32
+
+func (p *GetMediaObjectAccessURLReq) GetExpiresInSeconds() (v int32) {
+	if !p.IsSetExpiresInSeconds() {
+		return GetMediaObjectAccessURLReq_ExpiresInSeconds_DEFAULT
+	}
+	return *p.ExpiresInSeconds
+}
+func (p *GetMediaObjectAccessURLReq) SetBase(val *base.BaseReq) {
+	p.Base = val
+}
+func (p *GetMediaObjectAccessURLReq) SetMediaID(val string) {
+	p.MediaID = val
+}
+func (p *GetMediaObjectAccessURLReq) SetExpiresInSeconds(val *int32) {
+	p.ExpiresInSeconds = val
+}
+
+func (p *GetMediaObjectAccessURLReq) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetMediaObjectAccessURLReq) IsSetExpiresInSeconds() bool {
+	return p.ExpiresInSeconds != nil
+}
+
+func (p *GetMediaObjectAccessURLReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetMediaObjectAccessURLReq(%+v)", *p)
+}
+
+var fieldIDToName_GetMediaObjectAccessURLReq = map[int16]string{
+	1: "Base",
+	2: "MediaID",
+	3: "ExpiresInSeconds",
+}
+
+type GetMediaObjectAccessURLResp struct {
+	Base   *base.BaseResp          `thrift:"Base,1,required" frugal:"1,required,base.BaseResp" json:"Base"`
+	Media  *MediaObjectDTO         `thrift:"Media,2,optional" frugal:"2,optional,MediaObjectDTO" json:"Media,omitempty"`
+	Access *StoragePresignedURLDTO `thrift:"Access,3,optional" frugal:"3,optional,StoragePresignedURLDTO" json:"Access,omitempty"`
+}
+
+func NewGetMediaObjectAccessURLResp() *GetMediaObjectAccessURLResp {
+	return &GetMediaObjectAccessURLResp{}
+}
+
+func (p *GetMediaObjectAccessURLResp) InitDefault() {
+}
+
+var GetMediaObjectAccessURLResp_Base_DEFAULT *base.BaseResp
+
+func (p *GetMediaObjectAccessURLResp) GetBase() (v *base.BaseResp) {
+	if !p.IsSetBase() {
+		return GetMediaObjectAccessURLResp_Base_DEFAULT
+	}
+	return p.Base
+}
+
+var GetMediaObjectAccessURLResp_Media_DEFAULT *MediaObjectDTO
+
+func (p *GetMediaObjectAccessURLResp) GetMedia() (v *MediaObjectDTO) {
+	if !p.IsSetMedia() {
+		return GetMediaObjectAccessURLResp_Media_DEFAULT
+	}
+	return p.Media
+}
+
+var GetMediaObjectAccessURLResp_Access_DEFAULT *StoragePresignedURLDTO
+
+func (p *GetMediaObjectAccessURLResp) GetAccess() (v *StoragePresignedURLDTO) {
+	if !p.IsSetAccess() {
+		return GetMediaObjectAccessURLResp_Access_DEFAULT
+	}
+	return p.Access
+}
+func (p *GetMediaObjectAccessURLResp) SetBase(val *base.BaseResp) {
+	p.Base = val
+}
+func (p *GetMediaObjectAccessURLResp) SetMedia(val *MediaObjectDTO) {
+	p.Media = val
+}
+func (p *GetMediaObjectAccessURLResp) SetAccess(val *StoragePresignedURLDTO) {
+	p.Access = val
+}
+
+func (p *GetMediaObjectAccessURLResp) IsSetBase() bool {
+	return p.Base != nil
+}
+
+func (p *GetMediaObjectAccessURLResp) IsSetMedia() bool {
+	return p.Media != nil
+}
+
+func (p *GetMediaObjectAccessURLResp) IsSetAccess() bool {
+	return p.Access != nil
+}
+
+func (p *GetMediaObjectAccessURLResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("GetMediaObjectAccessURLResp(%+v)", *p)
+}
+
+var fieldIDToName_GetMediaObjectAccessURLResp = map[int16]string{
+	1: "Base",
+	2: "Media",
+	3: "Access",
+}
+
 type AssetService interface {
 	Health(ctx context.Context, req *HealthReq) (r *HealthResp, err error)
 
@@ -4411,6 +5288,16 @@ type AssetService interface {
 	ListAssetVersions(ctx context.Context, req *ListAssetVersionsReq) (r *ListAssetVersionsResp, err error)
 
 	SetCurrentAssetVersion(ctx context.Context, req *SetCurrentAssetVersionReq) (r *SetCurrentAssetVersionResp, err error)
+
+	CreateStorageUploadSession(ctx context.Context, req *CreateStorageUploadSessionReq) (r *CreateStorageUploadSessionResp, err error)
+
+	FinalizeStorageUploadSession(ctx context.Context, req *FinalizeStorageUploadSessionReq) (r *FinalizeStorageUploadSessionResp, err error)
+
+	GetMediaObject(ctx context.Context, req *GetMediaObjectReq) (r *GetMediaObjectResp, err error)
+
+	ListMediaObjects(ctx context.Context, req *ListMediaObjectsReq) (r *ListMediaObjectsResp, err error)
+
+	GetMediaObjectAccessURL(ctx context.Context, req *GetMediaObjectAccessURLReq) (r *GetMediaObjectAccessURLResp, err error)
 }
 
 type AssetServiceHealthArgs struct {
@@ -6082,5 +6969,385 @@ func (p *AssetServiceSetCurrentAssetVersionResult) String() string {
 }
 
 var fieldIDToName_AssetServiceSetCurrentAssetVersionResult = map[int16]string{
+	0: "success",
+}
+
+type AssetServiceCreateStorageUploadSessionArgs struct {
+	Req *CreateStorageUploadSessionReq `thrift:"req,1" frugal:"1,default,CreateStorageUploadSessionReq" json:"req"`
+}
+
+func NewAssetServiceCreateStorageUploadSessionArgs() *AssetServiceCreateStorageUploadSessionArgs {
+	return &AssetServiceCreateStorageUploadSessionArgs{}
+}
+
+func (p *AssetServiceCreateStorageUploadSessionArgs) InitDefault() {
+}
+
+var AssetServiceCreateStorageUploadSessionArgs_Req_DEFAULT *CreateStorageUploadSessionReq
+
+func (p *AssetServiceCreateStorageUploadSessionArgs) GetReq() (v *CreateStorageUploadSessionReq) {
+	if !p.IsSetReq() {
+		return AssetServiceCreateStorageUploadSessionArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *AssetServiceCreateStorageUploadSessionArgs) SetReq(val *CreateStorageUploadSessionReq) {
+	p.Req = val
+}
+
+func (p *AssetServiceCreateStorageUploadSessionArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *AssetServiceCreateStorageUploadSessionArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceCreateStorageUploadSessionArgs(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceCreateStorageUploadSessionArgs = map[int16]string{
+	1: "req",
+}
+
+type AssetServiceCreateStorageUploadSessionResult struct {
+	Success *CreateStorageUploadSessionResp `thrift:"success,0,optional" frugal:"0,optional,CreateStorageUploadSessionResp" json:"success,omitempty"`
+}
+
+func NewAssetServiceCreateStorageUploadSessionResult() *AssetServiceCreateStorageUploadSessionResult {
+	return &AssetServiceCreateStorageUploadSessionResult{}
+}
+
+func (p *AssetServiceCreateStorageUploadSessionResult) InitDefault() {
+}
+
+var AssetServiceCreateStorageUploadSessionResult_Success_DEFAULT *CreateStorageUploadSessionResp
+
+func (p *AssetServiceCreateStorageUploadSessionResult) GetSuccess() (v *CreateStorageUploadSessionResp) {
+	if !p.IsSetSuccess() {
+		return AssetServiceCreateStorageUploadSessionResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *AssetServiceCreateStorageUploadSessionResult) SetSuccess(x interface{}) {
+	p.Success = x.(*CreateStorageUploadSessionResp)
+}
+
+func (p *AssetServiceCreateStorageUploadSessionResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *AssetServiceCreateStorageUploadSessionResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceCreateStorageUploadSessionResult(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceCreateStorageUploadSessionResult = map[int16]string{
+	0: "success",
+}
+
+type AssetServiceFinalizeStorageUploadSessionArgs struct {
+	Req *FinalizeStorageUploadSessionReq `thrift:"req,1" frugal:"1,default,FinalizeStorageUploadSessionReq" json:"req"`
+}
+
+func NewAssetServiceFinalizeStorageUploadSessionArgs() *AssetServiceFinalizeStorageUploadSessionArgs {
+	return &AssetServiceFinalizeStorageUploadSessionArgs{}
+}
+
+func (p *AssetServiceFinalizeStorageUploadSessionArgs) InitDefault() {
+}
+
+var AssetServiceFinalizeStorageUploadSessionArgs_Req_DEFAULT *FinalizeStorageUploadSessionReq
+
+func (p *AssetServiceFinalizeStorageUploadSessionArgs) GetReq() (v *FinalizeStorageUploadSessionReq) {
+	if !p.IsSetReq() {
+		return AssetServiceFinalizeStorageUploadSessionArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *AssetServiceFinalizeStorageUploadSessionArgs) SetReq(val *FinalizeStorageUploadSessionReq) {
+	p.Req = val
+}
+
+func (p *AssetServiceFinalizeStorageUploadSessionArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *AssetServiceFinalizeStorageUploadSessionArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceFinalizeStorageUploadSessionArgs(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceFinalizeStorageUploadSessionArgs = map[int16]string{
+	1: "req",
+}
+
+type AssetServiceFinalizeStorageUploadSessionResult struct {
+	Success *FinalizeStorageUploadSessionResp `thrift:"success,0,optional" frugal:"0,optional,FinalizeStorageUploadSessionResp" json:"success,omitempty"`
+}
+
+func NewAssetServiceFinalizeStorageUploadSessionResult() *AssetServiceFinalizeStorageUploadSessionResult {
+	return &AssetServiceFinalizeStorageUploadSessionResult{}
+}
+
+func (p *AssetServiceFinalizeStorageUploadSessionResult) InitDefault() {
+}
+
+var AssetServiceFinalizeStorageUploadSessionResult_Success_DEFAULT *FinalizeStorageUploadSessionResp
+
+func (p *AssetServiceFinalizeStorageUploadSessionResult) GetSuccess() (v *FinalizeStorageUploadSessionResp) {
+	if !p.IsSetSuccess() {
+		return AssetServiceFinalizeStorageUploadSessionResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *AssetServiceFinalizeStorageUploadSessionResult) SetSuccess(x interface{}) {
+	p.Success = x.(*FinalizeStorageUploadSessionResp)
+}
+
+func (p *AssetServiceFinalizeStorageUploadSessionResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *AssetServiceFinalizeStorageUploadSessionResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceFinalizeStorageUploadSessionResult(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceFinalizeStorageUploadSessionResult = map[int16]string{
+	0: "success",
+}
+
+type AssetServiceGetMediaObjectArgs struct {
+	Req *GetMediaObjectReq `thrift:"req,1" frugal:"1,default,GetMediaObjectReq" json:"req"`
+}
+
+func NewAssetServiceGetMediaObjectArgs() *AssetServiceGetMediaObjectArgs {
+	return &AssetServiceGetMediaObjectArgs{}
+}
+
+func (p *AssetServiceGetMediaObjectArgs) InitDefault() {
+}
+
+var AssetServiceGetMediaObjectArgs_Req_DEFAULT *GetMediaObjectReq
+
+func (p *AssetServiceGetMediaObjectArgs) GetReq() (v *GetMediaObjectReq) {
+	if !p.IsSetReq() {
+		return AssetServiceGetMediaObjectArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *AssetServiceGetMediaObjectArgs) SetReq(val *GetMediaObjectReq) {
+	p.Req = val
+}
+
+func (p *AssetServiceGetMediaObjectArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *AssetServiceGetMediaObjectArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceGetMediaObjectArgs(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceGetMediaObjectArgs = map[int16]string{
+	1: "req",
+}
+
+type AssetServiceGetMediaObjectResult struct {
+	Success *GetMediaObjectResp `thrift:"success,0,optional" frugal:"0,optional,GetMediaObjectResp" json:"success,omitempty"`
+}
+
+func NewAssetServiceGetMediaObjectResult() *AssetServiceGetMediaObjectResult {
+	return &AssetServiceGetMediaObjectResult{}
+}
+
+func (p *AssetServiceGetMediaObjectResult) InitDefault() {
+}
+
+var AssetServiceGetMediaObjectResult_Success_DEFAULT *GetMediaObjectResp
+
+func (p *AssetServiceGetMediaObjectResult) GetSuccess() (v *GetMediaObjectResp) {
+	if !p.IsSetSuccess() {
+		return AssetServiceGetMediaObjectResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *AssetServiceGetMediaObjectResult) SetSuccess(x interface{}) {
+	p.Success = x.(*GetMediaObjectResp)
+}
+
+func (p *AssetServiceGetMediaObjectResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *AssetServiceGetMediaObjectResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceGetMediaObjectResult(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceGetMediaObjectResult = map[int16]string{
+	0: "success",
+}
+
+type AssetServiceListMediaObjectsArgs struct {
+	Req *ListMediaObjectsReq `thrift:"req,1" frugal:"1,default,ListMediaObjectsReq" json:"req"`
+}
+
+func NewAssetServiceListMediaObjectsArgs() *AssetServiceListMediaObjectsArgs {
+	return &AssetServiceListMediaObjectsArgs{}
+}
+
+func (p *AssetServiceListMediaObjectsArgs) InitDefault() {
+}
+
+var AssetServiceListMediaObjectsArgs_Req_DEFAULT *ListMediaObjectsReq
+
+func (p *AssetServiceListMediaObjectsArgs) GetReq() (v *ListMediaObjectsReq) {
+	if !p.IsSetReq() {
+		return AssetServiceListMediaObjectsArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *AssetServiceListMediaObjectsArgs) SetReq(val *ListMediaObjectsReq) {
+	p.Req = val
+}
+
+func (p *AssetServiceListMediaObjectsArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *AssetServiceListMediaObjectsArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceListMediaObjectsArgs(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceListMediaObjectsArgs = map[int16]string{
+	1: "req",
+}
+
+type AssetServiceListMediaObjectsResult struct {
+	Success *ListMediaObjectsResp `thrift:"success,0,optional" frugal:"0,optional,ListMediaObjectsResp" json:"success,omitempty"`
+}
+
+func NewAssetServiceListMediaObjectsResult() *AssetServiceListMediaObjectsResult {
+	return &AssetServiceListMediaObjectsResult{}
+}
+
+func (p *AssetServiceListMediaObjectsResult) InitDefault() {
+}
+
+var AssetServiceListMediaObjectsResult_Success_DEFAULT *ListMediaObjectsResp
+
+func (p *AssetServiceListMediaObjectsResult) GetSuccess() (v *ListMediaObjectsResp) {
+	if !p.IsSetSuccess() {
+		return AssetServiceListMediaObjectsResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *AssetServiceListMediaObjectsResult) SetSuccess(x interface{}) {
+	p.Success = x.(*ListMediaObjectsResp)
+}
+
+func (p *AssetServiceListMediaObjectsResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *AssetServiceListMediaObjectsResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceListMediaObjectsResult(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceListMediaObjectsResult = map[int16]string{
+	0: "success",
+}
+
+type AssetServiceGetMediaObjectAccessURLArgs struct {
+	Req *GetMediaObjectAccessURLReq `thrift:"req,1" frugal:"1,default,GetMediaObjectAccessURLReq" json:"req"`
+}
+
+func NewAssetServiceGetMediaObjectAccessURLArgs() *AssetServiceGetMediaObjectAccessURLArgs {
+	return &AssetServiceGetMediaObjectAccessURLArgs{}
+}
+
+func (p *AssetServiceGetMediaObjectAccessURLArgs) InitDefault() {
+}
+
+var AssetServiceGetMediaObjectAccessURLArgs_Req_DEFAULT *GetMediaObjectAccessURLReq
+
+func (p *AssetServiceGetMediaObjectAccessURLArgs) GetReq() (v *GetMediaObjectAccessURLReq) {
+	if !p.IsSetReq() {
+		return AssetServiceGetMediaObjectAccessURLArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+func (p *AssetServiceGetMediaObjectAccessURLArgs) SetReq(val *GetMediaObjectAccessURLReq) {
+	p.Req = val
+}
+
+func (p *AssetServiceGetMediaObjectAccessURLArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *AssetServiceGetMediaObjectAccessURLArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceGetMediaObjectAccessURLArgs(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceGetMediaObjectAccessURLArgs = map[int16]string{
+	1: "req",
+}
+
+type AssetServiceGetMediaObjectAccessURLResult struct {
+	Success *GetMediaObjectAccessURLResp `thrift:"success,0,optional" frugal:"0,optional,GetMediaObjectAccessURLResp" json:"success,omitempty"`
+}
+
+func NewAssetServiceGetMediaObjectAccessURLResult() *AssetServiceGetMediaObjectAccessURLResult {
+	return &AssetServiceGetMediaObjectAccessURLResult{}
+}
+
+func (p *AssetServiceGetMediaObjectAccessURLResult) InitDefault() {
+}
+
+var AssetServiceGetMediaObjectAccessURLResult_Success_DEFAULT *GetMediaObjectAccessURLResp
+
+func (p *AssetServiceGetMediaObjectAccessURLResult) GetSuccess() (v *GetMediaObjectAccessURLResp) {
+	if !p.IsSetSuccess() {
+		return AssetServiceGetMediaObjectAccessURLResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *AssetServiceGetMediaObjectAccessURLResult) SetSuccess(x interface{}) {
+	p.Success = x.(*GetMediaObjectAccessURLResp)
+}
+
+func (p *AssetServiceGetMediaObjectAccessURLResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *AssetServiceGetMediaObjectAccessURLResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("AssetServiceGetMediaObjectAccessURLResult(%+v)", *p)
+}
+
+var fieldIDToName_AssetServiceGetMediaObjectAccessURLResult = map[int16]string{
 	0: "success",
 }

@@ -335,10 +335,15 @@ type AssetBiz struct {
 	assetRepo    AssetRepository
 	typeRepo     AssetTypeRepository
 	categoryRepo AssetCategoryRepository
+	mediaRepo    MediaObjectRepository
 }
 
-func NewAssetBiz(assetRepo AssetRepository, typeRepo AssetTypeRepository, categoryRepo AssetCategoryRepository) *AssetBiz {
-	return &AssetBiz{assetRepo: assetRepo, typeRepo: typeRepo, categoryRepo: categoryRepo}
+func NewAssetBiz(assetRepo AssetRepository, typeRepo AssetTypeRepository, categoryRepo AssetCategoryRepository, mediaRepo ...MediaObjectRepository) *AssetBiz {
+	var mr MediaObjectRepository
+	if len(mediaRepo) > 0 {
+		mr = mediaRepo[0]
+	}
+	return &AssetBiz{assetRepo: assetRepo, typeRepo: typeRepo, categoryRepo: categoryRepo, mediaRepo: mr}
 }
 
 func (b *AssetBiz) Create(ctx context.Context, userID string, input AssetInput) (*assetmodel.Asset, error) {
@@ -359,6 +364,9 @@ func (b *AssetBiz) Create(ctx context.Context, userID string, input AssetInput) 
 	}
 	coverMediaID, err := parseOptionalObjectID(input.CoverMediaID, "cover_media_id")
 	if err != nil {
+		return nil, err
+	}
+	if err := b.validateOptionalCoverMedia(ctx, workspaceID, coverMediaID); err != nil {
 		return nil, err
 	}
 	name := strings.TrimSpace(input.Name)
@@ -415,6 +423,9 @@ func (b *AssetBiz) Update(ctx context.Context, userID, assetID string, input Ass
 	if input.CoverMediaID != nil {
 		coverMediaID, err := parseOptionalObjectID(*input.CoverMediaID, "cover_media_id")
 		if err != nil {
+			return nil, err
+		}
+		if err := b.validateOptionalCoverMedia(ctx, workspaceID, coverMediaID); err != nil {
 			return nil, err
 		}
 		existing.CoverMediaID = coverMediaID
@@ -505,6 +516,16 @@ func (b *AssetBiz) parseOptionalCategory(ctx context.Context, workspaceID, raw s
 	return categoryID, nil
 }
 
+func (b *AssetBiz) validateOptionalCoverMedia(ctx context.Context, workspaceID string, mediaID primitive.ObjectID) error {
+	if mediaID.IsZero() || b.mediaRepo == nil {
+		return nil
+	}
+	if _, err := b.mediaRepo.FindMediaObjectByID(ctx, workspaceID, mediaID); err != nil {
+		return mapAssetRepoErr(err)
+	}
+	return nil
+}
+
 func workspaceFromUser(userID string) (workspaceID string, createdBy primitive.ObjectID, err error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
@@ -565,6 +586,7 @@ func mapAssetRepoErr(err error) error {
 		errno.ErrAssetTypeNotFound,
 		errno.ErrAssetCategoryNotFound,
 		errno.ErrAssetNotFound,
+		errno.ErrMediaObjectNotFound,
 		errno.ErrAssetConflict,
 		errno.ErrInvalidParam,
 	} {

@@ -13,6 +13,7 @@ import (
 	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
+	"github.com/castlexu/micro-service/pkg/errno"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	mwkitex "github.com/castlexu/micro-service/pkg/middleware/kitex"
@@ -21,6 +22,7 @@ import (
 	assetbiz "github.com/castlexu/micro-service/services/asset/biz"
 	assetmongo "github.com/castlexu/micro-service/services/asset/dal/mongo"
 	"github.com/castlexu/micro-service/services/asset/kitex_gen/asset/assetservice"
+	assetstorage "github.com/castlexu/micro-service/services/asset/storage"
 )
 
 // AssetConfig 是 asset 配置结构。
@@ -37,6 +39,15 @@ type AssetConfig struct {
 	} `mapstructure:"server"`
 	Registry cloudwego.RegistryConfig `mapstructure:"registry"`
 	OTel     pkgotel.Config           `mapstructure:"otel"`
+	Storage  struct {
+		Provider              string                       `mapstructure:"provider"`
+		ObjectKeyPrefix       string                       `mapstructure:"object_key_prefix"`
+		UploadURLTTLSeconds   int64                        `mapstructure:"upload_url_ttl_seconds"`
+		DownloadURLTTLSeconds int64                        `mapstructure:"download_url_ttl_seconds"`
+		MaxUploadSizeBytes    int64                        `mapstructure:"max_upload_size_bytes"`
+		AllowedContentTypes   []string                     `mapstructure:"allowed_content_types"`
+		AliyunOSS             assetstorage.AliyunOSSConfig `mapstructure:"aliyun_oss"`
+	} `mapstructure:"storage"`
 }
 
 func main() {
@@ -115,13 +126,28 @@ func main() {
 		}
 	}
 
+	storageClient, err := newStorageClient(cfg)
+	if err != nil {
+		logger.L().Fatal("asset storage init failed", zap.Error(err))
+	}
 	healthBiz := assetbiz.NewHealthBiz()
+	mediaBiz := assetbiz.NewMediaBiz(mediaObjectRepo, uploadSessionRepo, storageClient, assetbiz.MediaConfig{
+		ObjectKeyPrefix:     cfg.Storage.ObjectKeyPrefix,
+		Bucket:              storageClient.Bucket(),
+		UploadURLTTL:        time.Duration(cfg.Storage.UploadURLTTLSeconds) * time.Second,
+		DownloadURLTTL:      time.Duration(cfg.Storage.DownloadURLTTLSeconds) * time.Second,
+		MaxUploadSizeBytes:  cfg.Storage.MaxUploadSizeBytes,
+		AllowedContentTypes: cfg.Storage.AllowedContentTypes,
+		PublicBaseURL:       cfg.Storage.AliyunOSS.PublicBaseURL,
+		CDNBaseURL:          cfg.Storage.AliyunOSS.CDNBaseURL,
+	})
 	handler := NewAssetImpl(
 		healthBiz,
 		assetbiz.NewAssetTypeBiz(assetTypeRepo, assetRepo),
 		assetbiz.NewAssetCategoryBiz(assetCategoryRepo, assetRepo),
-		assetbiz.NewAssetBiz(assetRepo, assetTypeRepo, assetCategoryRepo),
-		assetbiz.NewAssetVersionBiz(assetVersionRepo, assetRepo, assetTypeRepo),
+		assetbiz.NewAssetBiz(assetRepo, assetTypeRepo, assetCategoryRepo, mediaObjectRepo),
+		assetbiz.NewAssetVersionBiz(assetVersionRepo, assetRepo, assetTypeRepo, mediaObjectRepo),
+		mediaBiz,
 	)
 
 	addr := cfg.Server.Addr
@@ -148,5 +174,18 @@ func main() {
 	logger.L().Info("asset server listening", zap.String("addr", addr))
 	if err := svr.Run(); err != nil {
 		logger.L().Fatal("asset server stopped", zap.Error(err))
+	}
+}
+
+func newStorageClient(cfg AssetConfig) (assetstorage.Client, error) {
+	provider := cfg.Storage.Provider
+	if provider == "" {
+		provider = "aliyun_oss"
+	}
+	switch provider {
+	case "aliyun_oss":
+		return assetstorage.NewAliyunOSSClient(cfg.Storage.AliyunOSS)
+	default:
+		return nil, errno.ErrAssetStorageError.WithMessagef("asset: unsupported storage provider %q", provider)
 	}
 }

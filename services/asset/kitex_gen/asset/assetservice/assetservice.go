@@ -167,6 +167,41 @@ var serviceMethods = map[string]kitex.MethodInfo{
 		false,
 		kitex.WithStreamingMode(kitex.StreamingNone),
 	),
+	"CreateStorageUploadSession": kitex.NewMethodInfo(
+		createStorageUploadSessionHandler,
+		newAssetServiceCreateStorageUploadSessionArgs,
+		newAssetServiceCreateStorageUploadSessionResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"FinalizeStorageUploadSession": kitex.NewMethodInfo(
+		finalizeStorageUploadSessionHandler,
+		newAssetServiceFinalizeStorageUploadSessionArgs,
+		newAssetServiceFinalizeStorageUploadSessionResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"GetMediaObject": kitex.NewMethodInfo(
+		getMediaObjectHandler,
+		newAssetServiceGetMediaObjectArgs,
+		newAssetServiceGetMediaObjectResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"ListMediaObjects": kitex.NewMethodInfo(
+		listMediaObjectsHandler,
+		newAssetServiceListMediaObjectsArgs,
+		newAssetServiceListMediaObjectsResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
+	"GetMediaObjectAccessURL": kitex.NewMethodInfo(
+		getMediaObjectAccessURLHandler,
+		newAssetServiceGetMediaObjectAccessURLArgs,
+		newAssetServiceGetMediaObjectAccessURLResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingNone),
+	),
 }
 
 var (
@@ -629,6 +664,96 @@ func newAssetServiceSetCurrentAssetVersionResult() interface{} {
 	return asset.NewAssetServiceSetCurrentAssetVersionResult()
 }
 
+func createStorageUploadSessionHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*asset.AssetServiceCreateStorageUploadSessionArgs)
+	realResult := result.(*asset.AssetServiceCreateStorageUploadSessionResult)
+	success, err := handler.(asset.AssetService).CreateStorageUploadSession(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newAssetServiceCreateStorageUploadSessionArgs() interface{} {
+	return asset.NewAssetServiceCreateStorageUploadSessionArgs()
+}
+
+func newAssetServiceCreateStorageUploadSessionResult() interface{} {
+	return asset.NewAssetServiceCreateStorageUploadSessionResult()
+}
+
+func finalizeStorageUploadSessionHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*asset.AssetServiceFinalizeStorageUploadSessionArgs)
+	realResult := result.(*asset.AssetServiceFinalizeStorageUploadSessionResult)
+	success, err := handler.(asset.AssetService).FinalizeStorageUploadSession(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newAssetServiceFinalizeStorageUploadSessionArgs() interface{} {
+	return asset.NewAssetServiceFinalizeStorageUploadSessionArgs()
+}
+
+func newAssetServiceFinalizeStorageUploadSessionResult() interface{} {
+	return asset.NewAssetServiceFinalizeStorageUploadSessionResult()
+}
+
+func getMediaObjectHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*asset.AssetServiceGetMediaObjectArgs)
+	realResult := result.(*asset.AssetServiceGetMediaObjectResult)
+	success, err := handler.(asset.AssetService).GetMediaObject(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newAssetServiceGetMediaObjectArgs() interface{} {
+	return asset.NewAssetServiceGetMediaObjectArgs()
+}
+
+func newAssetServiceGetMediaObjectResult() interface{} {
+	return asset.NewAssetServiceGetMediaObjectResult()
+}
+
+func listMediaObjectsHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*asset.AssetServiceListMediaObjectsArgs)
+	realResult := result.(*asset.AssetServiceListMediaObjectsResult)
+	success, err := handler.(asset.AssetService).ListMediaObjects(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newAssetServiceListMediaObjectsArgs() interface{} {
+	return asset.NewAssetServiceListMediaObjectsArgs()
+}
+
+func newAssetServiceListMediaObjectsResult() interface{} {
+	return asset.NewAssetServiceListMediaObjectsResult()
+}
+
+func getMediaObjectAccessURLHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	realArg := arg.(*asset.AssetServiceGetMediaObjectAccessURLArgs)
+	realResult := result.(*asset.AssetServiceGetMediaObjectAccessURLResult)
+	success, err := handler.(asset.AssetService).GetMediaObjectAccessURL(ctx, realArg.Req)
+	if err != nil {
+		return err
+	}
+	realResult.Success = success
+	return nil
+}
+func newAssetServiceGetMediaObjectAccessURLArgs() interface{} {
+	return asset.NewAssetServiceGetMediaObjectAccessURLArgs()
+}
+
+func newAssetServiceGetMediaObjectAccessURLResult() interface{} {
+	return asset.NewAssetServiceGetMediaObjectAccessURLResult()
+}
+
 type kClient struct {
 	c client.Client
 }
@@ -854,6 +979,56 @@ func (p *kClient) SetCurrentAssetVersion(ctx context.Context, req *asset.SetCurr
 	_args.Req = req
 	var _result asset.AssetServiceSetCurrentAssetVersionResult
 	if err = p.c.Call(ctx, "SetCurrentAssetVersion", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) CreateStorageUploadSession(ctx context.Context, req *asset.CreateStorageUploadSessionReq) (r *asset.CreateStorageUploadSessionResp, err error) {
+	var _args asset.AssetServiceCreateStorageUploadSessionArgs
+	_args.Req = req
+	var _result asset.AssetServiceCreateStorageUploadSessionResult
+	if err = p.c.Call(ctx, "CreateStorageUploadSession", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) FinalizeStorageUploadSession(ctx context.Context, req *asset.FinalizeStorageUploadSessionReq) (r *asset.FinalizeStorageUploadSessionResp, err error) {
+	var _args asset.AssetServiceFinalizeStorageUploadSessionArgs
+	_args.Req = req
+	var _result asset.AssetServiceFinalizeStorageUploadSessionResult
+	if err = p.c.Call(ctx, "FinalizeStorageUploadSession", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) GetMediaObject(ctx context.Context, req *asset.GetMediaObjectReq) (r *asset.GetMediaObjectResp, err error) {
+	var _args asset.AssetServiceGetMediaObjectArgs
+	_args.Req = req
+	var _result asset.AssetServiceGetMediaObjectResult
+	if err = p.c.Call(ctx, "GetMediaObject", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) ListMediaObjects(ctx context.Context, req *asset.ListMediaObjectsReq) (r *asset.ListMediaObjectsResp, err error) {
+	var _args asset.AssetServiceListMediaObjectsArgs
+	_args.Req = req
+	var _result asset.AssetServiceListMediaObjectsResult
+	if err = p.c.Call(ctx, "ListMediaObjects", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) GetMediaObjectAccessURL(ctx context.Context, req *asset.GetMediaObjectAccessURLReq) (r *asset.GetMediaObjectAccessURLResp, err error) {
+	var _args asset.AssetServiceGetMediaObjectAccessURLArgs
+	_args.Req = req
+	var _result asset.AssetServiceGetMediaObjectAccessURLResult
+	if err = p.c.Call(ctx, "GetMediaObjectAccessURL", &_args, &_result); err != nil {
 		return
 	}
 	return _result.GetSuccess(), nil

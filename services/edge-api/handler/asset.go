@@ -102,6 +102,19 @@ type setCurrentAssetVersionReq struct {
 	Version int32 `json:"version"`
 }
 
+type createStorageUploadSessionReq struct {
+	ContentType string `json:"content_type"`
+	Size        int64  `json:"size"`
+	Filename    string `json:"filename"`
+	SHA256      string `json:"sha256"`
+}
+
+type finalizeStorageUploadSessionReq struct {
+	SHA256 string `json:"sha256"`
+	Width  *int32 `json:"width"`
+	Height *int32 `json:"height"`
+}
+
 func (h *AssetHandler) CreateAssetType(c context.Context, ctx *app.RequestContext) {
 	var req createAssetTypeReq
 	if err := ctx.BindJSON(&req); err != nil {
@@ -488,6 +501,132 @@ func (h *AssetHandler) GetAssetVersion(c context.Context, ctx *app.RequestContex
 	writeAssetResp(c, ctx, "asset.GetAssetVersion", resp.GetBase(), resp.GetVersion(), err)
 }
 
+func (h *AssetHandler) CreateStorageUploadSession(c context.Context, ctx *app.RequestContext) {
+	var req createStorageUploadSessionReq
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, apiResp{Code: errno.ErrInvalidParam.Code, Message: "invalid request body"})
+		return
+	}
+	resp, err := h.assetClient.CreateStorageUploadSession(c, &edgeasset.CreateStorageUploadSessionReq{
+		Base:        baseReq(ctx),
+		ContentType: req.ContentType,
+		Size:        req.Size,
+		Filename:    optionalString(req.Filename),
+		SHA256:      optionalString(req.SHA256),
+	})
+	if err != nil {
+		writeAssetResp(c, ctx, "asset.CreateStorageUploadSession", nil, nil, err)
+		return
+	}
+	if resp.GetBase().GetCode() != 0 {
+		writeAssetResp(c, ctx, "asset.CreateStorageUploadSession", resp.GetBase(), nil, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{Code: 0, Message: "ok", Data: map[string]any{
+		"session": resp.GetSession(),
+		"upload":  resp.GetUpload(),
+	}})
+}
+
+func (h *AssetHandler) FinalizeStorageUploadSession(c context.Context, ctx *app.RequestContext) {
+	var req finalizeStorageUploadSessionReq
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, apiResp{Code: errno.ErrInvalidParam.Code, Message: "invalid request body"})
+		return
+	}
+	resp, err := h.assetClient.FinalizeStorageUploadSession(c, &edgeasset.FinalizeStorageUploadSessionReq{
+		Base:      baseReq(ctx),
+		SessionID: ctx.Param("session_id"),
+		SHA256:    optionalString(req.SHA256),
+		Width:     req.Width,
+		Height:    req.Height,
+	})
+	if err != nil {
+		writeAssetResp(c, ctx, "asset.FinalizeStorageUploadSession", nil, nil, err)
+		return
+	}
+	if resp.GetBase().GetCode() != 0 {
+		writeAssetResp(c, ctx, "asset.FinalizeStorageUploadSession", resp.GetBase(), nil, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{Code: 0, Message: "ok", Data: map[string]any{
+		"session": resp.GetSession(),
+		"media":   resp.GetMedia(),
+	}})
+}
+
+func (h *AssetHandler) ListMediaObjects(c context.Context, ctx *app.RequestContext) {
+	req := &edgeasset.ListMediaObjectsReq{
+		Base: baseReq(ctx),
+		Page: pageReq(ctx),
+	}
+	if v := string(ctx.Query("source")); v != "" {
+		parsed, err := strconv.Atoi(v)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, apiResp{Code: errno.ErrInvalidParam.Code, Message: "source must be integer"})
+			return
+		}
+		source := edgeasset.AssetSource(parsed)
+		req.Source = &source
+	}
+	if v := string(ctx.Query("content_type")); v != "" {
+		req.ContentType = &v
+	}
+	resp, err := h.assetClient.ListMediaObjects(c, req)
+	if err != nil {
+		writeAssetResp(c, ctx, "asset.ListMediaObjects", nil, nil, err)
+		return
+	}
+	if resp.GetBase().GetCode() != 0 {
+		writeAssetResp(c, ctx, "asset.ListMediaObjects", resp.GetBase(), nil, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{Code: 0, Message: "ok", Data: map[string]any{
+		"media": resp.GetMedia(),
+		"page":  resp.GetPage(),
+	}})
+}
+
+func (h *AssetHandler) GetMediaObject(c context.Context, ctx *app.RequestContext) {
+	resp, err := h.assetClient.GetMediaObject(c, &edgeasset.GetMediaObjectReq{
+		Base:    baseReq(ctx),
+		MediaID: ctx.Param("id"),
+	})
+	if err != nil {
+		writeAssetResp(c, ctx, "asset.GetMediaObject", nil, nil, err)
+		return
+	}
+	writeAssetResp(c, ctx, "asset.GetMediaObject", resp.GetBase(), resp.GetMedia(), err)
+}
+
+func (h *AssetHandler) GetMediaObjectAccessURL(c context.Context, ctx *app.RequestContext) {
+	req := &edgeasset.GetMediaObjectAccessURLReq{
+		Base:    baseReq(ctx),
+		MediaID: ctx.Param("id"),
+	}
+	if v := string(ctx.Query("expires_in_seconds")); v != "" {
+		parsed, err := strconv.Atoi(v)
+		if err != nil || parsed < 0 {
+			ctx.JSON(http.StatusBadRequest, apiResp{Code: errno.ErrInvalidParam.Code, Message: "expires_in_seconds must be non-negative integer"})
+			return
+		}
+		req.ExpiresInSeconds = edgeInt32Ptr(int32(parsed))
+	}
+	resp, err := h.assetClient.GetMediaObjectAccessURL(c, req)
+	if err != nil {
+		writeAssetResp(c, ctx, "asset.GetMediaObjectAccessURL", nil, nil, err)
+		return
+	}
+	if resp.GetBase().GetCode() != 0 {
+		writeAssetResp(c, ctx, "asset.GetMediaObjectAccessURL", resp.GetBase(), nil, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiResp{Code: 0, Message: "ok", Data: map[string]any{
+		"media":  resp.GetMedia(),
+		"access": resp.GetAccess(),
+	}})
+}
+
 func baseReq(ctx *app.RequestContext) *edgebase.BaseReq {
 	userID := edgemw.GetUserID(ctx)
 	return &edgebase.BaseReq{UserID: optionalString(userID)}
@@ -572,4 +711,8 @@ func optionalString(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func edgeInt32Ptr(v int32) *int32 {
+	return &v
 }

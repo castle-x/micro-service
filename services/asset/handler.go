@@ -12,6 +12,7 @@ import (
 	assetmodel "github.com/castlexu/micro-service/services/asset/dal/model"
 	assetgen "github.com/castlexu/micro-service/services/asset/kitex_gen/asset"
 	assetbase "github.com/castlexu/micro-service/services/asset/kitex_gen/base"
+	assetstorage "github.com/castlexu/micro-service/services/asset/storage"
 )
 
 // AssetImpl 实现 Kitex 生成的 AssetService 接口。
@@ -21,6 +22,7 @@ type AssetImpl struct {
 	categoryBiz *assetbiz.AssetCategoryBiz
 	assetBiz    *assetbiz.AssetBiz
 	versionBiz  *assetbiz.AssetVersionBiz
+	mediaBiz    *assetbiz.MediaBiz
 }
 
 // NewAssetImpl 构造 AssetImpl。
@@ -29,11 +31,17 @@ func NewAssetImpl(
 	typeBiz *assetbiz.AssetTypeBiz,
 	categoryBiz *assetbiz.AssetCategoryBiz,
 	assetBiz *assetbiz.AssetBiz,
-	versionBiz ...*assetbiz.AssetVersionBiz,
+	optional ...any,
 ) *AssetImpl {
 	var vb *assetbiz.AssetVersionBiz
-	if len(versionBiz) > 0 {
-		vb = versionBiz[0]
+	var mb *assetbiz.MediaBiz
+	for _, item := range optional {
+		switch v := item.(type) {
+		case *assetbiz.AssetVersionBiz:
+			vb = v
+		case *assetbiz.MediaBiz:
+			mb = v
+		}
 	}
 	return &AssetImpl{
 		healthBiz:   healthBiz,
@@ -41,6 +49,7 @@ func NewAssetImpl(
 		categoryBiz: categoryBiz,
 		assetBiz:    assetBiz,
 		versionBiz:  vb,
+		mediaBiz:    mb,
 	}
 }
 
@@ -477,6 +486,108 @@ func (s *AssetImpl) SetCurrentAssetVersion(ctx context.Context, req *assetgen.Se
 	return &assetgen.SetCurrentAssetVersionResp{Base: okBase(), Asset: assetDTO(asset), Version: assetVersionDTO(version)}, nil
 }
 
+// CreateStorageUploadSession 创建前端直传对象存储的上传会话。
+func (s *AssetImpl) CreateStorageUploadSession(ctx context.Context, req *assetgen.CreateStorageUploadSessionReq) (*assetgen.CreateStorageUploadSessionResp, error) {
+	if req == nil {
+		return &assetgen.CreateStorageUploadSessionResp{Base: errBase(errno.ErrInvalidParam.WithMessage("request is required"))}, nil
+	}
+	userID, err := userIDFromBase(req.GetBase())
+	if err != nil {
+		return &assetgen.CreateStorageUploadSessionResp{Base: errBase(err)}, nil
+	}
+	session, upload, err := s.mediaBiz.CreateUploadSession(ctx, userID, assetbiz.MediaUploadSessionInput{
+		ContentType: req.GetContentType(),
+		Size:        req.GetSize(),
+		Filename:    req.GetFilename(),
+		SHA256:      req.GetSHA256(),
+	})
+	if err != nil {
+		return &assetgen.CreateStorageUploadSessionResp{Base: errBase(err)}, nil
+	}
+	return &assetgen.CreateStorageUploadSessionResp{
+		Base:    okBase(),
+		Session: storageUploadSessionDTO(session),
+		Upload:  storagePresignedURLDTO(upload),
+	}, nil
+}
+
+// FinalizeStorageUploadSession 校验对象已上传并登记 MediaObject。
+func (s *AssetImpl) FinalizeStorageUploadSession(ctx context.Context, req *assetgen.FinalizeStorageUploadSessionReq) (*assetgen.FinalizeStorageUploadSessionResp, error) {
+	if req == nil {
+		return &assetgen.FinalizeStorageUploadSessionResp{Base: errBase(errno.ErrInvalidParam.WithMessage("request is required"))}, nil
+	}
+	userID, err := userIDFromBase(req.GetBase())
+	if err != nil {
+		return &assetgen.FinalizeStorageUploadSessionResp{Base: errBase(err)}, nil
+	}
+	session, media, err := s.mediaBiz.FinalizeUploadSession(ctx, userID, req.GetSessionID(), assetbiz.MediaFinalizeInput{
+		SHA256: req.GetSHA256(),
+		Width:  req.GetWidth(),
+		Height: req.GetHeight(),
+	})
+	if err != nil {
+		return &assetgen.FinalizeStorageUploadSessionResp{Base: errBase(err)}, nil
+	}
+	return &assetgen.FinalizeStorageUploadSessionResp{
+		Base:    okBase(),
+		Session: storageUploadSessionDTO(session),
+		Media:   mediaObjectDTO(media),
+	}, nil
+}
+
+// GetMediaObject 查询当前 workspace 下的媒体对象。
+func (s *AssetImpl) GetMediaObject(ctx context.Context, req *assetgen.GetMediaObjectReq) (*assetgen.GetMediaObjectResp, error) {
+	if req == nil {
+		return &assetgen.GetMediaObjectResp{Base: errBase(errno.ErrInvalidParam.WithMessage("request is required"))}, nil
+	}
+	userID, err := userIDFromBase(req.GetBase())
+	if err != nil {
+		return &assetgen.GetMediaObjectResp{Base: errBase(err)}, nil
+	}
+	media, err := s.mediaBiz.Get(ctx, userID, req.GetMediaID())
+	if err != nil {
+		return &assetgen.GetMediaObjectResp{Base: errBase(err)}, nil
+	}
+	return &assetgen.GetMediaObjectResp{Base: okBase(), Media: mediaObjectDTO(media)}, nil
+}
+
+// ListMediaObjects 分页查询当前 workspace 下的媒体对象。
+func (s *AssetImpl) ListMediaObjects(ctx context.Context, req *assetgen.ListMediaObjectsReq) (*assetgen.ListMediaObjectsResp, error) {
+	if req == nil {
+		return &assetgen.ListMediaObjectsResp{Base: errBase(errno.ErrInvalidParam.WithMessage("request is required"))}, nil
+	}
+	userID, err := userIDFromBase(req.GetBase())
+	if err != nil {
+		return &assetgen.ListMediaObjectsResp{Base: errBase(err)}, nil
+	}
+	page := pageInput(req.GetPage())
+	source := assetmodel.AssetSourceUnknown
+	if req.IsSetSource() {
+		source = assetmodel.AssetSource(req.GetSource())
+	}
+	docs, total, err := s.mediaBiz.List(ctx, userID, page, source, req.GetContentType())
+	if err != nil {
+		return &assetgen.ListMediaObjectsResp{Base: errBase(err)}, nil
+	}
+	return &assetgen.ListMediaObjectsResp{Base: okBase(), Media: mediaObjectDTOs(docs), Page: pageResp(page, total)}, nil
+}
+
+// GetMediaObjectAccessURL 生成媒体对象短期访问 URL。
+func (s *AssetImpl) GetMediaObjectAccessURL(ctx context.Context, req *assetgen.GetMediaObjectAccessURLReq) (*assetgen.GetMediaObjectAccessURLResp, error) {
+	if req == nil {
+		return &assetgen.GetMediaObjectAccessURLResp{Base: errBase(errno.ErrInvalidParam.WithMessage("request is required"))}, nil
+	}
+	userID, err := userIDFromBase(req.GetBase())
+	if err != nil {
+		return &assetgen.GetMediaObjectAccessURLResp{Base: errBase(err)}, nil
+	}
+	media, access, err := s.mediaBiz.GetAccessURL(ctx, userID, req.GetMediaID(), req.GetExpiresInSeconds())
+	if err != nil {
+		return &assetgen.GetMediaObjectAccessURLResp{Base: errBase(err)}, nil
+	}
+	return &assetgen.GetMediaObjectAccessURLResp{Base: okBase(), Media: mediaObjectDTO(media), Access: storagePresignedURLDTO(access)}, nil
+}
+
 func okBase() *assetbase.BaseResp {
 	return &assetbase.BaseResp{Code: 0, Message: "ok"}
 }
@@ -734,6 +845,88 @@ func assetVersionDTOs(docs []*assetmodel.AssetVersion) []*assetgen.AssetVersionD
 	return out
 }
 
+func storageUploadSessionDTO(doc *assetmodel.StorageUploadSession) *assetgen.StorageUploadSessionDTO {
+	if doc == nil {
+		return nil
+	}
+	return &assetgen.StorageUploadSessionDTO{
+		SessionID:   doc.ID.Hex(),
+		WorkspaceID: doc.WorkspaceID,
+		Provider:    assetgen.StorageProvider(doc.Provider),
+		Bucket:      doc.Bucket,
+		ObjectKey:   doc.ObjectKey,
+		Status:      assetgen.UploadSessionStatus(doc.Status),
+		ExpiresAt:   doc.ExpiresAt,
+		CreatedBy:   doc.CreatedBy.Hex(),
+		CreatedAt:   doc.CreatedAt,
+		FinalizedAt: int64OptionalPtr(doc.FinalizedAt),
+		ContentType: strPtr(doc.ContentType),
+		Size:        int64OptionalPtr(doc.Size),
+		SHA256:      strPtr(doc.SHA256),
+		MediaID:     objectIDPtr(doc.MediaID),
+	}
+}
+
+func storagePresignedURLDTO(req *assetstorage.PresignedRequest) *assetgen.StoragePresignedURLDTO {
+	if req == nil {
+		return nil
+	}
+	return &assetgen.StoragePresignedURLDTO{
+		Method:    req.Method,
+		URL:       req.URL,
+		Headers:   req.Headers,
+		ExpiresAt: req.ExpiresAt,
+	}
+}
+
+func mediaObjectDTO(doc *assetmodel.MediaObject) *assetgen.MediaObjectDTO {
+	if doc == nil {
+		return nil
+	}
+	return &assetgen.MediaObjectDTO{
+		MediaID:       doc.ID.Hex(),
+		WorkspaceID:   doc.WorkspaceID,
+		Provider:      assetgen.StorageProvider(doc.Provider),
+		Bucket:        doc.Bucket,
+		ObjectKey:     doc.ObjectKey,
+		CDNURL:        strPtr(doc.CDNURL),
+		URLVisibility: assetgen.URLVisibility(doc.URLVisibility),
+		ContentType:   doc.ContentType,
+		Size:          doc.Size,
+		Width:         int32OptionalPtr(doc.Width),
+		Height:        int32OptionalPtr(doc.Height),
+		SHA256:        strPtr(doc.SHA256),
+		Variants:      mediaVariantDTOs(doc.Variants),
+		Source:        assetgen.AssetSource(doc.Source),
+		Provenance:    provenanceToDTO(doc.Provenance),
+		CreatedBy:     doc.CreatedBy.Hex(),
+		CreatedAt:     doc.CreatedAt,
+	}
+}
+
+func mediaObjectDTOs(docs []*assetmodel.MediaObject) []*assetgen.MediaObjectDTO {
+	out := make([]*assetgen.MediaObjectDTO, 0, len(docs))
+	for _, doc := range docs {
+		out = append(out, mediaObjectDTO(doc))
+	}
+	return out
+}
+
+func mediaVariantDTOs(in []assetmodel.MediaVariant) []*assetgen.MediaVariantDTO {
+	out := make([]*assetgen.MediaVariantDTO, 0, len(in))
+	for _, item := range in {
+		out = append(out, &assetgen.MediaVariantDTO{
+			Kind:      item.Kind,
+			ObjectKey: item.ObjectKey,
+			CDNURL:    strPtr(item.CDNURL),
+			Width:     int32OptionalPtr(item.Width),
+			Height:    int32OptionalPtr(item.Height),
+			Size:      int64OptionalPtr(item.Size),
+		})
+	}
+	return out
+}
+
 func provenanceFromDTO(in *assetgen.ProvenanceDTO) *assetmodel.Provenance {
 	if in == nil {
 		return nil
@@ -778,4 +971,18 @@ func strPtr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func int64OptionalPtr(v int64) *int64 {
+	if v == 0 {
+		return nil
+	}
+	return &v
+}
+
+func int32OptionalPtr(v int32) *int32 {
+	if v == 0 {
+		return nil
+	}
+	return &v
 }

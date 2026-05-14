@@ -84,6 +84,12 @@ func RegisterRoutes(
 			assets.PUT("/categories/:id", assetHandler.UpdateAssetCategory)
 			assets.DELETE("/categories/:id", assetHandler.DeleteAssetCategory)
 
+			assets.POST("/media/upload-sessions", assetHandler.CreateStorageUploadSession)
+			assets.POST("/media/upload-sessions/:session_id/finalize", assetHandler.FinalizeStorageUploadSession)
+			assets.GET("/media", assetHandler.ListMediaObjects)
+			assets.GET("/media/:id/access-url", assetHandler.GetMediaObjectAccessURL)
+			assets.GET("/media/:id", assetHandler.GetMediaObject)
+
 			assets.POST("/", assetHandler.CreateAsset)
 			assets.GET("/", assetHandler.ListAssets)
 			assets.POST("/:id/versions", assetHandler.CreateAssetVersion)

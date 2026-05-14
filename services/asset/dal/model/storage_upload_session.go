@@ -21,4 +21,8 @@ type StorageUploadSession struct {
 	ExpiresAt   int64               `bson:"expires_at"`
 	CreatedBy   primitive.ObjectID  `bson:"created_by"`
 	FinalizedAt int64               `bson:"finalized_at,omitempty"`
+	ContentType string              `bson:"content_type,omitempty"`
+	Size        int64               `bson:"size,omitempty"`
+	SHA256      string              `bson:"sha256,omitempty"`
+	MediaID     primitive.ObjectID  `bson:"media_id,omitempty"`
 }

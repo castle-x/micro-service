@@ -1,4 +1,4 @@
-.PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services lint fmt clean help model-start model-stop model-restart
+.PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services lint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification asset
@@ -22,6 +22,9 @@ help:
 	@echo "  make model-start   [MODEL] 单独编译并启动 model service :38083"
 	@echo "  make model-stop    [MODEL] 停止 model service"
 	@echo "  make model-restart [MODEL] 重编译并重启 model service"
+	@echo "  make asset-start   [ASSET] 单独编译并启动 asset service :38084"
+	@echo "  make asset-stop    [ASSET] 停止 asset service"
+	@echo "  make asset-restart [ASSET] 重编译并重启 asset service"
 	@echo "  make infra-up      Start local dev dependencies (MongoDB + Redis + etcd + NSQ + Kong) via Docker"
 	@echo "  make infra-down    Stop local dev dependencies"
 	@echo "  make infra-ps      Show status of local dev containers"
@@ -109,7 +112,7 @@ dev: dev-start
 # ----------------------------------------------------------------
 # [DEV] 一键启动所有服务（infra + observability + 后端 + 前端）
 # 前置：复制 .env.example 为 .env 并填写真实凭据
-# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/edge-api.log / bin/log/web.log
+# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/asset.log / bin/log/edge-api.log / bin/log/web.log
 # ----------------------------------------------------------------
 dev-start: infra-up obs-up build
 	@mkdir -p bin/log
@@ -124,6 +127,8 @@ dev-start: infra-up obs-up build
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/iam > bin/log/iam.log 2>&1 &
 	@echo ">>> [DEV] Starting idp :38081)..."
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/idp > bin/log/idp.log 2>&1 &
+	@echo ">>> [DEV] Starting asset :38084)..."
+	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
 	@echo ">>> [DEV] Starting edge-api :38080)..."
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
 	@echo ">>> [DEV] Starting model :38083)..."
@@ -138,7 +143,7 @@ dev-start: infra-up obs-up build
 	@echo "     Frontend → http://localhost:35173"
 	@echo "     Observe  → http://localhost:5080/web/"
 	@echo ""
-	@echo "  Logs: bin/log/{iam,idp,edge-api,web}.log"
+	@echo "  Logs: bin/log/{iam,idp,asset,edge-api,web}.log"
 	@echo "  Stop: make dev-stop"
 
 # [DEV] 停止所有服务进程（不停 Docker infra）
@@ -148,6 +153,7 @@ dev-stop:
 	@lsof -ti tcp:38081 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:38082 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
+	@lsof -ti tcp:38084 | xargs kill -9 2>/dev/null || true
 	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null || true
 	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
 
@@ -161,6 +167,8 @@ dev-restart: infra-up obs-up dev-stop build
 	@sleep 1
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/idp > bin/log/idp.log 2>&1 &
 	@sleep 1
+	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
+	@sleep 1
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/model > bin/log/model.log 2>&1 &
 	@sleep 2
@@ -173,7 +181,7 @@ dev-restart: infra-up obs-up dev-stop build
 	@echo "     Frontend → http://localhost:35173"
 	@echo "     Observe  → http://localhost:5080/web/"
 	@echo ""
-	@echo "  Logs: bin/log/{iam,idp,edge-api,web}.log"
+	@echo "  Logs: bin/log/{iam,idp,asset,edge-api,web}.log"
 
 # ----------------------------------------------------------------
 # [MODEL] 单独启动 / 停止 / 重启 model service（:38083）
@@ -201,6 +209,33 @@ model-restart: infra-up obs-up model-stop build
 	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/model > bin/log/model.log 2>&1 &
 	@sleep 1
 	@echo ">>> [MODEL] model service restarted. Log: bin/log/model.log"
+
+# ----------------------------------------------------------------
+# [ASSET] 单独启动 / 停止 / 重启 asset service（:38084）
+# 前置：.env 存在（包含 ASSET/OSS 配置），infra 已启动
+# 日志：bin/log/asset.log
+# ----------------------------------------------------------------
+asset-start: infra-up obs-up build
+	@mkdir -p bin/log
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@lsof -ti tcp:38084 | xargs kill -9 2>/dev/null || true
+	@echo ">>> [ASSET] Starting asset service :38084..."
+	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
+	@sleep 1
+	@echo ">>> [ASSET] asset service started. Log: bin/log/asset.log"
+
+asset-stop:
+	@echo ">>> [ASSET] Stopping asset service..."
+	@lsof -ti tcp:38084 | xargs kill -9 2>/dev/null || true
+	@echo ">>> [ASSET] Stopped."
+
+asset-restart: infra-up obs-up asset-stop build
+	@mkdir -p bin/log
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@echo ">>> [ASSET] Starting asset service :38084..."
+	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
+	@sleep 1
+	@echo ">>> [ASSET] asset service restarted. Log: bin/log/asset.log"
 
 
 # Generate Kitex code for all Kitex-based services (待 IDL 补齐后可用)
