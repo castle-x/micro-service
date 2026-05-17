@@ -327,14 +327,21 @@ func bizCodeToHTTP(code int32) int {
 	var e errno.Errno
 	e.Code = code
 	switch {
-	case errors.Is(e, errno.ErrInvalidParam):
+	case errors.Is(e, errno.ErrInvalidParam), errors.Is(e, errno.ErrAssetInvalidPart):
 		return http.StatusBadRequest
 	case errors.Is(e, errno.ErrUnauthorized), errors.Is(e, errno.ErrTokenInvalid), errors.Is(e, errno.ErrTokenExpired):
 		return http.StatusUnauthorized
 	case errors.Is(e, errno.ErrForbidden), errors.Is(e, errno.ErrPermissionDenied):
 		return http.StatusForbidden
-	case errors.Is(e, errno.ErrNotFound), errors.Is(e, errno.ErrUserNotFound):
+	case errors.Is(e, errno.ErrNotFound), errors.Is(e, errno.ErrUserNotFound),
+		errors.Is(e, errno.ErrAssetTypeNotFound), errors.Is(e, errno.ErrAssetNotFound),
+		errors.Is(e, errno.ErrAssetCategoryNotFound), errors.Is(e, errno.ErrAssetVersionNotFound),
+		errors.Is(e, errno.ErrMediaObjectNotFound), errors.Is(e, errno.ErrAssetUploadSessionNotFound):
 		return http.StatusNotFound
+	case errors.Is(e, errno.ErrAssetConflict), errors.Is(e, errno.ErrDuplicateKey):
+		return http.StatusConflict
+	case errors.Is(e, errno.ErrAssetStorageError):
+		return http.StatusBadGateway
 	case errors.Is(e, errno.ErrRateLimit):
 		return http.StatusTooManyRequests
 	default:

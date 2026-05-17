@@ -12,11 +12,13 @@ import (
 
 	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
+	pkghealth "github.com/castlexu/micro-service/pkg/health"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	pkgotel "github.com/castlexu/micro-service/pkg/otel"
 	pkgredis "github.com/castlexu/micro-service/pkg/redis"
 	"github.com/castlexu/micro-service/services/edge-api/handler"
+	assetclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/asset/assetservice"
 	iamclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/iam/iamservice"
 	idpclient "github.com/castlexu/micro-service/services/edge-api/kitex_gen/idp/idpservice"
 )
@@ -29,6 +31,9 @@ type EdgeConfig struct {
 	Model struct {
 		ServiceName string `mapstructure:"service_name"`
 	} `mapstructure:"model"`
+	Asset struct {
+		ServiceName string `mapstructure:"service_name"`
+	} `mapstructure:"asset"`
 	JWT struct {
 		Secret string `mapstructure:"secret"`
 	} `mapstructure:"jwt"`
@@ -42,6 +47,8 @@ type EdgeConfig struct {
 
 func main() {
 	_ = logger.Init(logger.Options{Service: "edge-api"})
+	restoreStdLog := logger.IngestStdLog()
+	defer restoreStdLog()
 	defer logger.Sync()
 	mw.RegisterLoggerExtractor()
 
@@ -110,10 +117,25 @@ func main() {
 		logger.L().Fatal("iam client init failed", zap.Error(err))
 	}
 
+	// Asset Kitex 客户端
+	assetServiceName := cfg.Asset.ServiceName
+	if assetServiceName == "" {
+		assetServiceName = "asset"
+	}
+	assetClientOpts, err := cloudwego.KitexClientOptions(cfg.Discovery)
+	if err != nil {
+		logger.L().Fatal("asset resolver init failed", zap.Error(err))
+	}
+	assetCli, err := assetclient.NewClient(assetServiceName, assetClientOpts...)
+	if err != nil {
+		logger.L().Fatal("asset client init failed", zap.Error(err))
+	}
+
 	// 注入 handler
 	authHandler := handler.NewAuthHandler(idpCli, frontendURL)
 	userHandler := handler.NewUserHandler(idpCli, iamCli)
 	adminHandler := handler.NewAdminHandler(iamCli, idpCli)
+	assetHandler := handler.NewAssetHandler(assetCli)
 
 	// Model service 代理
 	modelServiceName := cfg.Model.ServiceName
@@ -138,9 +160,25 @@ func main() {
 	if err != nil {
 		logger.L().Fatal("hertz registry init failed", zap.Error(err))
 	}
+	etcdClient, err := cloudwego.SharedEtcdClient(cfg.Registry.Endpoints)
+	if err != nil {
+		logger.L().Fatal("etcd health client init failed", zap.Error(err))
+	}
 	hertzOpts = append(hertzOpts, registryOpts...)
 	h := server.Default(hertzOpts...)
-	RegisterRoutes(h, authHandler, userHandler, adminHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
+	RegisterRoutes(h, authHandler, userHandler, adminHandler, assetHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
+
+	adminHealth := pkghealth.NewServer(pkghealth.Config{Service: "edge-api", Addr: pkghealth.AdminAddr("edge-api", 48080)})
+	adminHealth.Check("redis", pkghealth.RedisCheck(pkgredis.GetClient()))
+	adminHealth.Check("etcd", pkghealth.EtcdCheck(etcdClient))
+	adminHealth.Start()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := adminHealth.Shutdown(ctx); err != nil {
+			logger.L().Warn("admin health shutdown failed", zap.Error(err))
+		}
+	}()
 
 	logger.L().Info("edge-api listening", zap.String("addr", addr))
 	h.Spin()

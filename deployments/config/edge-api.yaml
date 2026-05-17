@@ -6,6 +6,9 @@ server:
 model:
   service_name: "model"
 
+asset:
+  service_name: "asset"
+
 jwt:
   secret: "${JWT_SECRET}"
 

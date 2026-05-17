@@ -6,6 +6,7 @@ use (
 	./services/billing
 	./services/credits
 	./services/edge-api
+	./services/asset
 	./services/iam
 	./services/idp
 	./services/model

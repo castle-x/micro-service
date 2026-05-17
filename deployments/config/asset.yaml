@@ -1,0 +1,53 @@
+# asset 服务配置（非敏感字段）
+
+mongo:
+  uri: "${MONGO_URI:mongodb://localhost:27017/platform}"
+  db: "platform"
+
+redis:
+  addr: "${REDIS_ADDR:localhost:6379}"
+
+server:
+  addr: ":38084"
+
+registry:
+  type: "${REGISTRY_TYPE:etcd}"
+  endpoints:
+    - "${ETCD_ENDPOINT:127.0.0.1:2379}"
+  prefix: "${REGISTRY_PREFIX:micro-service}"
+  service_name: "asset"
+  addr: "${ASSET_REGISTRY_ADDR:127.0.0.1:38084}"
+  weight: 10
+  tags:
+    env: "${APP_ENV:local}"
+
+otel:
+  enabled: ${OTEL_ENABLED:false}
+  endpoint: "${OTEL_ENDPOINT}"
+  protocol: "${OTEL_PROTOCOL:grpc}"
+  environment: "${APP_ENV:local}"
+  service_version: "${APP_VERSION:dev}"
+  sample_ratio: ${OTEL_SAMPLE_RATIO:1}
+  insecure: ${OTEL_INSECURE:true}
+  strict: ${OTEL_STRICT:false}
+
+storage:
+  provider: "${ASSET_STORAGE_PROVIDER:aliyun_oss}"
+  object_key_prefix: "${ASSET_STORAGE_OBJECT_KEY_PREFIX:assets}"
+  upload_url_ttl_seconds: ${ASSET_UPLOAD_URL_TTL_SECONDS:900}
+  download_url_ttl_seconds: ${ASSET_DOWNLOAD_URL_TTL_SECONDS:900}
+  max_upload_size_bytes: ${ASSET_STORAGE_MAX_UPLOAD_SIZE_BYTES:20971520}
+  allowed_content_types:
+    - image/jpeg
+    - image/png
+    - image/webp
+    - image/gif
+  aliyun_oss:
+    region: "${ALIYUN_OSS_REGION}"
+    endpoint: "${ALIYUN_OSS_ENDPOINT}"
+    bucket: "${ALIYUN_OSS_BUCKET}"
+    access_key_id: "${ALIYUN_OSS_ACCESS_KEY_ID}"
+    access_key_secret: "${ALIYUN_OSS_ACCESS_KEY_SECRET}"
+    security_token: "${ALIYUN_OSS_SECURITY_TOKEN}"
+    public_base_url: "${ALIYUN_OSS_PUBLIC_BASE_URL}"
+    cdn_base_url: "${ALIYUN_OSS_CDN_BASE_URL}"

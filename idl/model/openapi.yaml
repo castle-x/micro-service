@@ -22,6 +22,9 @@ servers:
   - url: http://localhost:38080/api/v1/admin/models
     description: Via edge-api proxy (requires model:admin permission)
 
+security:
+  - bearerAuth: []
+
 tags:
   - name: providers
     description: AI 模型供应商管理
@@ -171,6 +174,13 @@ paths:
           $ref: "#/components/responses/BadRequest"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: edge-api admin proxy requires Authorization Bearer token with model:admin permission.
+
   parameters:
     ProviderID:
       name: id

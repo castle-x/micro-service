@@ -7,6 +7,7 @@
 //	  ./bin/iam-bootstrap
 //
 // 脚本是幂等的：数据已存在时直接跳过，重复执行无副作用。
+// nolint:noprint -- bootstrap 是人工执行命令，stdout 进度输出是预期行为。
 package main
 
 import (

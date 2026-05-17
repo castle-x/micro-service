@@ -1,0 +1,54 @@
+{
+  "services": [
+    {
+      "name": "iam",
+      "port": 38082,
+      "admin_port": 48082,
+      "binary": "iam",
+      "depends_on": [],
+      "log_path": "bin/log/iam.log"
+    },
+    {
+      "name": "idp",
+      "port": 38081,
+      "admin_port": 48081,
+      "binary": "idp",
+      "depends_on": [
+        "iam"
+      ],
+      "log_path": "bin/log/idp.log"
+    },
+    {
+      "name": "asset",
+      "port": 38084,
+      "admin_port": 48084,
+      "binary": "asset",
+      "depends_on": [
+        "iam"
+      ],
+      "log_path": "bin/log/asset.log"
+    },
+    {
+      "name": "edge-api",
+      "port": 38080,
+      "admin_port": 48080,
+      "binary": "edge-api",
+      "depends_on": [
+        "iam",
+        "idp",
+        "asset"
+      ],
+      "log_path": "bin/log/edge-api.log"
+    },
+    {
+      "name": "model",
+      "port": 38083,
+      "admin_port": 48083,
+      "binary": "model",
+      "depends_on": [
+        "edge-api"
+      ],
+      "log_path": "bin/log/model.log"
+    }
+  ]
+}

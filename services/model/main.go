@@ -13,6 +13,7 @@ import (
 	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
+	pkghealth "github.com/castlexu/micro-service/pkg/health"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	pkgotel "github.com/castlexu/micro-service/pkg/otel"
@@ -40,6 +41,8 @@ type ModelConfig struct {
 
 func main() {
 	_ = logger.Init(logger.Options{Service: "model"})
+	restoreStdLog := logger.IngestStdLog()
+	defer restoreStdLog()
 	defer logger.Sync()
 	mw.RegisterLoggerExtractor()
 
@@ -120,9 +123,25 @@ func main() {
 	if err != nil {
 		logger.L().Fatal("hertz registry init failed", zap.Error(err))
 	}
+	etcdClient, err := cloudwego.SharedEtcdClient(cfg.Registry.Endpoints)
+	if err != nil {
+		logger.L().Fatal("etcd health client init failed", zap.Error(err))
+	}
 	hertzOpts = append(hertzOpts, registryOpts...)
 	h := server.Default(hertzOpts...)
 	RegisterRoutes(h, providerHandler, chatHandler)
+
+	adminHealth := pkghealth.NewServer(pkghealth.Config{Service: "model", Addr: pkghealth.AdminAddr("model", 48083)})
+	adminHealth.Check("mongo", pkghealth.MongoCheck(mongoClient))
+	adminHealth.Check("etcd", pkghealth.EtcdCheck(etcdClient))
+	adminHealth.Start()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := adminHealth.Shutdown(ctx); err != nil {
+			logger.L().Warn("admin health shutdown failed", zap.Error(err))
+		}
+	}()
 
 	logger.L().Info("model service listening", zap.String("addr", addr))
 	h.Spin()

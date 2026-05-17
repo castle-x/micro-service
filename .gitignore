@@ -13,6 +13,7 @@ web/dist/
 # 敏感配置（绝不提交真实凭据）
 .env
 .env.local
+deployments/env/*.env
 *.local.yaml
 
 # 编辑器 / OS
@@ -25,7 +26,8 @@ web/dist/
 .claude
 .omc
 .codebuddy
-.axm/
+.workbuddy/
+
 
 # 测试截图 / 日志
 *.png

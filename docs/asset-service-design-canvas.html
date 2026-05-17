@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AssetService 设计深度总结</title>
+  <style>
+    :root {
+      --bg: #f7f8f5;
+      --ink: #202322;
+      --muted: #646b66;
+      --line: #d9ddd3;
+      --surface: #ffffff;
+      --teal: #0f766e;
+      --teal-soft: #dff5ef;
+      --amber: #b7791f;
+      --amber-soft: #fff0ca;
+      --rose: #be5a67;
+      --rose-soft: #ffe2e6;
+      --violet: #6750a4;
+      --violet-soft: #ebe4ff;
+      --green: #2f7d32;
+      --green-soft: #e2f5df;
+      --shadow: 0 18px 48px rgba(45, 50, 47, 0.10);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    header {
+      min-height: 78vh;
+      display: grid;
+      align-items: end;
+      padding: 56px 24px 36px;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 78% 28%, rgba(15, 118, 110, 0.14), transparent 34%),
+        linear-gradient(135deg, #f7f8f5 0%, #eef5ef 52%, #f8f3e5 100%);
+    }
+
+    .hero {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(40px, 7vw, 86px);
+      line-height: 0.98;
+      letter-spacing: 0;
+      max-width: 920px;
+    }
+
+    .hero p {
+      margin: 24px 0 0;
+      max-width: 800px;
+      color: var(--muted);
+      font-size: 19px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .meta span {
+      border: 1px solid rgba(32, 35, 34, 0.14);
+      background: rgba(255, 255, 255, 0.58);
+      padding: 7px 12px;
+      border-radius: 999px;
+      color: #37413d;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 44px 0 72px;
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: -76px 0 44px;
+      position: relative;
+      z-index: 2;
+    }
+
+    nav a {
+      display: block;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-weight: 720;
+      box-shadow: var(--shadow);
+    }
+
+    section {
+      padding: 34px 0 42px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 21px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p { margin: 0 0 14px; }
+
+    .lead {
+      max-width: 880px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .summary-tile {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .summary-tile strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--teal);
+      font-size: 15px;
+    }
+
+    .summary-tile p {
+      margin: 0;
+      color: #3d4541;
+    }
+
+    .canvas-wrap {
+      margin: 22px 0 10px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow-x: auto;
+      box-shadow: 0 12px 30px rgba(55, 61, 57, 0.08);
+    }
+
+    canvas {
+      display: block;
+      min-width: 1080px;
+      width: 100%;
+      height: auto;
+    }
+
+    .note {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    th {
+      background: #eef2eb;
+      font-size: 13px;
+      color: #4a544f;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    code {
+      background: #eef2eb;
+      border: 1px solid #dbe1d6;
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .columns {
+      columns: 2 360px;
+      column-gap: 28px;
+    }
+
+    .columns p {
+      break-inside: avoid;
+    }
+
+    .flow-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .flow-list article {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .flow-list h3 {
+      margin-top: 0;
+      font-size: 17px;
+    }
+
+    .flow-list ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .source-list {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .source-list div {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #3e4742;
+      font-size: 14px;
+    }
+
+    footer {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto 44px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 880px) {
+      header { min-height: 64vh; padding-top: 40px; }
+      nav { grid-template-columns: 1fr; margin-top: -34px; }
+      .grid, .flow-list, .source-list { grid-template-columns: 1fr; }
+      .hero p, .lead { font-size: 16px; }
+      main { width: min(100% - 24px, 1180px); padding-top: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <h1>AssetService 设计深度总结</h1>
+      <p>基于当前源码与 <code>.axm/progress/asset</code> 设计文档整理。重点覆盖请求链路、数据结构、组合关系、分层边界，以及 Canvas 绘制的 UML 类图。</p>
+      <div class="meta">
+        <span>Kitex RPC service: asset</span>
+        <span>HTTP 门面: edge-api /api/v1/assets</span>
+        <span>存储: MongoDB + Aliyun OSS</span>
+        <span>版本模型: AssetVersion 完整快照</span>
+        <span>更新日期: 2026-05-15</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <nav aria-label="章节导航">
+      <a href="#summary">一页结论</a>
+      <a href="#request-flow">请求链路</a>
+      <a href="#data-model">数据结构</a>
+      <a href="#layers">层级关系</a>
+      <a href="#uml">UML 类图</a>
+    </nav>
+
+    <section id="summary">
+      <h2>一页结论</h2>
+      <p class="lead">AssetService 是生成资产平台的资产主数据服务。它把“资产类型定义”“用户资产实例”“版本快照”“媒体对象”“上传会话”分成相互独立但可组合的模型，edge-api 只负责 HTTP 适配，真正业务规则收敛在 asset Kitex 服务内部。</p>
+      <div class="grid">
+        <div class="summary-tile">
+          <strong>服务边界</strong>
+          <p><code>edge-api</code> 不访问资产 Mongo；它从登录态取 <code>user_id</code>，组装 <code>base.BaseReq</code>，经 Kitex 调 <code>AssetService</code>。asset 服务独占资产库、版本、媒体对象与 OSS 会话逻辑。</p>
+        </div>
+        <div class="summary-tile">
+          <strong>租户模型</strong>
+          <p>第一版是个人资产库：<code>workspace_id = user_id</code>，<code>created_by</code> 也来自同一个 ObjectID。客户端不能传 workspace，跨用户隔离靠所有 repository 查询都带 <code>workspace_id</code>。</p>
+        </div>
+        <div class="summary-tile">
+          <strong>版本模型</strong>
+          <p><code>AssetType.PartSchemas</code> 定义结构，<code>Asset</code> 保存当前版本指针，<code>AssetVersion.Parts</code> 保存一次完整快照。版本不可变，修改内容必须创建新版本或复制旧版本再覆盖 part。</p>
+        </div>
+        <div class="summary-tile">
+          <strong>媒体模型</strong>
+          <p><code>StorageUploadSession</code> 管直传会话，<code>MediaObject</code> 管对象存储元数据。AS-04 的实现已接入 OSS presign/head，且 <code>coverMediaId</code> 与 version parts 的 <code>mediaIds</code> 会做 workspace 内存在性校验。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="request-flow">
+      <h2>请求链路流转</h2>
+      <p class="lead">整体链路是 <code>Client → Kong → edge-api/Hertz → Kitex RPC → asset/AssetImpl → biz → repository → Mongo/OSS</code>。下图把普通 CRUD、版本写入和媒体上传三条路径合在同一张请求流转图里。</p>
+      <div class="canvas-wrap">
+        <canvas id="flowCanvas" aria-label="AssetService 请求链路流转图"></canvas>
+      </div>
+      <p class="note">关键点：HTTP 层只做绑定、分页默认值、错误码到 HTTP 状态映射；RPC handler 负责 DTO 与 model 互转；biz 层负责 workspace 推导、引用校验、版本规则和存储流程编排。</p>
+
+      <div class="flow-list">
+        <article>
+          <h3>资产库 CRUD</h3>
+          <ol>
+            <li>客户端访问 <code>/api/v1/assets/*</code>，先过 Auth 中间件。</li>
+            <li><code>AssetHandler</code> 绑定 JSON/query/path，构造 <code>BaseReq.UserID</code>。</li>
+            <li><code>AssetImpl</code> 提取 userID，调用 <code>AssetTypeBiz</code>、<code>AssetCategoryBiz</code> 或 <code>AssetBiz</code>。</li>
+            <li>biz 校验 ObjectID、名称、引用关系，并调用 repository。</li>
+            <li>Mongo repository 查询时始终附带 <code>workspace_id</code>，返回 DTO 给 edge-api。</li>
+          </ol>
+        </article>
+        <article>
+          <h3>版本快照</h3>
+          <ol>
+            <li>创建版本或复制版本进入 <code>AssetVersionBiz</code>。</li>
+            <li>先加载同 workspace 的 <code>Asset</code> 与 <code>AssetType</code>。</li>
+            <li>按当前 <code>PartSchemas</code> 校验 part key、required、value kind 和内容格式。</li>
+            <li>校验 <code>mediaIds</code> 属于同 workspace 后生成下一个版本号。</li>
+            <li>插入 <code>asset_versions</code>，再更新 <code>assets.current_version</code>。</li>
+          </ol>
+        </article>
+        <article>
+          <h3>媒体直传</h3>
+          <ol>
+            <li>创建 upload session 时校验 content type、size、TTL。</li>
+            <li>服务端生成 object key，写入 <code>storage_upload_sessions</code>。</li>
+            <li>OSS adapter 返回短期 <code>PUT</code> presigned URL。</li>
+            <li>客户端直传 OSS 后调用 finalize。</li>
+            <li>asset 执行 <code>HeadObject</code>，创建 <code>MediaObject</code> 并把 session 标为 finalized。</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+
+    <section id="data-model">
+      <h2>数据结构与组合关系</h2>
+      <p class="lead">AssetService 的设计核心是把“类型定义”和“资产内容”解耦：类型只定义 parts 的形状，版本才保存某一刻的实际内容。媒体对象作为独立资源被 Asset 和 AssetVersion 引用，而不是内嵌在资产文档里。</p>
+      <div class="canvas-wrap">
+        <canvas id="domainCanvas" aria-label="AssetService 数据结构组合关系图"></canvas>
+      </div>
+
+      <h3>核心集合</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>集合</th>
+            <th>职责</th>
+            <th>关键字段</th>
+            <th>主要索引/约束</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>asset_types</code></td>
+            <td>用户自定义资产类型，定义 part schema。</td>
+            <td><code>workspace_id</code>, <code>code</code>, <code>part_schemas[]</code></td>
+            <td>unique <code>workspace_id + code</code>；按 <code>updated_at</code> 分页。</td>
+          </tr>
+          <tr>
+            <td><code>asset_categories</code></td>
+            <td>个人资产库分类树，和资产类型不是同一概念。</td>
+            <td><code>parent_id</code>, <code>sort_order</code>, <code>created_by</code></td>
+            <td><code>workspace_id + parent_id + sort_order</code>；删除前检查子分类和资产引用。</td>
+          </tr>
+          <tr>
+            <td><code>assets</code></td>
+            <td>具体资产实例，保存资产库状态与当前版本指针。</td>
+            <td><code>type_id</code>, <code>saved_to_library</code>, <code>category_id</code>, <code>current_version</code>, <code>cover_media_id</code>, <code>provenance</code></td>
+            <td>按 library/type/category 三类维度分页；删除是软删除。</td>
+          </tr>
+          <tr>
+            <td><code>asset_versions</code></td>
+            <td>资产内容不可变快照，保存完整 parts。</td>
+            <td><code>asset_id</code>, <code>version</code>, <code>parts</code>, <code>change_reason</code>, <code>provenance</code></td>
+            <td>unique <code>asset_id + version</code>；列表按 version desc。</td>
+          </tr>
+          <tr>
+            <td><code>media_objects</code></td>
+            <td>对象存储媒体元数据，供封面和 parts 引用。</td>
+            <td><code>provider</code>, <code>bucket</code>, <code>object_key</code>, <code>cdn_url</code>, <code>variants[]</code>, <code>source</code></td>
+            <td>unique <code>provider + bucket + object_key</code>；workspace 内分页。</td>
+          </tr>
+          <tr>
+            <td><code>storage_upload_sessions</code></td>
+            <td>前端直传 OSS 的临时会话与 finalize 幂等状态。</td>
+            <td><code>status</code>, <code>expires_at</code>, <code>content_type</code>, <code>size</code>, <code>sha256</code>, <code>media_id</code></td>
+            <td>unique <code>provider + bucket + object_key</code>；按状态与过期时间查询。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>组合语义</h3>
+      <div class="columns">
+        <p><code>AssetType</code> 和 <code>AssetPartSchema</code> 是一对多组合：删除类型前要确认没有资产引用它；schema 可以更新，但不会改写旧版本。</p>
+        <p><code>Asset</code> 持有 <code>TypeID</code>、可选 <code>CategoryID</code>、可选 <code>CoverMediaID</code>，并以 <code>CurrentVersion</code> 指向当前激活版本号。</p>
+        <p><code>AssetVersion</code> 的 <code>Parts</code> 是 <code>map[string]AssetPartValue</code>，key 必须来自当前 <code>AssetType.PartSchemas</code>。这是完整快照，不是增量 diff。</p>
+        <p><code>AssetPartValue</code> 支持 text、json、media、mixed。JSON 会校验合法 JSON 文本；media 和 mixed 会校验 ObjectID 与同 workspace 的 <code>MediaObject</code> 存在性。</p>
+        <p><code>StorageUploadSession</code> finalization 后写回 <code>media_id</code>，重复 finalize 可幂等返回已有 <code>MediaObject</code>。</p>
+        <p><code>Provenance</code> 是多个主模型共用的溯源值对象，可挂 workflow run、step run、generation job、prompt 和扩展字段。</p>
+      </div>
+    </section>
+
+    <section id="layers">
+      <h2>层级关系</h2>
+      <p class="lead">分层的价值在于隔离协议、业务规则和持久化细节。AssetService 的每一层职责相对清楚：edge-api 做协议适配，asset handler 做 RPC DTO 适配，biz 做规则，repository 做 Mongo 操作，storage adapter 做 OSS 客户端封装。</p>
+      <div class="canvas-wrap">
+        <canvas id="layerCanvas" aria-label="AssetService 层级关系图"></canvas>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>层</th>
+            <th>路径</th>
+            <th>职责</th>
+            <th>边界约束</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>REST 门面</td>
+            <td><code>services/edge-api/router.go</code>, <code>handler/asset.go</code></td>
+            <td>登录态、参数绑定、分页默认值、HTTP 状态映射、调用 Kitex client。</td>
+            <td>禁止直接访问 asset Mongo，禁止 import asset 内部 biz/dal。</td>
+          </tr>
+          <tr>
+            <td>RPC 契约</td>
+            <td><code>idl/asset/asset.thrift</code></td>
+            <td>定义 DTO、请求响应、枚举、AssetService 方法。</td>
+            <td>请求统一带 <code>base.BaseReq</code>，响应统一带 <code>base.BaseResp</code>。</td>
+          </tr>
+          <tr>
+            <td>RPC Handler</td>
+            <td><code>services/asset/handler.go</code></td>
+            <td>nil request 保护、userID 提取、DTO/model 互转、错误码包装。</td>
+            <td>不承载复杂规则；复杂校验下沉到 biz。</td>
+          </tr>
+          <tr>
+            <td>Biz</td>
+            <td><code>services/asset/biz/*.go</code></td>
+            <td>workspace 推导、引用校验、版本不可变规则、上传会话编排。</td>
+            <td>只依赖 repository/storage 接口，不直接写 collection。</td>
+          </tr>
+          <tr>
+            <td>DAL</td>
+            <td><code>services/asset/dal/model</code>, <code>dal/mongo</code></td>
+            <td>Mongo 文档模型、索引、软删除/硬删除/分页查询。</td>
+            <td>集合访问封装在 repository 中。</td>
+          </tr>
+          <tr>
+            <td>Storage</td>
+            <td><code>services/asset/storage</code></td>
+            <td>对象存储抽象、Aliyun OSS presign/head、OTel client span。</td>
+            <td>不放入 <code>pkg</code>，直到多个服务确实复用。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="uml">
+      <h2>UML 类图</h2>
+      <p class="lead">这张类图把实现类、业务服务、接口和核心模型放在同一张 Canvas 上。为了可读性，它不是逐方法穷举，而是保留影响设计理解的字段和方法。</p>
+      <div class="canvas-wrap">
+        <canvas id="umlCanvas" aria-label="AssetService UML 类图"></canvas>
+      </div>
+    </section>
+
+    <section id="tradeoffs">
+      <h2>设计取舍与注意点</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>主题</th>
+            <th>当前选择</th>
+            <th>收益</th>
+            <th>代价或后续点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>个人 workspace</td>
+            <td><code>workspace_id = Base.UserID</code></td>
+            <td>最小权限模型清晰，所有查询天然按用户隔离。</td>
+            <td>后续团队资产库需要把 workspace 抽象成组织或空间 ID，并兼容历史数据。</td>
+          </tr>
+          <tr>
+            <td>schema 可变</td>
+            <td><code>AssetType.PartSchemas</code> 始终可替换。</td>
+            <td>第一版简单，用户能快速调整资产结构。</td>
+            <td>旧版本不保存 schema snapshot，读取时只能原样返回 parts；强审计场景需补 schema history。</td>
+          </tr>
+          <tr>
+            <td>版本完整快照</td>
+            <td><code>AssetVersion.Parts</code> 保存完整内容。</td>
+            <td>读取简单、回滚/复制语义直观。</td>
+            <td>大对象或频繁修改时存储会膨胀；未来可另做 diff/压缩，不影响当前 API。</td>
+          </tr>
+          <tr>
+            <td>版本号生成</td>
+            <td>读取最大版本号 + 1，唯一索引兜底。</td>
+            <td>实现短、Mongo 约束明确。</td>
+            <td>并发创建时当前代码未做自动重试，冲突会返回业务错误；高并发写入可补 retry 或原子计数。</td>
+          </tr>
+          <tr>
+            <td>媒体直传</td>
+            <td>asset 只签发 URL 和 finalize，不代理文件流。</td>
+            <td>降低 edge/asset 带宽压力；对象 key 和元数据仍由服务端管控。</td>
+            <td>需要客户端正确完成 PUT；更强安全可后续接回调验签、内容安全、缩略图任务。</td>
+          </tr>
+          <tr>
+            <td>OSS 适配位置</td>
+            <td><code>services/asset/storage</code> 私有包。</td>
+            <td>避免过早把厂商 SDK 抽进 <code>pkg</code>。</td>
+            <td>当 model、notification 等服务也需要对象存储时，再抽通用能力更稳。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>源码依据</h3>
+      <div class="source-list">
+        <div><code>idl/asset/asset.thrift</code>：AssetService RPC、DTO、枚举与媒体上传契约。</div>
+        <div><code>services/asset/main.go</code>：配置、Mongo/Redis/OTel、repository、biz、storage client 和 Kitex server 装配。</div>
+        <div><code>services/asset/handler.go</code>：RPC 方法实现、DTO/model 映射、BaseResp 错误包装。</div>
+        <div><code>services/asset/biz/asset_crud.go</code>：资产类型、分类、资产实例 CRUD 规则。</div>
+        <div><code>services/asset/biz/asset_version.go</code>：版本快照、parts 校验、当前版本指针。</div>
+        <div><code>services/asset/biz/media.go</code>：上传会话、finalize、媒体查询和访问 URL。</div>
+        <div><code>services/asset/dal/model/*.go</code>：Mongo 文档模型与组合值对象。</div>
+        <div><code>services/asset/dal/mongo/*.go</code>：索引和 repository 查询写入。</div>
+        <div><code>services/asset/storage/*.go</code>：对象存储接口与 Aliyun OSS adapter。</div>
+        <div><code>services/edge-api/handler/asset.go</code>：REST 参数适配和 Kitex client 调用。</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    本报告是静态 HTML + Canvas 文档，可直接在浏览器打开；不依赖构建工具或外部字体。
+  </footer>
+
+  <script>
+    const palette = {
+      ink: "#202322",
+      muted: "#646b66",
+      line: "#ccd4c9",
+      teal: "#0f766e",
+      tealSoft: "#dff5ef",
+      amber: "#b7791f",
+      amberSoft: "#fff0ca",
+      rose: "#be5a67",
+      roseSoft: "#ffe2e6",
+      violet: "#6750a4",
+      violetSoft: "#ebe4ff",
+      green: "#2f7d32",
+      greenSoft: "#e2f5df",
+      blue: "#286b9d",
+      blueSoft: "#e4f2ff",
+      surface: "#ffffff",
+      bg: "#f7f8f5"
+    };
+
+    function setup(canvas, width, height) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.height = height + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = "14px Inter, system-ui, sans-serif";
+      ctx.textBaseline = "top";
+      return ctx;
+    }
+
+    function rounded(ctx, x, y, w, h, r) {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    }
+
+    function box(ctx, x, y, w, h, opts = {}) {
+      const fill = opts.fill || palette.surface;
+      const stroke = opts.stroke || palette.line;
+      rounded(ctx, x, y, w, h, opts.radius || 10);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.lineWidth = opts.lineWidth || 1.3;
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+      if (opts.title) {
+        ctx.fillStyle = opts.titleColor || palette.ink;
+        ctx.font = `700 ${opts.titleSize || 15}px Inter, system-ui, sans-serif`;
+        wrap(ctx, opts.title, x + 14, y + 12, w - 28, opts.titleLine || 19);
+      }
+      if (opts.body) {
+        ctx.fillStyle = opts.bodyColor || palette.muted;
+        ctx.font = `${opts.bodyWeight || 500} ${opts.bodySize || 12}px Inter, system-ui, sans-serif`;
+        wrap(ctx, opts.body, x + 14, y + (opts.title ? 40 : 14), w - 28, opts.bodyLine || 17);
+      }
+    }
+
+    function wrap(ctx, text, x, y, maxWidth, lineHeight) {
+      const explicit = String(text).split("\n");
+      let yy = y;
+      for (const part of explicit) {
+        const words = part.split(/\s+/);
+        let line = "";
+        for (const word of words) {
+          const test = line ? line + " " + word : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, yy);
+            yy += lineHeight;
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) {
+          ctx.fillText(line, x, yy);
+          yy += lineHeight;
+        }
+      }
+      return yy;
+    }
+
+    function arrow(ctx, x1, y1, x2, y2, opts = {}) {
+      ctx.save();
+      ctx.strokeStyle = opts.color || palette.ink;
+      ctx.fillStyle = opts.color || palette.ink;
+      ctx.lineWidth = opts.width || 1.8;
+      if (opts.dash) ctx.setLineDash(opts.dash);
+      ctx.beginPath();
+      if (opts.curve) {
+        const midX = (x1 + x2) / 2;
+        ctx.moveTo(x1, y1);
+        ctx.bezierCurveTo(midX, y1, midX, y2, x2, y2);
+      } else {
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const size = opts.head || 8;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - size * Math.cos(angle - Math.PI / 6), y2 - size * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(x2 - size * Math.cos(angle + Math.PI / 6), y2 - size * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      if (opts.label) {
+        ctx.font = "700 11px Inter, system-ui, sans-serif";
+        ctx.fillStyle = opts.labelColor || opts.color || palette.ink;
+        const lx = opts.labelX ?? ((x1 + x2) / 2);
+        const ly = opts.labelY ?? ((y1 + y2) / 2 - 18);
+        ctx.fillText(opts.label, lx, ly);
+      }
+      ctx.restore();
+    }
+
+    function lane(ctx, x, y, w, h, title, fill) {
+      rounded(ctx, x, y, w, h, 14);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.06)";
+      ctx.stroke();
+      ctx.fillStyle = palette.muted;
+      ctx.font = "800 12px Inter, system-ui, sans-serif";
+      ctx.fillText(title, x + 14, y + 10);
+    }
+
+    function classBox(ctx, x, y, w, h, name, fields, methods, opts = {}) {
+      rounded(ctx, x, y, w, h, 8);
+      ctx.fillStyle = opts.fill || palette.surface;
+      ctx.fill();
+      ctx.strokeStyle = opts.stroke || palette.line;
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+      ctx.fillStyle = opts.header || palette.teal;
+      rounded(ctx, x, y, w, 32, 8);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "800 14px Inter, system-ui, sans-serif";
+      ctx.fillText(name, x + 12, y + 8);
+      ctx.strokeStyle = opts.stroke || palette.line;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 32);
+      ctx.lineTo(x + w, y + 32);
+      ctx.moveTo(x, y + 32 + fields.length * 16 + 10);
+      ctx.lineTo(x + w, y + 32 + fields.length * 16 + 10);
+      ctx.stroke();
+      ctx.fillStyle = palette.ink;
+      ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+      let yy = y + 42;
+      for (const field of fields) {
+        ctx.fillText(field, x + 12, yy);
+        yy += 16;
+      }
+      yy += 10;
+      ctx.fillStyle = palette.muted;
+      for (const method of methods) {
+        ctx.fillText(method, x + 12, yy);
+        yy += 16;
+      }
+    }
+
+    function drawFlow() {
+      const canvas = document.getElementById("flowCanvas");
+      const ctx = setup(canvas, 1320, 760);
+      lane(ctx, 20, 28, 1280, 118, "HTTP 边界", "#eef7f4");
+      lane(ctx, 20, 164, 1280, 144, "Kitex RPC 边界", "#fff7dc");
+      lane(ctx, 20, 326, 1280, 224, "AssetService 内部", "#f1edff");
+      lane(ctx, 20, 568, 1280, 150, "数据与外部系统", "#f4f6f2");
+
+      box(ctx, 48, 66, 120, 54, {title: "Client", body: "Web / App", fill: palette.surface, stroke: palette.teal});
+      box(ctx, 206, 66, 120, 54, {title: "Kong", body: "Gateway", fill: palette.surface, stroke: palette.teal});
+      box(ctx, 364, 58, 170, 72, {title: "edge-api Router", body: "/api/v1/assets\nAuth middleware", fill: palette.surface, stroke: palette.teal});
+      box(ctx, 584, 58, 190, 72, {title: "AssetHandler", body: "bind JSON/query/path\nBaseReq.UserID", fill: palette.surface, stroke: palette.teal});
+      box(ctx, 824, 58, 170, 72, {title: "Kitex Client", body: "etcd resolver\nservice = asset", fill: palette.surface, stroke: palette.amber});
+      arrow(ctx, 168, 93, 206, 93, {color: palette.teal});
+      arrow(ctx, 326, 93, 364, 93, {color: palette.teal});
+      arrow(ctx, 534, 93, 584, 93, {color: palette.teal});
+      arrow(ctx, 774, 93, 824, 93, {color: palette.amber});
+
+      box(ctx, 1040, 58, 220, 72, {title: "HTTP 响应包装", body: "apiResp{code,message,data}\nbizCodeToHTTP", fill: "#fff", stroke: palette.rose});
+      arrow(ctx, 1040, 118, 774, 118, {color: palette.rose, dash: [5, 5], label: "BaseResp → HTTP", labelX: 884, labelY: 126});
+
+      box(ctx, 78, 202, 210, 74, {title: "AssetService RPC", body: "Create/List/Update/Delete\nVersion / Media methods", fill: "#fff", stroke: palette.amber});
+      box(ctx, 352, 202, 220, 74, {title: "AssetImpl", body: "nil request guard\nDTO ↔ model mapping", fill: "#fff", stroke: palette.amber});
+      box(ctx, 642, 202, 220, 74, {title: "BaseResp", body: "okBase / errBase\nerrno code passthrough", fill: "#fff", stroke: palette.amber});
+      arrow(ctx, 994, 93, 1090, 93, {color: palette.amber, label: "RPC call", labelX: 1012, labelY: 68});
+      arrow(ctx, 824, 118, 288, 239, {color: palette.amber, curve: true});
+      arrow(ctx, 288, 239, 352, 239, {color: palette.amber});
+      arrow(ctx, 572, 239, 642, 239, {color: palette.amber});
+      arrow(ctx, 642, 256, 535, 73, {color: palette.rose, curve: true, dash: [6, 4]});
+
+      box(ctx, 54, 366, 190, 116, {title: "AssetTypeBiz", body: "type create/update/list\nschema normalize\ncode unique conflict", fill: "#fff", stroke: palette.violet});
+      box(ctx, 270, 366, 190, 116, {title: "AssetCategoryBiz", body: "category tree\nparent self-check\ndelete empty only", fill: "#fff", stroke: palette.violet});
+      box(ctx, 486, 358, 190, 132, {title: "AssetBiz", body: "asset CRUD\nsavedToLibrary\ncategory/cover refs\nsoft delete", fill: "#fff", stroke: palette.violet});
+      box(ctx, 702, 348, 210, 152, {title: "AssetVersionBiz", body: "immutable snapshot\nschema part validation\nmedia ref validation\ncurrentVersion pointer", fill: "#fff", stroke: palette.violet});
+      box(ctx, 938, 348, 220, 152, {title: "MediaBiz", body: "upload session\npresign PUT / GET\nHeadObject finalize\nMediaObject idempotency", fill: "#fff", stroke: palette.violet});
+      box(ctx, 1178, 380, 90, 76, {title: "HealthBiz", body: "static ok", fill: "#fff", stroke: palette.violet});
+      arrow(ctx, 462, 276, 150, 366, {color: palette.violet, curve: true});
+      arrow(ctx, 462, 276, 364, 366, {color: palette.violet, curve: true});
+      arrow(ctx, 462, 276, 581, 358, {color: palette.violet, curve: true});
+      arrow(ctx, 462, 276, 807, 348, {color: palette.violet, curve: true});
+      arrow(ctx, 462, 276, 1048, 348, {color: palette.violet, curve: true});
+      arrow(ctx, 462, 276, 1224, 380, {color: palette.violet, curve: true});
+
+      box(ctx, 58, 602, 188, 78, {title: "asset_types", body: "workspace + code\npart_schemas[]", fill: palette.tealSoft, stroke: palette.teal});
+      box(ctx, 270, 602, 188, 78, {title: "asset_categories", body: "parent_id\nsort_order", fill: palette.tealSoft, stroke: palette.teal});
+      box(ctx, 482, 602, 188, 78, {title: "assets", body: "type/category/cover\ncurrent_version", fill: palette.tealSoft, stroke: palette.teal});
+      box(ctx, 694, 602, 188, 78, {title: "asset_versions", body: "asset_id + version\nparts snapshot", fill: palette.tealSoft, stroke: palette.teal});
+      box(ctx, 906, 602, 188, 78, {title: "media_objects", body: "bucket/object_key\ncdn_url/variants", fill: palette.tealSoft, stroke: palette.teal});
+      box(ctx, 1118, 592, 150, 98, {title: "Aliyun OSS", body: "PresignPut\nPresignGet\nHeadObject", fill: palette.amberSoft, stroke: palette.amber});
+      arrow(ctx, 150, 482, 150, 602, {color: palette.teal});
+      arrow(ctx, 364, 482, 364, 602, {color: palette.teal});
+      arrow(ctx, 581, 490, 581, 602, {color: palette.teal});
+      arrow(ctx, 807, 500, 788, 602, {color: palette.teal});
+      arrow(ctx, 807, 500, 581, 602, {color: palette.teal, dash: [5, 5], label: "SetCurrent", labelX: 680, labelY: 554});
+      arrow(ctx, 1048, 500, 1000, 602, {color: palette.teal});
+      arrow(ctx, 1048, 500, 1194, 592, {color: palette.amber, label: "storage API", labelX: 1090, labelY: 534});
+      arrow(ctx, 1048, 348, 702, 424, {color: palette.rose, dash: [4, 5], label: "media refs", labelX: 856, labelY: 382});
+    }
+
+    function drawDomain() {
+      const ctx = setup(document.getElementById("domainCanvas"), 1320, 760);
+      box(ctx, 46, 56, 230, 130, {title: "AssetType", body: "id, workspaceId\nname, code\npartSchemas[]\ncreatedBy", fill: palette.tealSoft, stroke: palette.teal});
+      box(ctx, 344, 46, 250, 150, {title: "AssetPartSchema", body: "key, name\nallowedValueKinds[]\nmultiple, required\nsortOrder", fill: "#fff", stroke: palette.teal});
+      box(ctx, 46, 286, 240, 160, {title: "Asset", body: "typeId\nname, description\nsavedToLibrary\ncategoryId?\ncurrentVersion\ncoverMediaId?\nsource, provenance", fill: palette.violetSoft, stroke: palette.violet});
+      box(ctx, 358, 286, 260, 160, {title: "AssetVersion", body: "assetId\nversion\nparts: map<string, PartValue>\nchangeReason\nprovenance\ncreatedBy", fill: palette.violetSoft, stroke: palette.violet});
+      box(ctx, 688, 292, 254, 148, {title: "AssetPartValue", body: "valueKind\ntext?\njson?\nmediaIds[]?", fill: "#fff", stroke: palette.violet});
+      box(ctx, 1014, 282, 238, 170, {title: "MediaObject", body: "workspaceId\nprovider,bucket,objectKey\ncdnUrl,urlVisibility\ncontentType,size,width,height\nsha256,variants[]\nsource, provenance", fill: palette.amberSoft, stroke: palette.amber});
+      box(ctx, 46, 554, 240, 112, {title: "AssetCategory", body: "workspaceId\nname, parentId?\nsortOrder\ncreatedBy", fill: palette.greenSoft, stroke: palette.green});
+      box(ctx, 462, 554, 280, 130, {title: "StorageUploadSession", body: "provider,bucket,objectKey\nstatus, expiresAt\ncontentType,size,sha256\nmediaId? finalizedAt?", fill: palette.roseSoft, stroke: palette.rose});
+      box(ctx, 888, 568, 220, 96, {title: "Provenance", body: "workflowRunId?\nstepRunId?\ngenerationJobId?\npromptId?, extra{}", fill: "#fff", stroke: palette.rose});
+
+      arrow(ctx, 276, 116, 344, 116, {color: palette.teal, label: "1 defines *", labelX: 282, labelY: 92});
+      arrow(ctx, 158, 186, 158, 286, {color: palette.violet, label: "typeId", labelX: 172, labelY: 228});
+      arrow(ctx, 286, 366, 358, 366, {color: palette.violet, label: "1 has *", labelX: 294, labelY: 342});
+      arrow(ctx, 618, 366, 688, 366, {color: palette.violet, label: "parts[key]", labelX: 624, labelY: 342});
+      arrow(ctx, 942, 366, 1014, 366, {color: palette.amber, label: "mediaIds[]", labelX: 950, labelY: 342});
+      arrow(ctx, 166, 446, 166, 554, {color: palette.green, label: "categoryId?", labelX: 180, labelY: 492});
+      arrow(ctx, 286, 384, 1014, 314, {color: palette.amber, curve: true, dash: [6, 4], label: "coverMediaId?", labelX: 650, labelY: 275});
+      arrow(ctx, 742, 620, 1014, 446, {color: palette.rose, curve: true, label: "finalize →", labelX: 796, labelY: 522});
+      arrow(ctx, 286, 420, 888, 596, {color: palette.rose, curve: true, dash: [4, 5], label: "provenance", labelX: 526, labelY: 514});
+      arrow(ctx, 618, 420, 888, 616, {color: palette.rose, curve: true, dash: [4, 5]});
+      arrow(ctx, 1014, 446, 1000, 568, {color: palette.rose, dash: [4, 5]});
+
+      ctx.fillStyle = palette.muted;
+      ctx.font = "700 13px Inter, system-ui, sans-serif";
+      ctx.fillText("关键语义：类型定义 shape，资产实例保存身份和当前版本，版本保存完整内容快照，媒体对象保存文件元数据。", 46, 710);
+    }
+
+    function drawLayer() {
+      const ctx = setup(document.getElementById("layerCanvas"), 1320, 720);
+      const layers = [
+        ["Client / Kong", "Web/App 请求进入网关，路由到 edge-api。", palette.tealSoft, palette.teal],
+        ["edge-api / Hertz", "router.go 注册 /api/v1/assets；Auth 中间件注入 user_id；handler/asset.go 绑定参数并调用 Kitex client。", palette.blueSoft, palette.blue],
+        ["Kitex + etcd", "edge-api 使用 discovery resolver 调 asset；asset 服务启动时注册 service_name=asset。", palette.amberSoft, palette.amber],
+        ["services/asset/handler.go", "AssetImpl 实现 RPC；BaseReq.UserID 必填；DTO 与 dal/model 互转；BaseResp 承载错误码。", palette.violetSoft, palette.violet],
+        ["services/asset/biz", "AssetTypeBiz / AssetCategoryBiz / AssetBiz / AssetVersionBiz / MediaBiz 承载规则和编排。", palette.greenSoft, palette.green],
+        ["services/asset/dal + storage", "Mongo repository 负责索引与集合访问；storage.Client 封装 OSS presign/head。", palette.roseSoft, palette.rose],
+        ["MongoDB / Redis / OSS / OTel", "Mongo 保存主数据；OSS 保存文件；Redis 初始化用于平台基础能力；OTel 记录服务与 OSS client span。", "#f2f2ef", "#777"]
+      ];
+      let y = 36;
+      layers.forEach((item, idx) => {
+        box(ctx, 80, y, 1160, 72, {
+          title: item[0],
+          body: item[1],
+          fill: item[2],
+          stroke: item[3],
+          titleColor: item[3],
+          bodyColor: palette.ink,
+          bodySize: 13
+        });
+        if (idx < layers.length - 1) {
+          arrow(ctx, 660, y + 72, 660, y + 92, {color: item[3], width: 2});
+        }
+        y += 92;
+      });
+      ctx.fillStyle = palette.muted;
+      ctx.font = "700 12px Inter, system-ui, sans-serif";
+      ctx.fillText("依赖方向始终向下：edge-api → kitex client → asset handler → biz → repository/storage → infra。", 80, 686);
+    }
+
+    function drawUML() {
+      const ctx = setup(document.getElementById("umlCanvas"), 1500, 1040);
+      classBox(ctx, 44, 42, 300, 172, "AssetImpl", [
+        "- healthBiz: *HealthBiz",
+        "- typeBiz: *AssetTypeBiz",
+        "- categoryBiz: *AssetCategoryBiz",
+        "- assetBiz: *AssetBiz",
+        "- versionBiz: *AssetVersionBiz",
+        "- mediaBiz: *MediaBiz"
+      ], [
+        "+ CreateAssetType(req)",
+        "+ CreateAsset(req)",
+        "+ CreateAssetVersion(req)",
+        "+ CreateStorageUploadSession(req)"
+      ], {header: palette.violet});
+
+      classBox(ctx, 410, 44, 254, 142, "AssetTypeBiz", [
+        "- typeRepo: AssetTypeRepository",
+        "- assetRepo: AssetRepository"
+      ], [
+        "+ Create(userID,input)",
+        "+ Update(...)",
+        "+ Delete(unused only)"
+      ], {header: palette.teal});
+      classBox(ctx, 704, 44, 270, 142, "AssetCategoryBiz", [
+        "- categoryRepo",
+        "- assetRepo"
+      ], [
+        "+ Create / Update / List",
+        "+ Delete(empty only)",
+        "- parseOptionalParent()"
+      ], {header: palette.green});
+      classBox(ctx, 1014, 44, 270, 158, "AssetBiz", [
+        "- assetRepo",
+        "- typeRepo",
+        "- categoryRepo",
+        "- mediaRepo?"
+      ], [
+        "+ Create / Update / List",
+        "+ SetLibraryState()",
+        "- validateOptionalCoverMedia()"
+      ], {header: palette.violet});
+
+      classBox(ctx, 410, 260, 306, 174, "AssetVersionBiz", [
+        "- versionRepo",
+        "- assetRepo",
+        "- typeRepo",
+        "- mediaRepo?"
+      ], [
+        "+ Create()",
+        "+ Copy()",
+        "+ SetCurrent()",
+        "- validateAssetParts()",
+        "- validateAssetPartMediaRefs()"
+      ], {header: palette.rose});
+      classBox(ctx, 780, 260, 306, 174, "MediaBiz", [
+        "- mediaRepo",
+        "- sessionRepo",
+        "- storage: storage.Client",
+        "- cfg: MediaConfig",
+        "- allowed: map[string]struct{}"
+      ], [
+        "+ CreateUploadSession()",
+        "+ FinalizeUploadSession()",
+        "+ GetAccessURL()",
+        "- objectKey()"
+      ], {header: palette.amber});
+      classBox(ctx, 1160, 280, 230, 120, "HealthBiz", [
+        "<<stateless>>"
+      ], [
+        "+ Check() service,status"
+      ], {header: "#68716c"});
+
+      classBox(ctx, 64, 508, 252, 138, "Repository Interfaces", [
+        "<<interfaces>>",
+        "AssetTypeRepository",
+        "AssetCategoryRepository",
+        "AssetRepository",
+        "AssetVersionRepository",
+        "MediaObjectRepository",
+        "StorageUploadSessionRepository"
+      ], [
+        "implemented by dal/mongo repos"
+      ], {header: "#3d6b6a"});
+      classBox(ctx, 374, 508, 252, 138, "storage.Client", [
+        "<<interface>>",
+        "+ Provider()",
+        "+ Bucket()"
+      ], [
+        "+ PresignPut()",
+        "+ PresignGet()",
+        "+ HeadObject()"
+      ], {header: palette.amber});
+      classBox(ctx, 684, 508, 252, 138, "AliyunOSSClient", [
+        "- client: *oss.Client",
+        "- bucket: string"
+      ], [
+        "+ PresignPut()",
+        "+ PresignGet()",
+        "+ HeadObject()"
+      ], {header: palette.amber});
+
+      classBox(ctx, 64, 724, 208, 168, "AssetType", [
+        "+ WorkspaceID",
+        "+ Name",
+        "+ Code",
+        "+ PartSchemas[]",
+        "+ CreatedBy"
+      ], [
+        "collection: asset_types"
+      ], {header: palette.teal});
+      classBox(ctx, 312, 724, 208, 168, "Asset", [
+        "+ WorkspaceID",
+        "+ TypeID",
+        "+ SavedToLibrary",
+        "+ CategoryID?",
+        "+ CurrentVersion",
+        "+ CoverMediaID?"
+      ], [
+        "collection: assets"
+      ], {header: palette.violet});
+      classBox(ctx, 560, 724, 224, 168, "AssetVersion", [
+        "+ AssetID",
+        "+ Version",
+        "+ Parts map",
+        "+ ChangeReason",
+        "+ Provenance"
+      ], [
+        "collection: asset_versions"
+      ], {header: palette.rose});
+      classBox(ctx, 824, 724, 228, 168, "MediaObject", [
+        "+ Provider",
+        "+ Bucket",
+        "+ ObjectKey",
+        "+ URLVisibility",
+        "+ Variants[]"
+      ], [
+        "collection: media_objects"
+      ], {header: palette.amber});
+      classBox(ctx, 1092, 724, 250, 168, "StorageUploadSession", [
+        "+ Status",
+        "+ ExpiresAt",
+        "+ ContentType",
+        "+ Size",
+        "+ MediaID?"
+      ], [
+        "collection: storage_upload_sessions"
+      ], {header: palette.rose});
+
+      arrow(ctx, 344, 116, 410, 116, {color: palette.violet, label: "delegates", labelX: 350, labelY: 90});
+      arrow(ctx, 344, 126, 704, 126, {color: palette.violet, curve: true});
+      arrow(ctx, 344, 136, 1014, 136, {color: palette.violet, curve: true});
+      arrow(ctx, 344, 150, 410, 300, {color: palette.violet, curve: true});
+      arrow(ctx, 344, 162, 780, 300, {color: palette.violet, curve: true});
+      arrow(ctx, 344, 174, 1160, 330, {color: palette.violet, curve: true});
+
+      arrow(ctx, 537, 186, 190, 508, {color: palette.teal, curve: true, dash: [5, 5], label: "uses repos", labelX: 338, labelY: 322});
+      arrow(ctx, 839, 186, 190, 508, {color: palette.green, curve: true, dash: [5, 5]});
+      arrow(ctx, 1149, 202, 190, 508, {color: palette.violet, curve: true, dash: [5, 5]});
+      arrow(ctx, 563, 434, 190, 508, {color: palette.rose, curve: true, dash: [5, 5]});
+      arrow(ctx, 933, 434, 190, 508, {color: palette.amber, curve: true, dash: [5, 5]});
+      arrow(ctx, 933, 434, 500, 508, {color: palette.amber, curve: true, label: "uses storage", labelX: 616, labelY: 460});
+      arrow(ctx, 626, 577, 684, 577, {color: palette.amber, label: "implemented by", labelX: 634, labelY: 552});
+
+      arrow(ctx, 168, 646, 168, 724, {color: palette.teal});
+      arrow(ctx, 190, 646, 416, 724, {color: palette.violet, curve: true});
+      arrow(ctx, 210, 646, 672, 724, {color: palette.rose, curve: true});
+      arrow(ctx, 230, 646, 936, 724, {color: palette.amber, curve: true});
+      arrow(ctx, 250, 646, 1217, 724, {color: palette.rose, curve: true});
+      arrow(ctx, 520, 808, 560, 808, {color: palette.rose, label: "1..*", labelX: 526, labelY: 784});
+      arrow(ctx, 784, 808, 824, 808, {color: palette.amber, label: "mediaIds", labelX: 786, labelY: 784});
+      arrow(ctx, 1092, 808, 1052, 808, {color: palette.rose, label: "finalizes", labelX: 1056, labelY: 822});
+      arrow(ctx, 312, 756, 272, 756, {color: palette.teal, label: "typeId", labelX: 276, labelY: 732});
+
+      ctx.fillStyle = palette.muted;
+      ctx.font = "700 12px Inter, system-ui, sans-serif";
+      ctx.fillText("注：dal/mongo 的具体 Repo 类型实现上方接口；模型均内嵌 pkg/db.BaseDoc，包含 _id、created_at、updated_at、deleted_at 等通用字段。", 64, 960);
+    }
+
+    drawFlow();
+    drawDomain();
+    drawLayer();
+    drawUML();
+  </script>
+</body>
+</html>
