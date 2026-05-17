@@ -68,12 +68,14 @@ Client/Kong
 | `pkg/redis` | go-redis client 与 lock/key helper | 已有 Redis command span/metrics 边界 |
 | `pkg/mq` | NSQ producer/consumer 抽象仍是占位 | 已有 publish/consume span 与 message context helper，真实 NSQ 后续跟业务接入 |
 | `services/model` | Hertz 服务与 provider adapter | 已接入 LLM provider span、token/latency/error metrics |
+| Kong Gateway | `deployments/kong/declarative.yml` 全局 `opentelemetry` plugin | 本地 trace 以 `service_name=kong-gateway` 写入 OpenObserve |
 
 ## 人类观测入口
 
 当前本地观测栈：
 
 ```text
+Kong -> OTLP HTTP -> OpenTelemetry Collector
 services/* -> OTLP -> OpenTelemetry Collector
 Collector -> OpenObserve
 OpenObserve UI -> traces / metrics / logs

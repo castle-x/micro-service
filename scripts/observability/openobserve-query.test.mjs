@@ -4,8 +4,10 @@ import test from "node:test";
 import {
   buildConfig,
   buildLatestTracesUrl,
+  buildSearchUrl,
   buildSearchBody,
   isMissingStreamError,
+  isTraceOverviewUnavailableError,
   parseSinceToMillis,
   summarizeTrace,
 } from "./openobserve-query.mjs";
@@ -36,6 +38,18 @@ test("buildLatestTracesUrl builds the OpenObserve traces latest endpoint", () =>
   assert.equal(
     url.toString(),
     "http://localhost:5080/api/micro/otel/traces/latest?start_time=1000&end_time=2000&from=0&size=5&filter=trace_id%3D%27abc123%27",
+  );
+});
+
+test("buildSearchUrl can target OpenObserve trace streams", () => {
+  const cfg = buildConfig({
+    OPENOBSERVE_URL: "http://localhost:5080/",
+    OPENOBSERVE_ORG: "micro",
+  });
+
+  assert.equal(
+    buildSearchUrl(cfg, "traces").toString(),
+    "http://localhost:5080/api/micro/_search?type=traces",
   );
 });
 
@@ -75,6 +89,16 @@ test("isMissingStreamError detects OpenObserve empty-stream search responses", (
     true,
   );
   assert.equal(isMissingStreamError(new Error("OpenObserve API 500")), false);
+});
+
+test("isTraceOverviewUnavailableError treats latest-trace schema misses as non-fatal", () => {
+  assert.equal(
+    isTraceOverviewUnavailableError(
+      new Error('OpenObserve API 400: {"code":20004,"message":"Search field not found: Schema error"}'),
+    ),
+    true,
+  );
+  assert.equal(isTraceOverviewUnavailableError(new Error("OpenObserve API 500")), false);
 });
 
 test("summarizeTrace falls back to latest trace overview when span search is empty", () => {

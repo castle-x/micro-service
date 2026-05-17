@@ -16,7 +16,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:38080',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         // SSE 流式输出：http-proxy 不会主动 flush 响应头，导致浏览器等全量数据才收到内容。
         // 修法：proxyRes 事件里提前 flushHeaders()，让 http-proxy 继续正常 pipe body。

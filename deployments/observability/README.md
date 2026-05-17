@@ -5,6 +5,11 @@ This directory contains the local OpenTelemetry observability stack for developm
 ## Stack
 
 ```text
+Kong
+  -> OTLP HTTP otel-collector:4318/v1/traces
+  -> OpenTelemetry Collector
+  -> OpenObserve
+
 services/*
   -> OTLP gRPC localhost:4317 or OTLP HTTP localhost:4318
   -> OpenTelemetry Collector
@@ -20,6 +25,8 @@ make dev-start
 ```
 
 `dev-start` starts local infrastructure, OpenObserve, the OpenTelemetry Collector, backend services, and the web dev server. It enables OTel for backend services by default.
+Kong tracing is enabled from its declarative DB-less config and appears as
+`service_name=kong-gateway` in OpenObserve traces.
 
 To start only the observability stack:
 

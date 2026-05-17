@@ -62,13 +62,13 @@ edge-api --HertzServiceResolver + HTTP proxy--> model
 | Stage 3：Kitex 客户端使用 etcd resolver | 已完成 | `edge-api` 发现 `idp/iam`，`idp` 发现 `iam` |
 | Stage 4：Hertz 服务注册到 etcd | 已完成 | `edge-api`、`model` 通过 `pkg/cloudwego.HertzServerOptions` 注册 |
 | Stage 5：model HTTP 服务发现 | 已完成基础版 | `edge-api` 使用 `NewHertzServiceResolver` 解析 `model` 后继续走原 HTTP/SSE proxy |
-| Stage 6：Kong 入口 | 基础占位 | Kong 已在 compose 中，DB-less 配置只做静态 `edge-api` 路由占位 |
+| Stage 6：Kong 入口 | 已完成基础版 | Kong DB-less 配置已接入 edge-api 路由、JWT 通用认证、Konga 本地观察面板和 OpenTelemetry trace；Web dev `/api` 默认走 Kong proxy |
 
 ## 三、边界与非目标
 
 - 不继续实现自研 `pkg/registry/etcd`。当前 etcd 集成只通过 CloudWeGo 官方扩展的薄封装完成。
-- 不在本分支把 Kong 改成动态服务发现控制面。`deployments/kong/declarative.yml` 仍是静态 DB-less 入口占位。
-- 不把 JWT、RBAC、限流等业务或边缘策略迁到 Kong；鉴权与权限仍由 `edge-api/idp/iam` 负责。
+- 不在本分支把 Kong 改成动态服务发现控制面。`deployments/kong/declarative.yml` 仍是静态 DB-less 入口事实来源。
+- 不把 RBAC/ABAC、封禁、token blacklist、租户权限等业务鉴权迁到 Kong；Kong 只负责前置路由与 JWT 通用认证，业务鉴权仍由 `edge-api/idp/iam` 负责。
 - 不把 billing / credits / notification 的业务调用链路纳入本分支。
 - 不继续扩展通用基础设施组件；地基够用，后续跟随具体业务需求补齐。
 
@@ -107,7 +107,7 @@ docker exec platform-etcd etcdctl get --prefix micro-service
 本分支暂不要求：
 
 - Kong 动态 upstream。
-- Kong 入口下完整 Playwright E2E。
+- 生产级 Kong 动态 upstream / 控制面。
 - etcd watch/lease 状态图。
 - 服务拓扑 UI。
 
@@ -115,6 +115,6 @@ docker exec platform-etcd etcdctl get --prefix micro-service
 
 只有在后续业务或运维确实需要时再启动：
 
-1. **Kong 入口增强**：补 CORS、SSE 验证、JWT/限流策略。
+1. **Kong 入口增强**：前置路由、JWT 通用认证、Konga 观察面板、Web 经 Kong 访问后台和 Kong OTel trace 已落地；限流策略仍待后续按业务需求拆分。
 2. **服务状态拓扑**：从 etcd 注册表 + health endpoint + OTel trace 汇总服务节点和调用关系。
 3. **容器化服务运行**：把当前裸进程 dev-start 演进为全容器开发链路。

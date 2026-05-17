@@ -361,3 +361,70 @@ status_item_json() {
     --arg log_path "${log_path}" \
     '{service:$service,pid:$pid,port:$port,alive:$alive,ready:$ready,started_at:$started_at,log_path:$log_path}'
 }
+
+web_port() {
+  printf '%s\n' "${DEV_WEB_PORT:-35173}"
+}
+
+web_log_path() {
+  printf 'bin/log/web.log\n'
+}
+
+web_cmd_label() {
+  printf 'cd web && ./node_modules/.bin/vite --host 0.0.0.0 --port %s\n' "$(web_port)"
+}
+
+web_ready_json() {
+  local port
+  local code
+
+  port="$(web_port)"
+  if ! command -v curl >/dev/null 2>&1; then
+    printf 'null\n'
+    return
+  fi
+
+  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://127.0.0.1:${port}/" 2>/dev/null || true)"
+  case "${code}" in
+    200)
+      printf 'true\n'
+      ;;
+    *)
+      printf 'false\n'
+      ;;
+  esac
+}
+
+web_status_item_json() {
+  local pid
+  local pid_json="null"
+  local alive_json="false"
+  local ready_value
+  local started_at
+  local log_path
+
+  pid="$(read_pid_file web)"
+  if [ -n "${pid}" ]; then
+    pid_json="${pid}"
+    if process_alive "${pid}"; then
+      alive_json="true"
+    fi
+  fi
+
+  ready_value="$(web_ready_json)"
+  started_at="$(read_status_field web started_at)"
+  log_path="$(read_status_field web log_path)"
+  if [ -z "${log_path}" ]; then
+    log_path="$(web_log_path)"
+  fi
+
+  jq -cn \
+    --arg service "web" \
+    --argjson pid "${pid_json}" \
+    --argjson port "$(web_port)" \
+    --argjson alive "${alive_json}" \
+    --argjson ready "${ready_value}" \
+    --arg started_at "${started_at}" \
+    --arg log_path "${log_path}" \
+    '{service:$service,pid:$pid,port:$port,alive:$alive,ready:$ready,started_at:$started_at,log_path:$log_path}'
+}

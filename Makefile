@@ -1,4 +1,4 @@
-.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart
+.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps konga-bootstrap obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart web-start web-stop web-restart
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification asset
@@ -7,7 +7,7 @@ BIN_DIR := bin
 OBS_COMPOSE_FILE := deployments/docker-compose.observability.yml
 OBS_QUERY := node scripts/observability/openobserve-query.mjs
 DEV_OTEL_ENV := OTEL_ENABLED=true OTEL_ENDPOINT=localhost:4317 OTEL_PROTOCOL=grpc OTEL_ENVIRONMENT=local OTEL_INSECURE=true OTEL_STRICT=false
-DEV_LOG_SERVICES ?= edge-api idp iam asset model
+DEV_LOG_SERVICES ?= edge-api idp iam asset model web
 DEV_LOG_FILES := $(addprefix bin/log/,$(addsuffix .log,$(DEV_LOG_SERVICES)))
 
 # 自动检测 docker compose 命令（新版插件 vs 旧版独立命令）
@@ -17,10 +17,10 @@ help:
 	@echo "Platform Monorepo - Available targets:"
 	@echo ""
 	@echo "  [DEV] ----------------------------------------------------------------"
-	@echo "  make dev-start     [DEV] 一键启动：infra + observability + 编译 + 后端服务"
-	@echo "  make dev-restart   [DEV] 重编译并按正确顺序重启所有后端服务（默认启用 OTel）"
-	@echo "  make dev-stop      [DEV] 优雅停止后端服务进程（不停 Docker infra/obs）"
-	@echo "  make dev-status    [DEV] 输出后端服务 pid / port / ready 状态 JSON"
+	@echo "  make dev-start     [DEV] 一键启动：infra + observability + 编译 + 后端服务 + Web"
+	@echo "  make dev-restart   [DEV] 重编译并按正确顺序重启后端服务 + Web（默认启用 OTel）"
+	@echo "  make dev-stop      [DEV] 优雅停止后端服务与 Web 进程（不停 Docker infra/obs）"
+	@echo "  make dev-status    [DEV] 输出后端服务与 Web pid / port / ready 状态 JSON"
 	@echo "  make dev-check-env [DEV] 校验本地 env 文件缺失、占位符和重复 key"
 	@echo "  make dev-logs      [DEV] tail 本地后端服务日志"
 	@echo "  make logs-query    [DEV] 查询本地 JSON 日志：ARGS=\"--service=iam --since=15m\""
@@ -30,9 +30,13 @@ help:
 	@echo "  make asset-start   [ASSET] 单独编译并启动 asset service :38084"
 	@echo "  make asset-stop    [ASSET] 停止 asset service"
 	@echo "  make asset-restart [ASSET] 重编译并重启 asset service"
+	@echo "  make web-start     [WEB] 启动 Vite Web dev server :35173（/api 走 Kong :8000）"
+	@echo "  make web-stop      [WEB] 停止 Web dev server"
+	@echo "  make web-restart   [WEB] 重启 Web dev server"
 	@echo "  make infra-up      Start local dev dependencies (MongoDB + Redis + etcd + NSQ + Kong) via Docker"
 	@echo "  make infra-down    Stop local dev dependencies"
 	@echo "  make infra-ps      Show status of local dev containers"
+	@echo "  make konga-bootstrap Initialize/activate Konga's local Kong Admin connection"
 	@echo "  make obs-up        Start OpenObserve + OpenTelemetry Collector"
 	@echo "  make obs-down      Stop local observability containers"
 	@echo "  make obs-ps        Show status of local observability containers"
@@ -68,12 +72,16 @@ infra-up:
 		echo "  https://www.docker.com/products/docker-desktop/"; \
 		exit 1; \
 	fi
+	@bash scripts/dev/render-kong-config.sh
 	$(DOCKER_COMPOSE) -f deployments/docker-compose.yml up -d
 	@echo ">>> Waiting for services to be healthy..."
 	@sleep 3
+	@bash scripts/dev/bootstrap-konga.sh
 	@echo ">>> MongoDB : localhost:27017"
 	@echo ">>> Redis   : localhost:6379"
 	@echo ">>> etcd    : localhost:2379"
+	@echo ">>> Kong    : http://localhost:8000 (proxy), http://localhost:8001 (admin)"
+	@echo ">>> Konga   : http://localhost:1337 (local observer)"
 	@echo ">>> Run 'make infra-ps' to check status."
 
 # Stop local dev infra
@@ -86,6 +94,9 @@ infra-down:
 infra-ps:
 	@if [ -z "$(DOCKER_COMPOSE)" ]; then echo "docker compose not found"; exit 1; fi
 	$(DOCKER_COMPOSE) -f deployments/docker-compose.yml ps
+
+konga-bootstrap:
+	@bash scripts/dev/bootstrap-konga.sh
 
 obs-up:
 	@if [ -z "$(DOCKER_COMPOSE)" ]; then \
@@ -123,7 +134,7 @@ dev: dev-start
 
 # ----------------------------------------------------------------
 # [DEV] 一键启动本地后端服务（infra + observability + 编译 + readyz 等待）
-# 前置：复制 deployments/env/*.env.example 为 *.env 并填写真实凭据
+# 前置：复制 deployments/env/*.env.example 为对应 *.env 并填写真实凭据
 # 日志：bin/log/iam.log / bin/log/idp.log / bin/log/asset.log / bin/log/edge-api.log / bin/log/model.log
 # ----------------------------------------------------------------
 dev-check-env:
@@ -131,8 +142,12 @@ dev-check-env:
 
 dev-start: dev-check-env infra-up obs-up build
 	@bash scripts/dev/start.sh
+	@bash scripts/dev/web.sh start
 	@echo ""
 	@echo "  Services started:"
+	@echo "     Web     → http://localhost:35173"
+	@echo "     Gateway → http://localhost:8000"
+	@echo "     Konga   → http://localhost:1337"
 	@echo "     Backend → http://localhost:38080"
 	@echo "     Observe → http://localhost:5080/web/"
 	@echo ""
@@ -142,6 +157,7 @@ dev-start: dev-check-env infra-up obs-up build
 
 # [DEV] 停止所有服务进程（不停 Docker infra）
 dev-stop:
+	@bash scripts/dev/web.sh stop
 	@bash scripts/dev/stop.sh
 	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
 
@@ -151,6 +167,7 @@ dev-status:
 # [DEV] 重启所有后端服务（停止 → 重新编译 → 启动），顺序来自 scripts/dev/services.json
 dev-restart: dev-check-env infra-up obs-up build
 	@bash scripts/dev/restart.sh
+	@bash scripts/dev/web.sh restart
 	@echo ">>> [DEV] Services restarted. Status: make dev-status"
 
 dev-logs:
@@ -161,9 +178,21 @@ dev-logs:
 logs-query:
 	@bash scripts/dev/logs-query.sh $(ARGS)
 
+web-start:
+	@bash scripts/dev/web.sh start
+	@echo ">>> [WEB] Web started at http://localhost:35173"
+
+web-stop:
+	@bash scripts/dev/web.sh stop
+	@echo ">>> [WEB] Web stopped."
+
+web-restart:
+	@bash scripts/dev/web.sh restart
+	@echo ">>> [WEB] Web restarted at http://localhost:35173"
+
 # ----------------------------------------------------------------
 # [MODEL] 单独启动 / 停止 / 重启 model service（:38083）
-# 前置：.env 存在（包含 MODEL_ENCRYPT_KEY 等），infra 已启动
+# 前置：deployments/env/*.env 已填写（包含 MODEL_ENCRYPT_KEY 等），infra 已启动
 # 日志：bin/log/model.log
 # ----------------------------------------------------------------
 model-start: dev-check-env infra-up obs-up build
@@ -180,7 +209,7 @@ model-restart: dev-check-env infra-up obs-up build
 
 # ----------------------------------------------------------------
 # [ASSET] 单独启动 / 停止 / 重启 asset service（:38084）
-# 前置：.env 存在（包含 ASSET/OSS 配置），infra 已启动
+# 前置：deployments/env/*.env 已填写（包含 ASSET/OSS 配置），infra 已启动
 # 日志：bin/log/asset.log
 # ----------------------------------------------------------------
 asset-start: dev-check-env infra-up obs-up build
