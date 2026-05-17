@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-12
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: kong-etcd
@@ -11,7 +11,7 @@ related:
 
 # Kong + etcd 接入路线图
 
-> **状态**：基础闭环已落地 / 后续扩展暂缓
+> **状态**：已完成并闭合 / 后续扩展按需另拆
 > **整理时间**：2026-05-12
 > **定位**：记录本分支实际完成的 etcd 服务注册发现与 Kong 基础入口事实。本文以代码现状为准，不再描述“待实施”的旧轻量/full 双轨方案。
 
@@ -63,6 +63,13 @@ edge-api --HertzServiceResolver + HTTP proxy--> model
 | Stage 4：Hertz 服务注册到 etcd | 已完成 | `edge-api`、`model` 通过 `pkg/cloudwego.HertzServerOptions` 注册 |
 | Stage 5：model HTTP 服务发现 | 已完成基础版 | `edge-api` 使用 `NewHertzServiceResolver` 解析 `model` 后继续走原 HTTP/SSE proxy |
 | Stage 6：Kong 入口 | 已完成基础版 | Kong DB-less 配置已接入 edge-api 路由、JWT 通用认证、Konga 本地观察面板和 OpenTelemetry trace；Web dev `/api` 默认走 Kong proxy |
+
+## 闭合记录
+
+- 2026-05-17：用户确认 `kong-etcd` 已开发完成，本文作为已完成历史上下文保留 `active`。
+- 长期事实已同步到 `../../project/architecture.md`、`../../knowledge/services/overview.md`、`../../knowledge/observability/overview.md`。
+- 本 initiative 没有 `bugs/` 目录；无未关闭 BUG 文档。
+- 遗留项均移动到“后续可选项”，不再阻塞当前地基闭合。
 
 ## 三、边界与非目标
 

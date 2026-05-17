@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: dev-ops
@@ -14,7 +14,7 @@ related:
 
 > 反映**当前最新状态**。每个阶段验收完成后更新此文件。
 >
-> 最后更新：2026-05-14
+> 最后更新：2026-05-17
 
 ---
 
@@ -45,10 +45,10 @@ related:
 
 | Phase | 主题 | 状态 | 产物 |
 |-------|------|------|------|
-| DEV-01 | 进程生命周期：PID 文件 + 优雅停 + 状态查询 | ✅ 已实现，AI 验收通过，待人类验收 | [`specs/process-lifecycle.md`](specs/process-lifecycle.md) |
-| DEV-02 | 标准健康检查接口（/healthz /readyz /version） | ✅ 已实现，AI 验收通过，待人类验收 | [`specs/health-endpoints.md`](specs/health-endpoints.md) |
-| DEV-03 | 日志格式统一 + AI 可调用查询入口 | ✅ 已实现，AI 验收通过，待人类验收 | [`specs/log-unification.md`](specs/log-unification.md) |
-| DEV-04 | .env 拆分 + 启动前校验脚本 | ✅ 已实现，AI 验收通过，待人类验收 | [`specs/env-split.md`](specs/env-split.md) |
+| DEV-01 | 进程生命周期：PID 文件 + 优雅停 + 状态查询 | ✅ 已完成并闭合 | [`specs/process-lifecycle.md`](specs/process-lifecycle.md) |
+| DEV-02 | 标准健康检查接口（/healthz /readyz /version） | ✅ 已完成并闭合 | [`specs/health-endpoints.md`](specs/health-endpoints.md) |
+| DEV-03 | 日志格式统一 + AI 可调用查询入口 | ✅ 已完成并闭合 | [`specs/log-unification.md`](specs/log-unification.md) |
+| DEV-04 | .env 拆分 + 启动前校验脚本 | ✅ 已完成并闭合 | [`specs/env-split.md`](specs/env-split.md) |
 
 ## 阶段依赖
 
@@ -71,10 +71,17 @@ related:
 - ✅ tester agent 已完成统一验收复核：DEV-01 初检发现 2 个 readiness 缺口，修复后复检通过；DEV-02/03/04 focused verification 通过（2026-05-14）
 - ✅ dev-ops BUG 修复波次完成：5 条 `open` BUG 均进入 `fixed`，覆盖 `start.sh` 失败传播、readyz 超时诊断、edge-api/model etcd readiness、`MODEL_ENCRYPT_KEY` env 模板与 gitignore env 白名单（2026-05-14）
 - ✅ 主 agent 与验收 agent 交叉复核通过：脚本语法、自检、start 失败路径、env fixture、gitignore 行为、`pkg/cloudwego` + `pkg/health` 测试、edge-api/model 测试、`make build`、`make lint`、`git diff --check` 均通过（2026-05-14）
-- ⏳ 人类验收待执行：冷启动 `make dev-start`、多次重启、真实依赖异常、日志排障体验与新成员 env onboard
+- ✅ 2026-05-17 用户确认 dev-ops 已开发完成；DEV-01 ~ DEV-04 闭合为历史实施记录
+- ✅ dev-ops BUG 已从 `fixed` 闭合为 `closed`，当前无未关闭 BUG
+
+## 闭合记录
+
+- 长期事实已同步到 `../../knowledge/pkg-infra/overview.md`、`../../knowledge/services/overview.md`、`../../project/observability.md`：`pkg/health`、dev-start/status/check-env、日志查询、env 拆分均已成为当前系统事实。
+- 本 initiative 的 5 条 BUG 已关闭；单条 BUG 文档为事实来源。
+- 真实依赖异常演练、新成员 onboard 体验和 OpenObserve 日志入库等可作为后续回归或质量项，不再阻塞 dev-ops 第一版闭合。
 
 ## 尚未确认的问题
 
-- 无阻塞项。Kitex/Hertz admin 端口已按业务端口 + 10000 实现，并支持 `<SVC>_ADMIN_ADDR` / `SERVICE_ADMIN_ADDR` 覆盖。
-- 已知限制：edge-api/model 的 etcd readiness 通过 `pkg/cloudwego.SharedEtcdClient` 集中缓存 health client；upstream Hertz/Kitex etcd registry/resolver 不暴露内部 client，因此没有直接复用 registry 私有 client。完整 `docker stop/start platform-etcd` 行为仍待本地 dev 栈验收。
-- 日志查询当前只做本地文件版；OpenObserve 仍走现有 `make obs-*`。
+- 无阻塞项。
+- 已知限制：edge-api/model 的 etcd readiness 通过 `pkg/cloudwego.SharedEtcdClient` 集中缓存 health client；upstream Hertz/Kitex etcd registry/resolver 不暴露内部 client，因此没有直接复用 registry 私有 client。
+- 日志查询当前只做本地文件版；OpenObserve 仍走现有 `make obs-*`。完整日志入库如有需要另拆质量或 OTel 小阶段。

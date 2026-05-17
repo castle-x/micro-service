@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: asset
@@ -19,9 +19,14 @@ related:
 
 ## 实施状态
 
-截至 2026-05-14，AS-04 已确认第一版范围：优先支持用户/前端上传图片到对象存储，并把上传完成后的对象登记为 `MediaObject`。模型服务当前尚未接入生图 API，因此“模型生成结果入库”只保留结构扩展点，不作为本阶段实现目标。
+截至 2026-05-17，AS-04 已完成并闭合第一版范围：支持用户/前端上传图片到对象存储，并把上传完成后的对象登记为 `MediaObject`；支持媒体对象查询、访问 URL 和 media 引用校验。模型生成结果入库不作为本阶段目标，后续由 `generator` 服务在调用 asset 接口时闭合。
 
-AS-04 仍是待实现 spec。本文用于后续 implementation plan 和开发验收。
+闭合证据：
+
+- 源码事实：`services/asset/biz/media.go`、`services/asset/biz/media_test.go`、`services/asset/storage/{client,aliyun_oss}.go`、`services/asset/dal/mongo/{media_object,storage_upload_session}.go`、`services/asset/handler_media_test.go` 已存在。
+- edge-api 已暴露资产媒体路由，长期事实见 `../../../knowledge/services/overview.md`。
+- 人类确认：2026-05-17 用户确认 asset 已开发完成。
+- 真实 OSS smoke test 依赖用户提供 bucket 与密钥，作为环境验收 / 回归项 deferred，不阻塞 AS-04 第一版闭合。
 
 ## 背景
 
@@ -69,7 +74,7 @@ AS-04 要把这条链路闭合：
 
 - 不实现服务端代理上传文件内容。
 - 不实现 multipart 分片上传、断点续传或大文件上传。
-- 不实现模型生图结果下载/转存/入库。
+- 不实现模型生图结果下载/转存/入库；该能力后续跟随 `generator` 服务拆分。
 - 不实现 OSS 回调验签、异步扫描、病毒检测或内容安全审核。
 - 不实现缩略图/预览图自动生成。
 - 不实现 CDN 刷新、预热、签名鉴权或域名切换策略。
@@ -730,7 +735,7 @@ cd services/asset && go test ./... -run TestAliyunOSSPresignUploadSmoke -count=1
 
 ### AI 自动验收
 
-实现 AS-04 时必须通过：
+AS-04 已完成。实现时必须通过：
 
 ```bash
 make gen

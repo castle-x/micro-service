@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-12
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: opentelemetry
@@ -13,7 +13,7 @@ related:
 
 # OpenTelemetry 接入路线图
 
-> **状态**：基础闭环已完成（OTel-01 至 OTel-06 已落地；日志入库、metrics 友好展示和拓扑状态图后续按需补）
+> **状态**：已完成并闭合（OTel-01 至 OTel-06 已落地；日志入库、metrics 友好展示和拓扑状态图后续按需补）
 > **整理时间**：2026-05-12
 > **定位**：记录 OpenTelemetry 接入的阶段路线、依赖关系、验收口径和当前进度。本文同时记录已落地能力与后续按需补强项。
 
@@ -55,7 +55,7 @@ OTel-06 已基于 OpenObserve 补齐本地统一观测平台、OpenTelemetry Col
 | OTel-03 | log correlation | 已完成 | [`specs/log-correlation.md`](specs/log-correlation.md) |
 | OTel-04 | Mongo / Redis / MQ instrumentation | 已完成 | [`specs/data-mq-instrumentation.md`](specs/data-mq-instrumentation.md) |
 | OTel-05 | model / LLM 可观测性 | 已完成 | [`specs/model-llm-observability.md`](specs/model-llm-observability.md) |
-| OTel-06 | OpenObserve 本地观测平台与 AI 查询工具 | 已完成基础版 | [`specs/local-observability-ai-tools.md`](specs/local-observability-ai-tools.md) |
+| OTel-06 | OpenObserve 本地观测平台与 AI 查询工具 | 已完成并闭合 | [`specs/local-observability-ai-tools.md`](specs/local-observability-ai-tools.md) |
 
 ## 四、阶段依赖
 
@@ -89,6 +89,12 @@ OTel-01 pkg/otel
 | AI 查询脚本 | 已实现入口：`scripts/observability/openobserve-query.mjs` + `make obs-trace/obs-logs/obs-metrics/obs-errors` |
 | 真实 trace 验证 | 已验证基础链路：本地请求可在 OpenObserve 中看到 `edge-api -> idp` 等 trace/span |
 
+## 闭合记录
+
+- 2026-05-17：用户确认 OTel 已开发完成，本文作为已完成历史上下文保留 `active`。
+- 长期事实已同步到 `../../project/observability.md`、`../../knowledge/observability/overview.md`、`../../knowledge/pkg-infra/overview.md` 和 `../../knowledge/services/overview.md`。
+- OTel-01 至 OTel-06 均已落地；完整日志入库、metrics 友好展示和服务拓扑状态图明确为后续按需增强，不阻塞本 initiative 闭合。
+
 ## 六、开放问题
 
 | 问题 | 当前结论 | 决策时机 |
@@ -96,7 +102,7 @@ OTel-01 pkg/otel
 | OpenObserve 部署形态 | self-host Open Source Edition，本地 Docker 单节点 | 生产化前再确认数据目录、鉴权和保留策略 |
 | Collector 是否必经 | 必经：`services/* -> Collector -> OpenObserve` | 若未来要并行转发 Prometheus/Tempo/Loki 时扩展 Collector |
 | Prometheus/Grafana 是否保留 | 第一版不保留为必需组件；用户已接受 OpenObserve 聚合平台 | 只有已有指标生态或告警需求出现时再接 |
-| 日志采集方式 | 本地开发先保留 `bin/log/*.log`；完整日志入 OpenObserve 后续按需做 | 需要跨服务日志检索或告警时 |
+| 日志采集方式 | 本地开发先保留 `bin/log/*.log`；完整日志入 OpenObserve 后续按需做 | 需要跨服务日志检索或告警时另拆 |
 | 采样策略 | local/staging 全采样，prod 父采样 + ratio | 生产部署前确认 |
 | 服务拓扑和存活状态 | OTel trace 只能反映调用关系；实时节点状态需聚合 etcd + health + 进程/容器状态 | 需要拓扑 UI 时单独立项 |
-| AI 查询入口形态 | `make obs-*` 包装脚本输出 JSON 或固定字段文本 | 查询字段和输出格式随真实排障场景打磨 |
+| AI 查询入口形态 | `make obs-*` 包装脚本输出 JSON 或固定字段文本 | 查询字段和输出格式随真实排障场景继续打磨 |

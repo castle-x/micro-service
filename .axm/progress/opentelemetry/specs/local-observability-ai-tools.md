@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-12
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: opentelemetry
@@ -12,8 +12,8 @@ related:
 
 # OTel-06：OpenObserve 本地观测平台与 AI 查询工具
 
-> **实施状态**：实施中（本地 compose、Collector 配置、Make target、AI 查询脚本已落地；容器启动与真实 trace/metrics/logs 查询待验收）
-> **最近更新**：2026-05-12
+> **实施状态**：已完成并闭合（本地 compose、Collector 配置、Make target、AI 查询脚本已落地；基础 trace 链路已验证）
+> **最近更新**：2026-05-17
 
 ## 背景
 
@@ -104,3 +104,10 @@ make obs-errors SINCE=15m
 - 新增 `make obs-up`、`make obs-down`、`make obs-ps`、`make obs-trace`、`make obs-logs`、`make obs-metrics`、`make obs-errors`。
 - 更新 `make dev-start` / `make dev-restart` / `make model-start` / `make model-restart`，开发阶段默认启动观测栈并以 `OTEL_ENABLED=true`、`OTEL_ENDPOINT=localhost:4317` 启动服务。
 - 新增 `deployments/observability/README.md`，记录本地端口、默认账号、服务 OTel 环境变量和查询命令。
+
+## 闭合记录
+
+- 2026-05-17：用户确认 OTel 已开发完成，OTel-06 已闭合为完成。
+- 源码事实：`deployments/docker-compose.observability.yml`、`deployments/observability/otel-collector.yaml`、`scripts/observability/openobserve-query.mjs`、`scripts/observability/openobserve-query.test.mjs`、`deployments/observability/README.md` 已存在。
+- 长期事实已同步到 `../../../knowledge/observability/overview.md` 和 `../../../project/observability.md`。
+- 完整日志入库、metrics 展示美化、服务拓扑状态图仍是按需增强项，不作为 OTel-06 未完成项。

@@ -64,15 +64,16 @@ related:
 
 ```text
 workflow -> agent -> llm
-                  -> tool -> generation
+                  -> tool -> generator
                   -> tool -> asset
 ```
 
-- `llm` 与 `generation` 必须拆开：`llm` 负责底层文本/多模态模型调用、模型供应商、流式输出和 usage；`generation` 负责生图/编辑/批量任务、重试、结果入库和生产溯源。
+- `llm` 与 `generator` 必须拆开：`llm` 负责底层文本/多模态模型调用、模型供应商、流式输出和 usage；`generator` 负责生图/编辑/批量任务、重试、结果入库和生产溯源。
 - `agent` 合并 Agent 配置、Agent 运行和 tool 注册/执行；早期不拆 `agent-registry` / `agent-runtime` / `tool-registry` / `tool-runtime`。
 - `workflow` 合并工作流自定义、编排、执行和任务提交；早期不拆单独的 `workflow-control` / `workflow-runner`。
 - `knowledge/RAG` 暂不进入第一阶段主线。平台早期优先完成创作工作流、Agent、生图和资产沉淀闭环。
 - 当前 `services/model` 属于早期旧模型网关方向。后续不以兼容旧 API 为目标；根据新路线用 `llm` 服务重建模型调用层。
+- 生图服务正式命名为 `generator`；`generation-platform` 只保留为产品路线 initiative 名称，不代表服务名。
 
 ## 服务边界
 
@@ -81,9 +82,9 @@ workflow -> agent -> llm
 | `workflow` | 工作流模板、步骤定义、运行实例、当前步骤、任务提交、人工确认、步骤产物与资产部分绑定 | 可在单步内部使用 Chain/Workflow 辅助结构化，但不把 Eino Workflow 当顶层业务状态机 | 不直接执行 ReAct 循环；不直接调用外部模型供应商 |
 | `agent` | Agent 配置、默认 Agent、用户自定义 Agent、Agent run、事件流、tool 白名单、tool 执行、Interrupt/Resume | Eino ADK `ChatModelAgent`、`Runner`、Tool、middleware、checkpoint | 不持有 provider API key；不直接写资产主存储；不开放任意用户代码 |
 | `llm` | provider/model/key 管理，Generate/Stream，tool-calling ChatModel 能力，模型路由、usage、限流、OTel | Eino `ChatModel` / `ToolCallingChatModel` 组件或 provider adapter | 不保存资产；不执行业务 tool；不承担生图任务状态机 |
-| `generation` | 文生图、图生图、编辑、批量生成任务、重试、幂等、结果标准化、媒体入库、生成溯源 | 可作为 Eino Tool 被 `agent` 调用；自身不强依赖 Eino | 不承担通用 LLM 聊天；不管理工作流步骤状态 |
-| `asset` | 资产类型、资产实例、版本、资产部分、媒体对象、OSS/CDN、生产溯源 | 被 `workflow`、`agent` tools、`generation` 调用 | 不执行模型调用或 Agent 决策 |
-| `credits/billing` | 额度、扣费、订单、资金相关流程 | 消费 usage / generation 事件 | 不阻塞第一阶段创作闭环 |
+| `generator` | 文生图、图生图、编辑、批量生成任务、重试、幂等、结果标准化、媒体入库、生成溯源 | 可作为 Eino Tool 被 `agent` 调用；自身不强依赖 Eino | 不承担通用 LLM 聊天；不管理工作流步骤状态 |
+| `asset` | 资产类型、资产实例、版本、资产部分、媒体对象、OSS/CDN、生产溯源 | 被 `workflow`、`agent` tools、`generator` 调用 | 不执行模型调用或 Agent 决策 |
+| `credits/billing` | 额度、扣费、订单、资金相关流程 | 消费 usage / generator 事件 | 不阻塞第一阶段创作闭环 |
 
 ## 用户交互主线
 
@@ -124,8 +125,8 @@ DNA：结构化 JSON
 |---|---|---|
 | 背景讨论 | 背景设定 Agent | asset 读写草稿 |
 | DNA 结构化 | 结构化抽取 Agent | asset 写入 JSON part |
-| 脸部生图 | 脸部生成 Agent | generation 生图、asset 媒体入库 |
-| 身体生图 | 身体生成 Agent | generation 生图、asset 媒体入库 |
+| 脸部生图 | 脸部生成 Agent | generator 生图、asset 媒体入库 |
+| 身体生图 | 身体生成 Agent | generator 生图、asset 媒体入库 |
 | 风格确认 | 风格整理 Agent | asset 版本写入 |
 
 ### 复用资产生图
@@ -147,14 +148,14 @@ DNA：结构化 JSON
 
 | Phase | 主题 | 状态 | 产物 |
 |---|---|---|---|
-| GP-00 | Eino 创作平台边界决策 | 已确认，已记录决策 | [`decisions.md`](decisions.md)：明确 `generation-platform` 是核心产品路线，`platform` 是地基；确定 `workflow -> agent -> (llm, tool -> generation)` |
-| GP-01 | Asset 基础能力对齐与闭合 | 独立跟踪中 | 资产类型、资产实例、版本、媒体对象、OSS/CDN、生成入库前置；见 [`../asset/roadmap.md`](../asset/roadmap.md) |
+| GP-00 | Eino 创作平台边界决策 | 已确认，已记录决策 | [`decisions.md`](decisions.md)：明确 `generation-platform` 是核心产品路线，`platform` 是地基；确定 `workflow -> agent -> (llm, tool -> generator)` |
+| GP-01 | Asset 基础能力对齐与闭合 | 已完成 | 资产类型、资产实例、版本、媒体对象、OSS/CDN、生成入库前置；见 [`../asset/roadmap.md`](../asset/roadmap.md) |
 | GP-02 | `llm` 服务重建 | 未拆 spec | 删除旧 `model` 方向，基于 Eino ChatModel/ToolCallingChatModel 重建 provider、key、Generate/Stream、usage、OTel |
 | GP-03 | `agent` 服务 MVP | 未拆 spec | Agent profile、默认 Agent、用户自定义 Agent、Runner、ReAct 工具循环、Agent SSE 事件流、tool 白名单 |
 | GP-04 | `workflow` 服务 MVP | 未拆 spec | 工作流模板、步骤定义、运行实例、任务提交、人工确认、步骤产物与 asset part 绑定 |
-| GP-05 | `generation` 服务与 tool 化 | 未拆 spec | 生图/编辑/批量任务、重试、幂等、结果写入 asset；同时支持直接调用和 Agent tool 调用 |
+| GP-05 | `generator` 服务与 tool 化 | 未拆 spec | 生图/编辑/批量任务、重试、幂等、结果写入 asset；同时支持直接调用和 Agent tool 调用 |
 | GP-06 | 资产复用生产流 | 未拆 spec | 消费已有资产组合上下文，批量生成历史产物或资产版本，支持选择、微调、保存 |
-| GP-07 | 额度、计费与商业化 | 未拆 spec | credits/billing 接入，按 LLM usage、tool 调用、generation job 和存储资源计量 |
+| GP-07 | 额度、计费与商业化 | 未拆 spec | credits/billing 接入，按 LLM usage、tool 调用、generator job 和存储资源计量 |
 | GP-08 | Knowledge/RAG 预留 | deferred | 仅当创作流程需要外部知识库或长期记忆时再启动 |
 
 ## 阶段依赖
@@ -165,7 +166,7 @@ DNA：结构化 JSON
     -> GP-02 llm
       -> GP-03 agent
         -> GP-04 workflow
-          -> GP-05 generation
+          -> GP-05 generator
             -> GP-06 资产复用生产流
               -> GP-07 credits/billing
 ```
@@ -174,15 +175,16 @@ DNA：结构化 JSON
 
 - `GP-02` 与 `GP-05` 可以部分并行，但 `agent` 需要一个可用的 `llm` ChatModel 后端。
 - `workflow` 可以先接 mock agent，但正式闭环依赖 `agent` 事件流与步骤结果协议。
-- `generation` 的结果入库依赖 asset 媒体与版本能力。
-- 商业化不阻塞早期创作体验，但 usage 事件和幂等键应在 `llm` / `agent` / `generation` 设计时预留。
+- `generator` 的结果入库依赖 asset 媒体与版本能力。
+- 商业化不阻塞早期创作体验，但 usage 事件和幂等键应在 `llm` / `agent` / `generator` 设计时预留。
 
 ## 当前事实进度
 
 | 事项 | 状态 |
 |---|---|
 | 平台地基 | 已具备基础闭环，作为本路线前置能力 |
-| 资产服务 | 已有独立 roadmap/spec 和部分实现事实；本路线只引用，不复制细节 |
+| 资产服务 | AS-01 至 AS-04 第一版能力已完成；本路线只引用，不复制细节 |
+| 生图服务命名 | 已确认服务名为 `generator`，不再使用 `generation` 作为服务名 |
 | Eino 引入 | 已完成架构讨论，尚未落代码 |
 | 旧 `model` 服务 | 属于早期模型网关方向，后续由 `llm` 服务替代，不作为未来主线扩展 |
 | Knowledge/RAG | 暂不进入早期主线 |
@@ -202,8 +204,8 @@ DNA：结构化 JSON
 用户创建角色资产
   -> workflow 进入背景步骤
   -> agent 与用户多轮对话
-  -> agent 调 llm 和 generation tool
-  -> generation 写入 asset 媒体与版本
+  -> agent 调 llm 和 generator tool
+  -> generator 写入 asset 媒体与版本
   -> workflow 等待用户确认并推进下一步
   -> 最终资产保存到资产库
 ```
@@ -213,10 +215,10 @@ DNA：结构化 JSON
 - `workflow` 第一版允许用户自定义到什么程度：仅编辑模板参数，还是允许新增/删除步骤。
 - `agent` 用户自定义范围：instruction、model、tools、output schema、max iterations、memory 策略分别开放到什么级别。
 - `agent` 与 `llm` 的协议形态：内部 Kitex 还是 HTTP/SSE；如何承载 tool-calling rich message。
-- `generation` 第一批供应商与图像任务模型：同步返回、异步 job、回调和重试策略。
+- `generator` 第一批供应商与图像任务模型：同步返回、异步 job、回调和重试策略。
 - 生成历史产物保留策略、清理策略和额度计费策略。
 - 是否需要在 GP-02 前直接删除旧 `services/model`，还是在代码重构时自然替换。
 
 ## 下一步
 
-优先拆 `GP-02 llm 服务重建` 和 `GP-03 agent 服务 MVP` 的 spec。拆 spec 前先核对 `asset` 当前实现状态，确保 `generation -> asset` 的媒体与版本写入前置条件清晰。
+优先拆 `GP-02 llm 服务重建` 和 `GP-03 agent 服务 MVP` 的 spec。`asset` 当前已具备媒体与版本写入前置条件；后续拆 `GP-05 generator` 时只需核对 generator 到 asset 的入库协议与幂等边界。

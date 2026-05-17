@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: dev-ops
@@ -11,6 +11,16 @@ related:
 -->
 
 # DEV-02：标准健康检查接口
+
+## 实施状态
+
+已完成并闭合。`pkg/health`、`/healthz`、`/readyz`、`/version`、业务端口 + 10000 admin 端口规则、Mongo/Redis/etcd readiness check 和 5 个本地服务接入均已落地。
+
+闭合证据：
+
+- 源码事实：`pkg/health/{server,checks}.go`、`services/{edge-api,idp,iam,asset,model}/main.go`、`scripts/dev/services.json` 已存在。
+- 关联 BUG 已关闭：`../bugs/bug-2026-05-14-edge-api-missing-etcd-readiness.md`。
+- 人类确认：2026-05-17 用户确认 dev-ops 已开发完成。
 
 ## 背景
 
@@ -90,7 +100,7 @@ related:
 - ✅ 2026-05-14：已新增 `pkg/health`，提供 `/healthz /readyz /version`、依赖 Check 注册、1s 超时、版本字段与 admin addr 环境变量覆盖。
 - ✅ 2026-05-14：`edge-api / idp / iam / asset / model` 已接入 admin health server；服务注册了可轻量探测的 Mongo / Redis checks。
 - ✅ 2026-05-14：主 agent 已验证 `pkg/health`、5 个接入服务测试、`make build` 与 `make lint`；tester agent focused verification 通过。
-- ⏳ 人类验收待执行：真实启动后 `curl localhost:48080-48084/healthz|readyz|version`，以及停 Mongo/Redis/etcd 后观察 `/readyz` 503。
+- ✅ 2026-05-17：用户确认 dev-ops 已开发完成；真实依赖 stop/start 场景保留为后续回归，不阻塞本阶段闭合。
 
 ## 风险与回退
 

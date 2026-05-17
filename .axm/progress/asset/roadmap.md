@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: asset
@@ -13,7 +13,7 @@ related:
 
 > 当前文档记录已经基本敲定的资产服务设计。第一版坚持必要、简单、可扩展，不提前设计复杂资产状态机。
 >
-> 最后更新：2026-05-14
+> 最后更新：2026-05-17
 
 ## 背景与目标
 
@@ -339,7 +339,7 @@ asset → Mongo: media_objects + optional asset
 模型生成结果入库：
 
 ```text
-generation-service → asset: ingest generated media
+generator-service → asset: ingest generated media
 asset → OSS: save original / preview / thumbnail
 asset → Mongo: media_objects + history asset
 ```
@@ -356,38 +356,40 @@ CDN 第一版只做抽象：
 
 | Phase | 主题 | 状态 | 产物 |
 |---|---|---|---|
-| AS-01 | 服务契约与领域模型 | 已拆 spec，待启动 | [`service-contract-and-domain-models.md`](specs/service-contract-and-domain-models.md)：`idl/asset/asset.thrift`、`services/asset` 骨架、Mongo 模型与仓储、配置、错误码、服务启动验证 |
-| AS-02 | 资产库 CRUD | 已拆 spec，待实现 | [`asset-library-crud.md`](specs/asset-library-crud.md)：自定义资产类型、组成部分 schema、分类、资产实例、资产库保存状态、edge-api REST 适配 |
-| AS-03 | 资产版本、组成部分与溯源 | 已实现，local/QA 测试通过，待人类验收与主线程最终验证 | [`asset-version-parts-provenance.md`](specs/asset-version-parts-provenance.md)：资产实例级版本快照、parts 写入、版本查询、复制旧版本、当前版本切换、生产溯源字段；不包含 workflow、OSS、media objects 或 CDN |
-| AS-04 | 媒体存储、上传与生成入库 | 未写详细 spec | 计划文件：`specs/media-storage-upload-and-ingest.md`；OSS 抽象、上传会话、前端直传、媒体对象、访问 URL、生成结果入库、CDN 字段预留 |
+| AS-01 | 服务契约与领域模型 | 已完成 | [`service-contract-and-domain-models.md`](specs/service-contract-and-domain-models.md)：`idl/asset/asset.thrift`、`services/asset` 骨架、Mongo 模型与仓储、配置、错误码、服务启动验证 |
+| AS-02 | 资产库 CRUD | 已完成 | [`asset-library-crud.md`](specs/asset-library-crud.md)：自定义资产类型、组成部分 schema、分类、资产实例、资产库保存状态、edge-api REST 适配 |
+| AS-03 | 资产版本、组成部分与溯源 | 已完成 | [`asset-version-parts-provenance.md`](specs/asset-version-parts-provenance.md)：资产实例级版本快照、parts 写入、版本查询、复制旧版本、当前版本切换、生产溯源字段；不包含 workflow 或 generator job |
+| AS-04 | 媒体存储、上传与生成入库 | 已完成第一版 | [`media-storage-upload-and-ingest.md`](specs/media-storage-upload-and-ingest.md)：OSS 抽象、上传会话、前端直传、媒体对象、访问 URL、media 引用校验；模型生成结果入库留给后续 `generator` 集成 |
 
 ## 阶段依赖
 
 ```text
-AS-01 完成 AI 自动验收与人类验收
-  → AS-02 可开始资产库 CRUD
-  → AS-03 依赖 AS-02 的资产类型与资产实例基础接口
-  → AS-04 依赖 AS-01 的 media_objects / storage_upload_sessions 模型，可与 AS-03 并行拆 spec，但实现时需要 AS-02 的资产实例能力完成入库闭环
+AS-01 已完成
+  → AS-02 已完成
+  → AS-03 已完成
+  → AS-04 已完成第一版媒体上传与访问 URL
 ```
 
 说明：
 
-- AS-02、AS-03 已拆详细 spec；AS-04 的文件名已预留，但尚未写详细 spec。
-- AS-04 合并原 A4、A5、A6：第一版只做媒体存储与生成结果入库闭环，CDN 只保留字段与访问 URL 抽象，不拆成独立阶段。
+- AS-01 至 AS-04 已闭合为 asset 第一版能力：资产类型、资产实例、分类、版本、媒体对象、上传会话和访问 URL。
+- AS-04 合并原 A4、A5、A6：第一版已完成媒体存储与上传闭环；CDN 只保留字段与访问 URL 抽象，不拆成独立阶段。
+- 模型生成结果入库不再归入 asset 当前阶段，后续由 `generator` 在调用 asset 媒体与版本接口时闭合。
 
 ## 与其他服务的关系
 
 | 调用方 | 关系 |
 |---|---|
 | `edge-api` | 暴露资产类型、资产库、上传会话等 HTTP API；不直接访问 Mongo |
-| `workflow-service` | 将节点产物写入某个资产部分，或创建历史产物 |
-| `generation-service` | 将模型生成图片交给 asset 入库 |
-| `prompt-service` | 读取提示词模板、参考图、结构化资产内容用于编译上下文 |
-| `model-service` | 不直接管理资产，只返回模型结果给 generation-service |
+| `workflow` | 将节点产物写入某个资产部分，或创建历史产物 |
+| `generator` | 将模型生成图片交给 asset 入库 |
+| `agent` / `llm` | 读取资产上下文、调用模型或工具；不直接管理资产主存储 |
+| 旧 `model` | 不直接管理资产；后续由 `llm` / `generator` 新路线替代 |
 
 ## 下一步
 
-下一步可二选一推进：
+asset initiative 当前已闭合。后续工作不在本路线内继续追加：
 
-- 人类验收 AS-03：[`asset-version-parts-provenance.md`](specs/asset-version-parts-provenance.md)，重点确认资产实例级版本快照、完整 parts 快照、版本不可变和 AS-03 非目标边界。
-- 拆写 AS-04 详细 spec：`specs/media-storage-upload-and-ingest.md`，覆盖 OSS 抽象、上传会话、媒体对象、访问 URL、生成结果入库和 CDN 字段预留。
+- `generator -> asset` 生成结果入库协议放到 `generation-platform` 的 `GP-05 generator` spec 中拆。
+- 真实 OSS smoke test 依赖用户提供 bucket 与密钥，作为环境验收或后续回归项，不阻塞 asset 第一版闭合。
+- 缩略图、对象生命周期、multipart 上传、大文件和清理策略均按需另拆新 spec。

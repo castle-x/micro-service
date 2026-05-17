@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: dev-ops
@@ -11,6 +11,16 @@ related:
 -->
 
 # DEV-03：日志格式统一与 AI 查询入口
+
+## 实施状态
+
+已完成并闭合。stdlib log 接管、本地 `logs-query`、`dev-logs`、`lint-noprint` 和 JSON 日志查询入口均已落地。
+
+闭合证据：
+
+- 源码事实：`pkg/logger/logger.go`、`scripts/dev/logs-query.sh`、`Makefile` 的日志查询 / lint 入口已存在。
+- 长期事实已同步：`../../../knowledge/pkg-infra/overview.md` 已记录 logger 和 trace/span 日志字段；OpenObserve 查询另见 OTel initiative。
+- 人类确认：2026-05-17 用户确认 dev-ops 已开发完成。
 
 ## 背景
 
@@ -84,7 +94,7 @@ related:
 - ✅ 2026-05-14：已新增 `logger.IngestStdLog()`，5 个 dev-start 服务入口已接管 stdlib `log.Default()` 到 JSON zap logger。
 - ✅ 2026-05-14：已新增 `scripts/dev/logs-query.sh` 与 Makefile `dev-logs / logs-query / lint-noprint` 入口；bootstrap 命令式 stdout 已用 `nolint:noprint` 明确豁免。
 - ✅ 2026-05-14：主 agent 已验证 logger 单测、日志查询临时夹具、`make lint-noprint`、`make lint`；tester agent focused verification 通过。
-- ⏳ 人类验收待执行：真实运行服务后检查 `bin/log/*.log` 前 200 行 JSON、触发 access log、用真实 trace_id 排障一次。
+- ✅ 2026-05-17：用户确认 dev-ops 已开发完成；真实 trace_id 排障演练可作为后续回归，不阻塞本阶段闭合。
 
 ## 风险与回退
 

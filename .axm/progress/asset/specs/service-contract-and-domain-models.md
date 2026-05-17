@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-13
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: asset
@@ -12,6 +12,16 @@ related:
 -->
 
 # AS-01 · 服务契约与领域模型
+
+## 实施状态
+
+已完成并闭合。`idl/asset/asset.thrift`、`services/asset` Kitex 服务、Mongo 文档模型 / repository 骨架、asset 错误码区段、服务配置、本地启动与 etcd 注册发现均已落地；后续 AS-02 至 AS-04 已在此基础上完成。
+
+闭合证据：
+
+- 源码事实：`idl/asset/asset.thrift`、`services/asset/main.go`、`services/asset/handler.go`、`services/asset/dal/model/*`、`services/asset/dal/mongo/*`、`deployments/config/asset.yaml` 均已存在。
+- 长期事实已同步：`../../../knowledge/services/overview.md` 已把 `asset` 记录为已运行 Kitex 服务，并列出 assets / versions / media / upload sessions 能力。
+- 人类确认：2026-05-17 用户确认 asset 已开发完成。
 
 ## 背景
 
@@ -189,7 +199,7 @@ db.BaseDoc `bson:",inline"`
 
 ### AI 自动验收
 
-实现 AS-01 时必须通过：
+AS-01 已完成。实现时必须通过：
 
 ```bash
 make gen

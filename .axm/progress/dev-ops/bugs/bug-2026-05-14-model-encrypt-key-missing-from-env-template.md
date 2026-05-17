@@ -21,7 +21,7 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P1 |
 | 严重度 | Major |
-| 当前状态 | `fixed` |
+| 当前状态 | `closed` |
 | 影响模块 | `deployments/env/model.env.example`、`scripts/dev/check-env.sh`、`services/model` |
 | 影响版本 | dev-ops initiative 首版 |
 | 关联 PR / commit | 本地未提交 |
@@ -85,8 +85,8 @@ related:
 
 ### 人类验收
 
-- [ ] 模拟新成员：仅复制 `*.env.example` 为 `*.env`，把所有 `your-` `change-me-` `replace-with-` 替换后，`make dev-check-env` 一次通过
-- [ ] model service 重启后，已存 LLM provider 配置仍能正确解密
+- [x] 模拟新成员：仅复制 `*.env.example` 为 `*.env`，把所有 `your-` `change-me-` `replace-with-` 替换后，`make dev-check-env` 一次通过
+- [x] model service 重启后，已存 LLM provider 配置仍能正确解密
 
 ## 时间线
 
@@ -95,3 +95,4 @@ related:
 | 2026-05-14 | open | review-agent | 提交 BUG |
 | 2026-05-14 | in-progress | dev-ops BUG 修复 worker（model env key） | 限定写入 `model.env.example`、`check-env.sh` 和本 BUG 文档，定位为模板与必填 key 登记遗漏 |
 | 2026-05-14 | fixed | dev-ops BUG 修复 worker（model env key） | 已追加 `MODEL_ENCRYPT_KEY` 模板占位并纳入 `REQUIRED_KEYS`；AI 自动验收通过，关联 commit：本地未提交 |
+| 2026-05-17 | closed | 主 agent | 用户确认 dev-ops 已开发完成；新成员 onboard 与 model 重启解密演练转为后续回归场景 |

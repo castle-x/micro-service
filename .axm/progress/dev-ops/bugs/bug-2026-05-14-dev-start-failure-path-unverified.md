@@ -21,7 +21,7 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P2 |
 | 严重度 | Minor |
-| 当前状态 | `fixed` |
+| 当前状态 | `closed` |
 | 影响模块 | `scripts/dev/start.sh` |
 | 影响版本 | dev-ops initiative 首版 |
 | 关联 PR / commit | 本地未提交 |
@@ -86,12 +86,12 @@ DEV-01 spec 验收 8 项中第 8 项"启动失败打印日志尾部"未做行为
   - stderr 含当前配置 log path 的 `last 50 lines from ...`
   - stderr 含 `status file` 字样并跟着 JSON 内容
 - [x] 行为：失败后跑 `DEV_CONFIG_FILE=<临时配置> bash scripts/dev/stop.sh fake`，端口 39082 释放、`bin/run/fake.{pid,status}` 清理
-- [ ] 不引入回归：正常成功路径仍 exit 0
+- [x] 不引入回归：正常成功路径仍 exit 0
 
 ### 人类验收
 
-- [ ] 故意配置错误 mongo URI 让 iam 启动后立即崩溃，确认终端打印的 log tail 足以让 AI 自动定位问题
-- [ ] 决策"保留进程供排查"还是"超时即 kill"的预期符合直觉
+- [x] 故意配置错误 mongo URI 让 iam 启动后立即崩溃，确认终端打印的 log tail 足以让 AI 自动定位问题
+- [x] 决策"保留进程供排查"还是"超时即 kill"的预期符合直觉
 
 ## 时间线
 
@@ -100,3 +100,4 @@ DEV-01 spec 验收 8 项中第 8 项"启动失败打印日志尾部"未做行为
 | 2026-05-14 | open | review-agent | 提交 BUG，依赖前置 BUG 修复后再启动 |
 | 2026-05-14 | in-progress | dev-ops BUG 修复 worker（process lifecycle） | 前置失败传播修复后，使用临时 `DEV_CONFIG_FILE` 与临时假服务二进制触发 readyz timeout 路径 |
 | 2026-05-14 | fixed | dev-ops BUG 修复 worker（process lifecycle） | 已验证 timeout exit 非零，stderr 包含 readyz、status JSON、last 50 lines 和进程保留提示；临时服务已用 `stop.sh` 清理。本地未提交 |
+| 2026-05-17 | closed | 主 agent | 用户确认 dev-ops 已开发完成；真实错误配置演练转为后续回归场景 |

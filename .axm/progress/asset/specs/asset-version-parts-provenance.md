@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: asset
@@ -17,9 +17,14 @@ related:
 
 ## 实施状态
 
-截至 2026-05-14，AS-03 已完成实现并通过 tester QA 提供的 local/QA 测试。实现范围限定为资产实例级版本快照、parts 写入与校验、版本查询、复制旧版本、当前版本切换和版本级 provenance 字段；未实现 workflow、OSS 上传、media objects、CDN 或媒体文件存在性强校验。
+截至 2026-05-17，AS-03 已完成并闭合。实现范围限定为资产实例级版本快照、parts 写入与校验、版本查询、复制旧版本、当前版本切换和版本级 provenance 字段；未实现 workflow 或 generator job。
 
-当前状态仍是“待人类验收”：本文只记录 AI 自动验收证据，不声明人类验收已完成。主线程后续仍可执行 repo-wide `make build` / `make validate` 等最终验证。
+闭合证据：
+
+- tester QA 已在 2026-05-14 判定 local/QA 测试通过。
+- 源码事实：`services/asset/biz/asset_version.go`、`services/asset/biz/asset_version_test.go`、`services/asset/dal/mongo/asset_version.go`、`services/asset/asset_version_handler_test.go` 已存在。
+- 人类确认：2026-05-17 用户确认 asset 已开发完成。
+- AS-04 已补齐媒体对象和上传会话，AS-03 原“媒体对象存在性强校验”后续边界已由 AS-04 承接。
 
 ## 背景
 
@@ -48,14 +53,14 @@ AS-02 已补齐个人资产库 CRUD，但资产实例仍只有基础元信息，
 | AssetVersion | 创建不可变版本、复制旧版本为新版本、详情、分页列表、读取当前版本 |
 | Asset.CurrentVersion | 创建新版本后推进当前版本；支持显式切换当前版本 |
 | Parts | 按 `AssetPartSchema.Key` 写入 `TEXT`、`JSON`、`MEDIA`、`MIXED` 值 |
-| Provenance | 在版本上保存可选来源信息，但不创建 workflow/generation 记录 |
+| Provenance | 在版本上保存可选来源信息，但不创建 workflow / generator 任务记录 |
 | edge-api | 登录态 REST 门面，透传当前 user_id 到 `Base.UserID` |
 | 错误码 | 复用 `ErrAssetVersionNotFound`、`ErrAssetInvalidPart`、`ErrAssetConflict` 和 `ErrInvalidParam` |
 | 测试 | 覆盖版本创建、校验、复制、当前版本切换、分页、跨用户隔离和 REST 映射 |
 
 ## 非目标
 
-- 不实现 workflow、workflow run、step run、generation job 或异步任务。
+- 不实现 workflow、workflow run、step run、generator job 或异步任务。
 - 不实现 part 级独立版本、part 级回滚或 part 级组合发布。
 - 不实现资产类型 schema 历史、schema 迁移或旧版本自动重写。
 - 不实现媒体对象 CRUD、上传会话、OSS SDK、预签名 URL、CDN URL 或媒体文件存在性强校验。

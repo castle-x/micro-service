@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: dev-ops
@@ -10,6 +10,16 @@ related:
 -->
 
 # DEV-01：进程生命周期改造
+
+## 实施状态
+
+已完成并闭合。PID 文件、状态 JSON、优雅停、端口占用保护、`dev-status` JSON、失败日志上下文和 Makefile 入口均已落地。
+
+闭合证据：
+
+- 源码事实：`scripts/dev/{start,stop,status,restart,self_check}.sh`、`scripts/dev/services.json` 已存在。
+- 关联 BUG 已关闭：`../bugs/bug-2026-05-14-dev-start-exit-zero-on-failure.md`、`../bugs/bug-2026-05-14-dev-start-failure-path-unverified.md`。
+- 人类确认：2026-05-17 用户确认 dev-ops 已开发完成。
 
 ## 背景
 
@@ -91,7 +101,7 @@ related:
 - ✅ 2026-05-14：已实现 `scripts/dev/services.json` 与 `start.sh / stop.sh / status.sh / restart.sh`，Makefile 的 `dev-* / model-* / asset-*` 目标已切换到脚本入口。
 - ✅ 2026-05-14：主 agent 已验证脚本语法、`services.json` 可解析、`dev-status` 输出 JSON 数组、`make build` 与 `make lint` 通过。
 - ✅ 2026-05-14：tester agent 初检发现已运行服务跳过 `/readyz` 与 3xx 被误判 ready 两个问题；主 agent 修复后 tester 复检通过。
-- ⏳ 人类验收待执行：真实 `make dev-start / dev-stop / dev-restart`、冷启动 Docker、多次重启与 etcd 僵尸节点检查。
+- ✅ 2026-05-17：用户确认 dev-ops 已开发完成；真实 `make dev-start / dev-stop / dev-restart`、冷启动 Docker、多次重启与 etcd 僵尸节点检查不再阻塞本阶段闭合，可作为后续回归场景。
 
 ## 风险与回退
 

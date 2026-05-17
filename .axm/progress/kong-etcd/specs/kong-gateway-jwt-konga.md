@@ -27,10 +27,17 @@ related:
 
 | 项 | 状态 |
 |---|---|
-| 计划确认 | 待确认 |
-| 代码实施 | 未开始 |
-| AI 自动验收 | 未开始 |
-| 人类验收 | 未开始 |
+| 计划确认 | 已完成 |
+| 代码实施 | 已完成 |
+| AI 自动验收 | 已完成基础验证 |
+| 人类验收 | 2026-05-17 用户确认已完成 |
+
+## 闭合记录
+
+- 2026-05-17：用户确认 Kong / etcd 相关开发已完成，本文从实施计划闭合为历史实施记录。
+- 源码事实：`scripts/dev/render-kong-config.sh`、`scripts/dev/bootstrap-konga.sh`、`deployments/kong/declarative.yml`、`deployments/docker-compose.yml`、`deployments/env/README.md` 已存在。
+- 已落地能力：Kong DB-less 本地配置渲染、JWT 通用认证、edge-api route 拆分、SSE 独立超时 route、Konga 本地观察面板。
+- deferred：RS256/JWKS、全容器 upstream、网关级限流、生产级动态 upstream 仍保留在“后续增强”，不阻塞本阶段闭合。
 
 ## 背景
 
@@ -188,7 +195,7 @@ Konga 不用于新增、修改、删除 Kong 配置。DB-less 模式下 Kong Adm
 - Modify: `deployments/kong/declarative.yml`
 - Generate: `deployments/kong/declarative.local.yaml`
 
-- [ ] **Step 1: 新增渲染脚本**
+- [x] **Step 1: 新增渲染脚本**
 
 脚本读取现有 env 加载逻辑，并拒绝使用占位 `JWT_SECRET`：
 
@@ -241,7 +248,7 @@ PY
 printf 'rendered %s\n' "${dst}"
 ```
 
-- [ ] **Step 2: 让声明式配置保留 secret placeholder**
+- [x] **Step 2: 让声明式配置保留 secret placeholder**
 
 `deployments/kong/declarative.yml` 中只允许出现：
 
@@ -251,7 +258,7 @@ secret: "__JWT_SECRET__"
 
 不能出现真实开发或生产 secret。
 
-- [ ] **Step 3: 运行脚本验证生成**
+- [x] **Step 3: 运行脚本验证生成**
 
 Run:
 
@@ -275,7 +282,7 @@ rendered /Users/castlexu/github/micro-service/deployments/kong/declarative.local
 
 - Modify: `deployments/kong/declarative.yml`
 
-- [ ] **Step 1: 写入 edge-api service**
+- [x] **Step 1: 写入 edge-api service**
 
 本地裸进程开发使用宿主机 upstream：
 
@@ -347,7 +354,7 @@ services:
               run_on_preflight: false
 ```
 
-- [ ] **Step 2: 写入 SSE 专用 service**
+- [x] **Step 2: 写入 SSE 专用 service**
 
 将 stream route 放在更长路径上，避免 60s 默认 upstream read timeout：
 
@@ -377,7 +384,7 @@ services:
               run_on_preflight: false
 ```
 
-- [ ] **Step 3: 写入 Consumer 和 JWT credential**
+- [x] **Step 3: 写入 Consumer 和 JWT credential**
 
 ```yaml
 consumers:
@@ -389,7 +396,7 @@ consumers:
         secret: "__JWT_SECRET__"
 ```
 
-- [ ] **Step 4: 检查 Kong 配置语法**
+- [x] **Step 4: 检查 Kong 配置语法**
 
 Run:
 
@@ -415,7 +422,7 @@ valid declarative configuration
 
 - Modify: `deployments/docker-compose.yml`
 
-- [ ] **Step 1: 将 Kong 挂载改为本地渲染文件**
+- [x] **Step 1: 将 Kong 挂载改为本地渲染文件**
 
 Kong service 使用生成文件：
 
@@ -439,7 +446,7 @@ kong:
   restart: unless-stopped
 ```
 
-- [ ] **Step 2: 新增 Konga service**
+- [x] **Step 2: 新增 Konga service**
 
 本地开发允许 `NO_AUTH=true`，因为只绑定本机端口且不作为生产控制面：
 
@@ -466,7 +473,7 @@ konga:
 konga_data:
 ```
 
-- [ ] **Step 3: 验证容器配置**
+- [x] **Step 3: 验证容器配置**
 
 Run:
 
@@ -486,7 +493,7 @@ Expected: command exits 0。
 - Modify: `deployments/env/README.md`
 - Modify: `deployments/env/infra.env.example`
 
-- [ ] **Step 1: 让 infra-up 先渲染 Kong 配置**
+- [x] **Step 1: 让 infra-up 先渲染 Kong 配置**
 
 `infra-up` 在 `docker compose up -d` 前执行：
 
@@ -494,7 +501,7 @@ Expected: command exits 0。
 	@bash scripts/dev/render-kong-config.sh
 ```
 
-- [ ] **Step 2: 补充启动输出**
+- [x] **Step 2: 补充启动输出**
 
 `infra-up` 完成后输出：
 
@@ -503,7 +510,7 @@ Expected: command exits 0。
 >>> Konga   : http://localhost:1337 (local observer)
 ```
 
-- [ ] **Step 3: 扩展 env 文档**
+- [x] **Step 3: 扩展 env 文档**
 
 `deployments/env/README.md` 必须写清：
 
@@ -514,7 +521,7 @@ generated file. Konga is a local observer for Kong Admin API; do not use it as
 the source of truth for configuration changes.
 ```
 
-- [ ] **Step 4: 环境校验覆盖 Kong**
+- [x] **Step 4: 环境校验覆盖 Kong**
 
 `scripts/dev/check-env.sh` 已经校验 `JWT_SECRET` 时，确认错误信息能覆盖 Kong 渲染需求；若当前脚本未校验长度和占位值，则补齐：
 
@@ -529,7 +536,7 @@ JWT_SECRET must be set, must not be placeholder, and must be at least 32 bytes.
 - Inspect: `services/edge-api/router.go`
 - Inspect: `services/edge-api/middleware/auth.go`
 
-- [ ] **Step 1: 确认 protected route 仍挂 edge-api Auth**
+- [x] **Step 1: 确认 protected route 仍挂 edge-api Auth**
 
 确认以下路由组仍使用 `authMw`：
 
@@ -539,7 +546,7 @@ assets := v1.Group("/assets", authMw)
 admin := v1.Group("/admin", authMw)
 ```
 
-- [ ] **Step 2: 确认业务权限仍查 IAM**
+- [x] **Step 2: 确认业务权限仍查 IAM**
 
 确认 admin route 仍使用：
 
@@ -547,7 +554,7 @@ admin := v1.Group("/admin", authMw)
 edgemw.RequirePermission("<permission>", iamCli)
 ```
 
-- [ ] **Step 3: 不新增信任 Kong header 的业务鉴权**
+- [x] **Step 3: 不新增信任 Kong header 的业务鉴权**
 
 本阶段不读取 `X-Consumer-*` 作为用户身份来源。`edge-api` 仍从 Bearer token 中解析 `user_id` 和 `role`。
 
@@ -557,7 +564,7 @@ edgemw.RequirePermission("<permission>", iamCli)
 
 - No production file changes
 
-- [ ] **Step 1: 启动完整本地链路**
+- [x] **Step 1: 启动完整本地链路**
 
 Run:
 
@@ -575,7 +582,7 @@ Konga   -> http://localhost:1337
 
 实际输出格式可不同，但必须包含 Kong/Konga 地址。
 
-- [ ] **Step 2: 验证 Kong Admin API 可读**
+- [x] **Step 2: 验证 Kong Admin API 可读**
 
 Run:
 
@@ -600,7 +607,7 @@ Expected includes:
 "platform-idp"
 ```
 
-- [ ] **Step 3: 验证公开登录路由不需要 JWT**
+- [x] **Step 3: 验证公开登录路由不需要 JWT**
 
 Run:
 
@@ -618,7 +625,7 @@ ADMIN_EMAIL=admin@platform.com ADMIN_PASSWORD='Admin@1234' ./bin/iam-bootstrap
 
 Then retry login and expect `HTTP/1.1 200` with `data.access_token`.
 
-- [ ] **Step 4: 验证受保护路由无 token 被 Kong 拒绝**
+- [x] **Step 4: 验证受保护路由无 token 被 Kong 拒绝**
 
 Run:
 
@@ -634,7 +641,7 @@ HTTP/1.1 401
 
 Response should be Kong JWT plugin 的未认证响应，而不是 `edge-api` 业务响应。
 
-- [ ] **Step 5: 验证受保护路由有 token 后进入 edge-api**
+- [x] **Step 5: 验证受保护路由有 token 后进入 edge-api**
 
 Run:
 
@@ -658,7 +665,7 @@ HTTP/1.1 200
 
 并且响应来自 `edge-api` 用户接口。
 
-- [ ] **Step 6: 验证业务鉴权仍由 edge-api 处理**
+- [x] **Step 6: 验证业务鉴权仍由 edge-api 处理**
 
 Run:
 
@@ -678,7 +685,7 @@ Expected:
 
 - No production file changes
 
-- [ ] **Step 1: 打开 Konga**
+- [x] **Step 1: 打开 Konga**
 
 Open:
 
@@ -688,7 +695,7 @@ http://localhost:1337
 
 Expected: Konga UI loads.
 
-- [ ] **Step 2: 连接 Kong Admin API**
+- [x] **Step 2: 连接 Kong Admin API**
 
 在 Konga 中添加 Kong node：
 
@@ -699,7 +706,7 @@ Kong Admin URL: http://kong:8001
 
 Expected: Konga 能显示 local-kong 节点状态。
 
-- [ ] **Step 3: 查看配置对象**
+- [x] **Step 3: 查看配置对象**
 
 在 Konga UI 中确认能看到：
 
@@ -709,7 +716,7 @@ Expected: Konga 能显示 local-kong 节点状态。
 - `jwt` plugins
 - `platform-idp` consumer
 
-- [ ] **Step 4: 验证 Konga 不作为写入面**
+- [x] **Step 4: 验证 Konga 不作为写入面**
 
 尝试在 Konga 修改 route 或 plugin 时，如果 UI 报错或 Kong 返回 405，验收结果记录为符合预期：
 

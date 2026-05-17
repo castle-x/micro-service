@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: dev-ops
@@ -10,6 +10,16 @@ related:
 -->
 
 # DEV-04：.env 拆分与启动前校验
+
+## 实施状态
+
+已完成并闭合。`deployments/env/` 分组、模板文件、共享 infra/observability env、`check-env` JSON 输出、Makefile 前置校验和 gitignore 白名单均已落地。
+
+闭合证据：
+
+- 源码事实：`deployments/env/{infra,observability,asset,model,secrets,overrides}.env.example`、`deployments/env/README.md`、`scripts/dev/check-env.sh` 已存在。
+- 关联 BUG 已关闭：`../bugs/bug-2026-05-14-model-encrypt-key-missing-from-env-template.md`、`../bugs/bug-2026-05-14-gitignore-blocks-shared-env-files.md`。
+- 人类确认：2026-05-17 用户确认 dev-ops 已开发完成。
 
 ## 背景
 
@@ -93,7 +103,7 @@ related:
 - ✅ 2026-05-14：已新增 `deployments/env/{infra,observability,asset,model,secrets,overrides}.env.example` 与 `deployments/env/README.md`，真实 `deployments/env/*.env` 已加入 gitignore。
 - ✅ 2026-05-14：已新增 `scripts/dev/check-env.sh`，Makefile `dev-check-env` 已作为 `dev-start / dev-restart / model-* / asset-*` 前置检查。
 - ✅ 2026-05-14：主 agent 已验证 env 临时夹具通过、缺失、占位符、重复 key 场景；tester agent focused verification 通过。
-- ⏳ 人类验收待执行：按 README 从零复制并填写本地 env，确认 5 分钟内可完成且 `make dev-check-env` 输出可读。
+- ✅ 2026-05-17：用户确认 dev-ops 已开发完成；从零 onboard 演练保留为后续回归，不阻塞本阶段闭合。
 
 ## 风险与回退
 

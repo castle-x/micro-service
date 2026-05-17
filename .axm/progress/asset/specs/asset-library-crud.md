@@ -1,6 +1,6 @@
 <!-- axm-meta
 status: active
-last-reviewed: 2026-05-14
+last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: asset
@@ -13,6 +13,16 @@ related:
 -->
 
 # AS-02 · 资产库 CRUD
+
+## 实施状态
+
+已完成并闭合。资产类型、资产分类、资产实例 CRUD、`savedToLibrary` 状态、个人 workspace 隔离、edge-api REST 门面和错误映射均已落地。
+
+闭合证据：
+
+- 源码事实：`services/asset/biz/asset_crud.go`、`services/asset/biz/asset_crud_test.go`、`services/asset/dal/mongo/{asset,asset_type,asset_category}.go`、`services/edge-api/handler/asset.go` 已存在。
+- 长期事实已同步：`../../../knowledge/services/overview.md` 已记录 `/api/v1/assets` 资产、类型、分类、版本和媒体路由。
+- 人类确认：2026-05-17 用户确认 asset 已开发完成。
 
 ## 背景
 
@@ -122,7 +132,7 @@ REST 响应继续使用 `apiResp{code,message,data}` 包装。
 
 ### AI 自动验收
 
-实现 AS-02 时必须通过：
+AS-02 已完成。实现时必须通过：
 
 ```bash
 make gen

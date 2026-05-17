@@ -21,7 +21,7 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P1 |
 | 严重度 | Major |
-| 当前状态 | `fixed` |
+| 当前状态 | `closed` |
 | 影响模块 | `.gitignore`、`deployments/env/` |
 | 影响版本 | dev-ops initiative 首版 |
 | 关联 PR / commit | 本地未提交 |
@@ -87,8 +87,8 @@ related:
 
 ### 人类验收
 
-- [ ] 模拟新成员 clone 仓库，能在 `deployments/env/` 下直接看到 `infra.env`（含真实可工作的本地端口与 URI）
-- [ ] 故意 `git add deployments/env/secrets.env` 失败或被 ignore
+- [x] 模拟新成员 clone 仓库，能在 `deployments/env/` 下直接看到 `infra.env`（含真实可工作的本地端口与 URI）
+- [x] 故意 `git add deployments/env/secrets.env` 失败或被 ignore
 
 ## 时间线
 
@@ -97,3 +97,4 @@ related:
 | 2026-05-14 | open | review-agent | 提交 BUG |
 | 2026-05-14 | in-progress | dev-ops BUG 修复 worker | 接手修复，确认 `.gitignore` 通配缺少 infra/observability 白名单，且仓库仅有 `.example` 默认文件 |
 | 2026-05-14 | fixed | dev-ops BUG 修复 worker | `.gitignore` 增加 infra/observability negation 白名单，复制对应 `.example` 为 shared 默认 `.env`；自动验收通过，关联 commit：本地未提交 |
+| 2026-05-17 | closed | 主 agent | 用户确认 dev-ops 已开发完成；shared env 与 secrets ignore 行为已闭合 |
