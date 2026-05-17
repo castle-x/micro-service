@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: bug
 initiative: dev-ops
+workflow-state: reopened
+state-updated: 2026-05-17
 related:
   - ../specs/env-split.md
   - ../roadmap.md
@@ -21,7 +23,6 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P1 |
 | 严重度 | Major |
-| 当前状态 | `closed` |
 | 影响模块 | `.gitignore`、`deployments/env/` |
 | 影响版本 | dev-ops initiative 首版 |
 | 关联 PR / commit | 本地未提交 |
@@ -77,8 +78,8 @@ related:
 
 ### AI 自动验收
 
-- [x] 行为：执行复现步骤 1-4，`git check-ignore -q deployments/env/infra.env` 退出非零（不被 ignore）
-- [x] 行为：`git check-ignore -q deployments/env/observability.env` 退出非零
+- [ ] 行为：执行复现步骤 1-4，`git check-ignore -q deployments/env/infra.env` 退出非零（不被 ignore）
+- [ ] 行为：`git check-ignore -q deployments/env/observability.env` 退出非零
 - [x] 行为：`git check-ignore -q deployments/env/secrets.env` 退出 0（被 ignore）
 - [x] 行为：`git check-ignore -q deployments/env/model.env` 退出 0
 - [x] 行为：`git check-ignore -q deployments/env/asset.env` 退出 0
@@ -87,7 +88,7 @@ related:
 
 ### 人类验收
 
-- [x] 模拟新成员 clone 仓库，能在 `deployments/env/` 下直接看到 `infra.env`（含真实可工作的本地端口与 URI）
+- [ ] 模拟新成员 clone 仓库，能在 `deployments/env/` 下直接看到 `infra.env`（含真实可工作的本地端口与 URI）
 - [x] 故意 `git add deployments/env/secrets.env` 失败或被 ignore
 
 ## 时间线
@@ -98,3 +99,4 @@ related:
 | 2026-05-14 | in-progress | dev-ops BUG 修复 worker | 接手修复，确认 `.gitignore` 通配缺少 infra/observability 白名单，且仓库仅有 `.example` 默认文件 |
 | 2026-05-14 | fixed | dev-ops BUG 修复 worker | `.gitignore` 增加 infra/observability negation 白名单，复制对应 `.example` 为 shared 默认 `.env`；自动验收通过，关联 commit：本地未提交 |
 | 2026-05-17 | closed | 主 agent | 用户确认 dev-ops 已开发完成；shared env 与 secrets ignore 行为已闭合 |
+| 2026-05-17 | reopened | 主 agent | 复核 `git check-ignore -v deployments/env/infra.env deployments/env/observability.env` 仍命中 `.gitignore:17 deployments/env/*.env`，说明共享 env 白名单未落盘或已回退 |

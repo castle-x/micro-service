@@ -1,0 +1,916 @@
+openapi: "3.0.3"
+info:
+  title: LLM Service API
+  description: |
+    LLM 服务 HTTP 接口规范。
+
+    ## 架构说明
+    llm service 使用 Hertz HTTP 暴露直接服务前缀 `/api/v1/llm`。
+    edge-api 暴露管理员代理前缀 `/api/v1/admin/llm`，由 edge-api 完成鉴权后转发到本服务。
+
+    ## API Key 安全
+    Provider 响应永远不返回明文 API Key。创建供应商和更新密钥时，客户端只在请求体中提交 `api_key`。
+
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:38083
+    description: Local llm service (direct, /api/v1/llm)
+  - url: http://localhost:38080
+    description: edge-api admin proxy (/api/v1/admin/llm, requires llm:admin permission)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: providers
+    description: LLM 供应商管理
+  - name: models
+    description: LLM 模型管理
+  - name: generation
+    description: LLM 生成接口
+
+paths:
+  /api/v1/llm/providers:
+    get:
+      tags: [providers]
+      summary: 列出供应商
+      description: 返回所有 LLM providers，响应不包含明文 API Key。
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderListResp"
+    post:
+      tags: [providers]
+      summary: 新增供应商
+      description: 可选提交 `api_key`；服务端加密存储，响应不返回明文 API Key。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProviderReq"
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateProviderResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/llm/providers/{id}:
+    put:
+      tags: [providers]
+      summary: 更新供应商配置
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProviderReq"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ProviderNotFound"
+    delete:
+      tags: [providers]
+      summary: 删除供应商
+      description: 仅允许删除未被模型引用的供应商；如仍有模型，需先删除模型。
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ProviderNotFound"
+
+  /api/v1/llm/providers/{id}/api-key:
+    patch:
+      tags: [providers]
+      summary: 更新供应商 API Key
+      description: 请求体接收明文 `api_key`；服务端加密存储，响应不返回明文 API Key。
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProviderAPIKeyReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ProviderNotFound"
+
+  /api/v1/llm/providers/{id}/enabled:
+    patch:
+      tags: [providers]
+      summary: 切换供应商启用状态
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetEnabledReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ProviderNotFound"
+
+  /api/v1/llm/providers/{id}/test:
+    post:
+      tags: [providers]
+      summary: 测试供应商连通性
+      parameters:
+        - $ref: "#/components/parameters/ProviderID"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestProviderReq"
+      responses:
+        "200":
+          description: 测试完成
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestProviderResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ProviderNotFound"
+        "502":
+          $ref: "#/components/responses/UpstreamError"
+
+  /api/v1/llm/models:
+    get:
+      tags: [models]
+      summary: 列出模型
+      parameters:
+        - name: provider_slug
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: enabled
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelListResp"
+    post:
+      tags: [models]
+      summary: 新增模型
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateModelReq"
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateModelResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ProviderNotFound"
+
+  /api/v1/llm/models/{id}:
+    put:
+      tags: [models]
+      summary: 更新模型配置
+      parameters:
+        - $ref: "#/components/parameters/ModelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateModelReq"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ModelNotFound"
+    delete:
+      tags: [models]
+      summary: 删除模型
+      parameters:
+        - $ref: "#/components/parameters/ModelID"
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ModelNotFound"
+
+  /api/v1/llm/models/{id}/enabled:
+    patch:
+      tags: [models]
+      summary: 切换模型启用状态
+      parameters:
+        - $ref: "#/components/parameters/ModelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetEnabledReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/OK"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ModelNotFound"
+
+  /api/v1/llm/generate:
+    post:
+      tags: [generation]
+      summary: 非流式生成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateReq"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateResp"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ModelNotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          $ref: "#/components/responses/UpstreamError"
+
+  /api/v1/llm/stream:
+    post:
+      tags: [generation]
+      summary: 流式生成
+      description: |
+        返回 `Content-Type: text/event-stream`。事件类型包括：
+        - `reasoning_delta`
+        - `content_delta`
+        - `tool_call_delta`
+        - `message_completed`
+        - `usage`
+        - `done`
+        - `error`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateReq"
+      responses:
+        "200":
+          description: SSE 流开始
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: "text/event-stream; charset=utf-8"
+            X-Accel-Buffering:
+              schema:
+                type: string
+                example: "no"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEStream"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ModelNotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: edge-api admin proxy requires Authorization Bearer token with llm:admin permission.
+
+  parameters:
+    ProviderID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        description: MongoDB ObjectID (hex)
+    ModelID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        description: MongoDB ObjectID (hex)
+
+  schemas:
+    Provider:
+      type: object
+      required: [id, name, slug, vendor, base_url, enabled]
+      properties:
+        id:
+          type: string
+          description: MongoDB ObjectID
+        name:
+          type: string
+          example: "DeepSeek"
+        slug:
+          type: string
+          description: 全局唯一供应商标识
+          example: "deepseek"
+        vendor:
+          type: string
+          description: 适配器厂商类型
+          example: "openai_compatible"
+        base_url:
+          type: string
+          format: uri
+          example: "https://api.deepseek.com"
+        enabled:
+          type: boolean
+        default_model_ref:
+          type: string
+          nullable: true
+          example: "deepseek/deepseek-v4-flash"
+        extra_json:
+          type: string
+          nullable: true
+          description: 扩展配置 JSON；不得包含明文密钥
+
+    CreateProviderReq:
+      type: object
+      required: [name, slug, vendor, base_url]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        vendor:
+          type: string
+        base_url:
+          type: string
+          format: uri
+        api_key:
+          type: string
+          writeOnly: true
+          description: 明文 API Key，仅请求使用，服务端加密存储
+        enabled:
+          type: boolean
+          default: true
+        default_model_ref:
+          type: string
+        extra_json:
+          type: string
+          description: 扩展配置 JSON 字符串；不得包含明文密钥
+
+    UpdateProviderReq:
+      type: object
+      properties:
+        name:
+          type: string
+        vendor:
+          type: string
+        base_url:
+          type: string
+          format: uri
+        default_model_ref:
+          type: string
+          nullable: true
+        extra_json:
+          type: string
+          nullable: true
+          description: 扩展配置 JSON 字符串；不得包含明文密钥
+
+    UpdateProviderAPIKeyReq:
+      type: object
+      required: [api_key]
+      properties:
+        api_key:
+          type: string
+          writeOnly: true
+          description: 明文 API Key，仅请求使用，服务端加密存储
+
+    Model:
+      type: object
+      required:
+        - id
+        - provider_id
+        - provider_slug
+        - model
+        - model_ref
+        - capabilities
+        - enabled
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: MongoDB ObjectID
+        provider_id:
+          type: string
+          description: Provider MongoDB ObjectID
+        provider_slug:
+          type: string
+          example: "deepseek"
+        model:
+          type: string
+          description: 上游厂商模型名
+          example: "deepseek-v4-flash"
+        model_ref:
+          type: string
+          description: 全局唯一模型引用，生成请求使用
+          example: "deepseek/deepseek-v4-flash"
+        display_name:
+          type: string
+          example: "DeepSeek V4 Flash"
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelCapability"
+        context_window:
+          type: integer
+          minimum: 1
+          nullable: true
+        max_output_tokens:
+          type: integer
+          minimum: 1
+          nullable: true
+        default_parameters_json:
+          type: string
+          nullable: true
+          description: 默认参数 JSON 字符串
+        enabled:
+          type: boolean
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+        updated_at:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+
+    ModelCapability:
+      type: string
+      enum: [chat, stream, tool_calling, json_mode, reasoning, vision]
+
+    CreateModelReq:
+      type: object
+      required: [provider_slug, model, capabilities]
+      properties:
+        provider_slug:
+          type: string
+        model:
+          type: string
+        display_name:
+          type: string
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelCapability"
+        context_window:
+          type: integer
+          minimum: 1
+        max_output_tokens:
+          type: integer
+          minimum: 1
+        default_parameters_json:
+          type: string
+          description: 默认参数 JSON 字符串
+        enabled:
+          type: boolean
+          default: true
+
+    UpdateModelReq:
+      type: object
+      properties:
+        display_name:
+          type: string
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelCapability"
+        context_window:
+          type: integer
+          minimum: 1
+          nullable: true
+        max_output_tokens:
+          type: integer
+          minimum: 1
+          nullable: true
+        default_parameters_json:
+          type: string
+          nullable: true
+          description: 默认参数 JSON 字符串
+
+    SetEnabledReq:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    TestProviderReq:
+      type: object
+      properties:
+        model_ref:
+          type: string
+          description: 可选，指定用于连通性测试的模型引用
+
+    TestProviderResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [ok]
+              properties:
+                ok:
+                  type: boolean
+                latency_ms:
+                  type: integer
+                  minimum: 0
+                message:
+                  type: string
+
+    GenerateReq:
+      type: object
+      required: [model_ref, messages]
+      properties:
+        model_ref:
+          type: string
+          example: "deepseek/deepseek-v4-flash"
+        messages:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Message"
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tool"
+        tool_choice:
+          $ref: "#/components/schemas/ToolChoice"
+        response_format:
+          $ref: "#/components/schemas/ResponseFormat"
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 2
+        max_tokens:
+          type: integer
+          minimum: 1
+        idempotency_key:
+          type: string
+          description: 客户端幂等键，用于重试去重
+
+    Message:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          type: string
+          nullable: true
+        reasoning_content:
+          type: string
+          nullable: true
+          readOnly: true
+        tool_calls:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolCall"
+          description: assistant 消息发起工具调用时填充
+        tool_call_id:
+          type: string
+          description: role=tool 时填充，对应 ToolCall.id
+
+    Tool:
+      type: object
+      required: [type, function]
+      properties:
+        type:
+          type: string
+          enum: [function]
+        function:
+          type: object
+          required: [name, parameters]
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+            parameters:
+              type: object
+              additionalProperties: true
+              description: JSON Schema 格式的参数描述
+
+    ToolChoice:
+      description: '"none" | "auto" | "required" | {type:"function",function:{name}}'
+      oneOf:
+        - type: string
+          enum: [none, auto, required]
+        - type: object
+          required: [type, function]
+          properties:
+            type:
+              type: string
+              enum: [function]
+            function:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+
+    ResponseFormat:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [text, json_object]
+          description: '`json_object` 要求模型输出合法 JSON'
+
+    ToolCall:
+      type: object
+      required: [id, type, function]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [function]
+        function:
+          type: object
+          required: [name, arguments]
+          properties:
+            name:
+              type: string
+            arguments:
+              type: string
+              description: JSON 字符串
+
+    GenerateResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/GenerateResult"
+
+    GenerateResult:
+      type: object
+      required: [request_id, assistant, usage, finish_reason, model_ref]
+      properties:
+        request_id:
+          type: string
+        assistant:
+          $ref: "#/components/schemas/AssistantMessage"
+        usage:
+          $ref: "#/components/schemas/Usage"
+        finish_reason:
+          type: string
+          enum: [stop, length, tool_calls, content_filter, error]
+        model_ref:
+          type: string
+
+    AssistantMessage:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [assistant]
+        content:
+          type: string
+          nullable: true
+        reasoning_content:
+          type: string
+          nullable: true
+        tool_calls:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolCall"
+
+    Usage:
+      type: object
+      required: [prompt_tokens, completion_tokens, total_tokens]
+      properties:
+        prompt_tokens:
+          type: integer
+          minimum: 0
+        completion_tokens:
+          type: integer
+          minimum: 0
+        total_tokens:
+          type: integer
+          minimum: 0
+
+    SSEStream:
+      type: string
+      description: |
+        SSE stream payload. Example:
+        ```
+        event: reasoning_delta
+        data: {"request_id":"req_123","delta":"thinking"}
+
+        event: content_delta
+        data: {"request_id":"req_123","delta":"hello"}
+
+        event: tool_call_delta
+        data: {"request_id":"req_123","index":0,"id":"call_1","name":"lookup","arguments_delta":"{\"q\""}
+
+        event: message_completed
+        data: {"request_id":"req_123","assistant":{"role":"assistant","content":"hello"},"finish_reason":"stop"}
+
+        event: usage
+        data: {"prompt_tokens":12,"completion_tokens":8,"total_tokens":20}
+
+        event: done
+        data: {"request_id":"req_123"}
+
+        event: error
+        data: {"code":16004,"message":"llm upstream error","request_id":"req_123"}
+        ```
+
+    CreateProviderResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+                  description: Provider MongoDB ObjectID
+
+    ProviderResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/Provider"
+
+    ProviderListResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/Provider"
+
+    CreateModelResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [id, model_ref]
+              properties:
+                id:
+                  type: string
+                  description: Model MongoDB ObjectID
+                model_ref:
+                  type: string
+                  description: 生成的全局唯一模型引用
+
+    ModelResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/Model"
+
+    ModelListResp:
+      allOf:
+        - $ref: "#/components/schemas/BaseResp"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/Model"
+
+    BaseResp:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: integer
+          description: 0 = 成功，非 0 = 错误码
+        message:
+          type: string
+
+  responses:
+    OK:
+      description: 操作成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseResp"
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    required: [ok]
+                    properties:
+                      ok:
+                        type: boolean
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"
+    ProviderNotFound:
+      description: Provider 不存在
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"
+    ModelNotFound:
+      description: Model 不存在
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"
+    RateLimited:
+      description: LLM 请求限流
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"
+    UpstreamError:
+      description: 上游 LLM 接口错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResp"

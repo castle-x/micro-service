@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: bug
 initiative: quality
+workflow-state: fixed
+state-updated: 2026-05-17
 related:
   - ../roadmap.md
 -->
@@ -20,7 +22,6 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P3 |
 | 严重度 | Minor |
-| 当前状态 | `fixed` |
 | 影响模块 | `.axm/progress/quality/`（roadmap.md + 15 个 specs） |
 | 影响版本 | quality initiative 创建时 |
 | 关联 PR / commit | 本地未提交 |

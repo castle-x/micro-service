@@ -143,7 +143,7 @@ export default function SettingsPage() {
             配置 DeepSeek、Seedream 等 AI 模型供应商的接入信息。
           </p>
           <button
-            onClick={() => navigate('/admin/models')}
+            onClick={() => navigate('/admin/llm')}
             style={{
               background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)',
               borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer',

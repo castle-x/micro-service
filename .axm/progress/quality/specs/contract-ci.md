@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: quality
+workflow-state: in-progress
+state-updated: 2026-05-17
 related:
   - ../roadmap.md
   - ../../../project/api-testing.md
@@ -81,7 +83,7 @@ IDL_COMPAT_ALLOW_BREAKING=1 make idl-compat
 ## 影响面
 
 - 所有 IDL 变更 PR：CI 多一项 30 秒检查
-- 所有 `services/model` 路由变更：必须同步更新 `idl/model/openapi.yaml`
+- 所有 `services/llm` 路由变更：必须同步更新 `idl/llm/openapi.yaml`
 
 ## 回滚
 

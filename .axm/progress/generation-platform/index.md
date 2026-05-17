@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 entries:
@@ -9,6 +9,9 @@ entries:
   - path: decisions.md
     title: AI 创作平台路线整合决策
     when-to-read: 追溯 generation-platform、Eino 创作计划和 platform 地基的整合决策时
+  - path: specs/
+    title: generation-platform 阶段 Spec 索引
+    when-to-read: 查看 AI 创作 / 生成资产平台已拆分的阶段开发 spec 时
 -->
 # generation-platform/ — AI 创作 / 生成资产平台
 

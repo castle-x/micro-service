@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 depth: overview
@@ -55,7 +55,7 @@ related:
 - **L1/预留包**：`registry` 仍是通用接口骨架；`mq` 的真实 NSQ publish/consume 仍未实现，但已经有 OTel message context 与 span helper。
 - **etcd 服务发现**：当前分支的真实路径是 `services/* -> pkg/cloudwego -> kitex-contrib/hertz-contrib registry-etcd`，不是 `pkg/registry/etcd`。
 - **trace 元数据**：`pkg/middleware` 负责 HTTP header / Kitex metainfo 透传，`pkg/otel` 安装 W3C propagator，`pkg/logger.Ctx(ctx)` 负责写入 `trace_id` / `span_id`。
-- **错误码边界**：系统 10001-10999，idp 11001-11999，iam 12001-12999，billing 13001-13999，credits 14001-14999，notification 15001-15999，model 16001-16999，asset 17001-17999。
+- **错误码边界**：系统 10001-10999，idp 11001-11999，iam 12001-12999，billing 13001-13999，credits 14001-14999，notification 15001-15999，llm 16001-16999，asset 17001-17999。
 - **当前边界**：etcd + OTel/OpenObserve 地基已够用；暂不继续扩展通用组件，后续优先跟随具体业务链路补齐。
 
 ## 修改入口

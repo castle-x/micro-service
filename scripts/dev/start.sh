@@ -78,6 +78,7 @@ start_service() {
   local existing_pid
   local pids
   local offender
+  local legacy_offender
   local env_args=()
   local line
   local pid
@@ -108,7 +109,12 @@ start_service() {
     fi
 
     offender="$(first_non_matching_pid "${pids}" "${existing_pid}")"
-    log "port ${port} occupied by pid ${offender} (not ${service}), refuse to start"
+    legacy_offender="$(legacy_service_for_pid "${service}" "${offender}")"
+    if [ -n "${legacy_offender}" ]; then
+      log "port ${port} occupied by legacy ${legacy_offender} pid ${offender}; run make ${service}-restart or make dev-restart to migrate"
+    else
+      log "port ${port} occupied by pid ${offender} (not ${service}), refuse to start"
+    fi
     return 1
   fi
 

@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 entries:
@@ -8,7 +8,7 @@ entries:
     when-to-read: 理解或修改 logger/db/utils/config/errno/redis/jwt/middleware/registry/mq 时
   - path: services/
     title: 服务拓扑
-    when-to-read: 理解或修改 edge-api、idp、iam、asset、model、billing、credits、notification 服务时
+    when-to-read: 理解或修改 edge-api、idp、iam、asset、llm、billing、credits、notification 服务时
   - path: observability/
     title: 可观测性
     when-to-read: 理解或排查 OpenTelemetry trace、metrics、log correlation 时

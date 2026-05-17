@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: quality
+workflow-state: ready
+state-updated: 2026-05-17
 priority: P0
 related:
   - ../roadmap.md

@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: generation-platform
+workflow-state: in-progress
+state-updated: 2026-05-17
 related:
   - ./decisions.md
   - ../asset/roadmap.md
@@ -72,7 +74,7 @@ workflow -> agent -> llm
 - `agent` 合并 Agent 配置、Agent 运行和 tool 注册/执行；早期不拆 `agent-registry` / `agent-runtime` / `tool-registry` / `tool-runtime`。
 - `workflow` 合并工作流自定义、编排、执行和任务提交；早期不拆单独的 `workflow-control` / `workflow-runner`。
 - `knowledge/RAG` 暂不进入第一阶段主线。平台早期优先完成创作工作流、Agent、生图和资产沉淀闭环。
-- 当前 `services/model` 属于早期旧模型网关方向。后续不以兼容旧 API 为目标；根据新路线用 `llm` 服务重建模型调用层。
+- 旧 `services/model` 属于早期模型网关方向。GP-02 已按新路线用 `services/llm` 重建模型调用层，不再兼容旧 API。
 - 生图服务正式命名为 `generator`；`generation-platform` 只保留为产品路线 initiative 名称，不代表服务名。
 
 ## 服务边界
@@ -150,8 +152,9 @@ DNA：结构化 JSON
 |---|---|---|---|
 | GP-00 | Eino 创作平台边界决策 | 已确认，已记录决策 | [`decisions.md`](decisions.md)：明确 `generation-platform` 是核心产品路线，`platform` 是地基；确定 `workflow -> agent -> (llm, tool -> generator)` |
 | GP-01 | Asset 基础能力对齐与闭合 | 已完成 | 资产类型、资产实例、版本、媒体对象、OSS/CDN、生成入库前置；见 [`../asset/roadmap.md`](../asset/roadmap.md) |
-| GP-02 | `llm` 服务重建 | 未拆 spec | 删除旧 `model` 方向，基于 Eino ChatModel/ToolCallingChatModel 重建 provider、key、Generate/Stream、usage、OTel |
-| GP-03 | `agent` 服务 MVP | 未拆 spec | Agent profile、默认 Agent、用户自定义 Agent、Runner、ReAct 工具循环、Agent SSE 事件流、tool 白名单 |
+| GP-02 | `llm` 服务重建 | 已完成并通过 GP-02-01 收口验证 | 删除旧 `model` 方向，基于 Eino ChatModel/ToolCallingChatModel 重建 provider、key、Generate/Stream、usage、OTel；见 [`specs/gp-02-llm-service-rebuild.md`](specs/gp-02-llm-service-rebuild.md) |
+| GP-02-01 | `llm` 服务收口与 Web 调试平台 | 已完成；全栈 fake upstream smoke 因本地 edge-api 未启动记录为环境阻塞 | 后端 provider test 诊断 API、Web Generate ping 测试按钮、身份/幂等元数据、脱敏调用面、edge -> llm smoke 脚本、Web 调试平台；见 [`specs/gp-02-01-llm-service-closure.md`](specs/gp-02-01-llm-service-closure.md) |
+| GP-03 | `agent` 服务 MVP | 已拆 spec，可在 GP-02 收口基础上启动开发 | Agent profile、默认 Agent、用户自定义 Agent、Runner、ReAct 工具循环、Agent SSE 事件流、tool 白名单；见 [`specs/gp-03-agent-service-mvp.md`](specs/gp-03-agent-service-mvp.md) |
 | GP-04 | `workflow` 服务 MVP | 未拆 spec | 工作流模板、步骤定义、运行实例、任务提交、人工确认、步骤产物与 asset part 绑定 |
 | GP-05 | `generator` 服务与 tool 化 | 未拆 spec | 生图/编辑/批量任务、重试、幂等、结果写入 asset；同时支持直接调用和 Agent tool 调用 |
 | GP-06 | 资产复用生产流 | 未拆 spec | 消费已有资产组合上下文，批量生成历史产物或资产版本，支持选择、微调、保存 |
@@ -164,11 +167,12 @@ DNA：结构化 JSON
 平台地基（platform / kong-etcd / opentelemetry / dev-ops）
   -> GP-01 asset 基础能力
     -> GP-02 llm
-      -> GP-03 agent
-        -> GP-04 workflow
-          -> GP-05 generator
-            -> GP-06 资产复用生产流
-              -> GP-07 credits/billing
+      -> GP-02-01 llm 收口与 Web 调试平台
+        -> GP-03 agent
+          -> GP-04 workflow
+            -> GP-05 generator
+              -> GP-06 资产复用生产流
+                -> GP-07 credits/billing
 ```
 
 说明：
@@ -185,8 +189,9 @@ DNA：结构化 JSON
 | 平台地基 | 已具备基础闭环，作为本路线前置能力 |
 | 资产服务 | AS-01 至 AS-04 第一版能力已完成；本路线只引用，不复制细节 |
 | 生图服务命名 | 已确认服务名为 `generator`，不再使用 `generation` 作为服务名 |
-| Eino 引入 | 已完成架构讨论，尚未落代码 |
-| 旧 `model` 服务 | 属于早期模型网关方向，后续由 `llm` 服务替代，不作为未来主线扩展 |
+| Eino 引入 | GP-02 已在 `services/llm/component` 引入 Eino ChatModel 适配 |
+| `llm` 收口 | GP-02-01 已补齐后端 provider test 诊断 API、Web Generate ping 测试按钮、可信 metadata、幂等、脱敏调用面、Web 调试台和 SSE smoke 脚本；全栈 fake upstream smoke 待本地 dev ready 后复验 |
+| 旧 `model` 服务 | 已由 GP-02 在本分支删除，运行链路切换到 `llm`；旧引用扫描无运行时代码匹配 |
 | Knowledge/RAG | 暂不进入早期主线 |
 
 ## 验收口径
@@ -214,11 +219,11 @@ DNA：结构化 JSON
 
 - `workflow` 第一版允许用户自定义到什么程度：仅编辑模板参数，还是允许新增/删除步骤。
 - `agent` 用户自定义范围：instruction、model、tools、output schema、max iterations、memory 策略分别开放到什么级别。
-- `agent` 与 `llm` 的协议形态：内部 Kitex 还是 HTTP/SSE；如何承载 tool-calling rich message。
+- `agent` 与 `llm` 的协议形态已在 GP-02 spec 暂定为 HTTP/SSE + service discovery；实现 GP-03 前需通过 GP-02-01 收口验收复核一次。
 - `generator` 第一批供应商与图像任务模型：同步返回、异步 job、回调和重试策略。
 - 生成历史产物保留策略、清理策略和额度计费策略。
-- 是否需要在 GP-02 前直接删除旧 `services/model`，还是在代码重构时自然替换。
+- GP-02 已选择在同阶段删除旧 `services/model` 与 `idl/model`，避免保留两套模型调用面。
 
 ## 下一步
 
-优先拆 `GP-02 llm 服务重建` 和 `GP-03 agent 服务 MVP` 的 spec。`asset` 当前已具备媒体与版本写入前置条件；后续拆 `GP-05 generator` 时只需核对 generator 到 asset 的入库协议与幂等边界。
+下一步可复核并执行 [`GP-03 agent 服务 MVP spec`](specs/gp-03-agent-service-mvp.md)。`asset` 当前已具备媒体与版本写入前置条件；后续拆 `GP-05 generator` 时只需核对 generator 到 asset 的入库协议与幂等边界。真实 fake upstream 全栈 smoke 与 OpenObserve 人工查询保留为本地环境 ready 后的复验项，不阻塞 GP-03 启动。

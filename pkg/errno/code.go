@@ -7,7 +7,7 @@
 //   - Billing     : 13001 - 13999
 //   - Credits     : 14001 - 14999
 //   - Notification: 15001 - 15999
-//   - Model       : 16001 - 16999
+//   - LLM         : 16001 - 16999
 //   - Asset       : 17001 - 17999
 //
 // 使用规则：
@@ -68,12 +68,17 @@ var (
 	ErrChannelSendFailed = New(15002, "channel send failed")
 )
 
-// ---- Model 16001 - 16999 ----
+// ---- LLM 16001 - 16999 ----
 var (
-	ErrProviderNotFound   = New(16001, "model provider not found")
-	ErrProviderDisabled   = New(16002, "model provider disabled")
-	ErrAdapterUnsupported = New(16003, "model adapter unsupported")
-	ErrUpstreamLLM        = New(16004, "upstream llm error")
+	ErrLLMProviderNotFound           = New(16001, "llm provider not found")
+	ErrLLMProviderDisabled           = New(16002, "llm provider disabled")
+	ErrLLMAdapterUnsupported         = New(16003, "llm adapter unsupported")
+	ErrLLMUpstream                   = New(16004, "llm upstream error")
+	ErrLLMModelNotFound              = New(16005, "llm model not found")
+	ErrLLMModelDisabled              = New(16006, "llm model disabled")
+	ErrLLMModelCapabilityUnsupported = New(16007, "llm model capability unsupported")
+	ErrLLMRateLimited                = New(16008, "llm rate limited")
+	ErrLLMInvalidMessage             = New(16009, "llm invalid message")
 )
 
 // ---- Asset 17001 - 17999 ----

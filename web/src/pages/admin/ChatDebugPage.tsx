@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { hasStreamUsage, modelListProviders, modelChatStream, type ModelProvider } from '../../lib/api'
+import { hasStreamUsage, modelListModels, modelChatStream, type ModelInfo } from '../../lib/api'
+import { getErrorMessage } from '../../lib/error'
 
 interface Message {
   role: 'user' | 'assistant' | 'system' | 'tool'
@@ -159,8 +160,8 @@ function AdvancedPanel({ params, setParams }: { params: AdvancedParams; setParam
 // ---- Main Page ----
 
 export default function ChatDebugPage() {
-  const [providers, setProviders] = useState<ModelProvider[]>([])
-  const [slug, setSlug] = useState('')
+  const [models, setModels] = useState<ModelInfo[]>([])
+  const [modelRef, setModelRef] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
@@ -173,13 +174,13 @@ export default function ChatDebugPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    modelListProviders()
-      .then((ps) => {
-        const llms = ps.filter((p) => p.type === 'llm' && p.enabled)
-        setProviders(llms)
-        if (llms.length > 0) setSlug(llms[0].slug)
+    modelListModels({ enabled: true })
+      .then((items) => {
+        const enabledModels = items.filter((m) => m.enabled)
+        setModels(enabledModels)
+        if (enabledModels.length > 0) setModelRef(enabledModels[0].model_ref)
       })
-      .catch(() => {})
+      .catch((e: unknown) => setError(getErrorMessage(e, '加载模型列表失败')))
   }, [])
 
   useEffect(() => {
@@ -189,7 +190,7 @@ export default function ChatDebugPage() {
   const canSend = !advancedParams.toolsJsonError
 
   const send = async () => {
-    if (!input.trim() || !slug || loading || !canSend) return
+    if (!input.trim() || !modelRef || loading || !canSend) return
 
     const userMsg: Message = { role: 'user', content: input.trim() }
     const history = [...messages, userMsg]
@@ -209,7 +210,7 @@ export default function ChatDebugPage() {
     abortRef.current = new AbortController()
 
     try {
-      await modelChatStream(slug, toSend, (chunk) => {
+      await modelChatStream(modelRef, toSend, (chunk) => {
         if (chunk.type === 'reasoning' && chunk.content) {
           setMessages((prev) => {
             const next = [...prev]
@@ -310,11 +311,11 @@ export default function ChatDebugPage() {
           Chat 调试
           <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', verticalAlign: 'middle' }}>SSE 流式</span>
         </h2>
-        <select value={slug} onChange={(e) => setSlug(e.target.value)}
+        <select value={modelRef} onChange={(e) => setModelRef(e.target.value)}
           style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 13 }}>
-          {providers.length === 0 && <option value="">（无可用 LLM 供应商）</option>}
-          {providers.map((p) => (
-            <option key={p.slug} value={p.slug}>{p.name} / {p.default_model || p.slug}</option>
+          {models.length === 0 && <option value="">（无可用 LLM 模型）</option>}
+          {models.map((m) => (
+            <option key={m.id || m.model_ref} value={m.model_ref}>{m.display_name || m.model} / {m.model_ref}</option>
           ))}
         </select>
         <button onClick={clear} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer' }}>
@@ -351,7 +352,7 @@ export default function ChatDebugPage() {
           <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
             <div style={{ maxWidth: '80%' }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3, textAlign: m.role === 'user' ? 'right' : 'left' }}>
-                {m.role === 'user' ? 'You' : slug}
+                {m.role === 'user' ? 'You' : modelRef}
                 {m.streaming && <span style={{ marginLeft: 6, color: 'var(--accent)' }}>●</span>}
               </div>
               {m.role === 'assistant' && m.reasoning && (
@@ -408,8 +409,8 @@ export default function ChatDebugPage() {
             停止
           </button>
         ) : (
-          <button onClick={send} disabled={!input.trim() || !slug || !canSend}
-            style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: (!input.trim() || !slug || !canSend) ? 0.5 : 1, alignSelf: 'flex-end' }}>
+          <button onClick={send} disabled={!input.trim() || !modelRef || !canSend}
+            style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: (!input.trim() || !modelRef || !canSend) ? 0.5 : 1, alignSelf: 'flex-end' }}>
             发送
           </button>
         )}

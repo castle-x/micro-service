@@ -28,9 +28,9 @@ type EdgeConfig struct {
 	Server struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
-	Model struct {
+	LLM struct {
 		ServiceName string `mapstructure:"service_name"`
-	} `mapstructure:"model"`
+	} `mapstructure:"llm"`
 	Asset struct {
 		ServiceName string `mapstructure:"service_name"`
 	} `mapstructure:"asset"`
@@ -137,16 +137,16 @@ func main() {
 	adminHandler := handler.NewAdminHandler(iamCli, idpCli)
 	assetHandler := handler.NewAssetHandler(assetCli)
 
-	// Model service 代理
-	modelServiceName := cfg.Model.ServiceName
-	if modelServiceName == "" {
-		modelServiceName = "model"
+	// LLM service 代理
+	llmServiceName := cfg.LLM.ServiceName
+	if llmServiceName == "" {
+		llmServiceName = "llm"
 	}
-	modelResolver, err := cloudwego.NewHertzServiceResolver(cfg.Discovery, modelServiceName)
+	llmResolver, err := cloudwego.NewHertzServiceResolver(cfg.Discovery, llmServiceName)
 	if err != nil {
-		logger.L().Fatal("model resolver init failed", zap.Error(err))
+		logger.L().Fatal("llm resolver init failed", zap.Error(err))
 	}
-	modelProxy := handler.NewModelProxy(modelResolver)
+	llmProxy := handler.NewLLMProxy(llmResolver)
 
 	// Hertz server
 	addr := cfg.Server.Addr
@@ -166,7 +166,7 @@ func main() {
 	}
 	hertzOpts = append(hertzOpts, registryOpts...)
 	h := server.Default(hertzOpts...)
-	RegisterRoutes(h, authHandler, userHandler, adminHandler, assetHandler, modelProxy, idpCli, iamCli, jwtSecret, frontendURL)
+	RegisterRoutes(h, authHandler, userHandler, adminHandler, assetHandler, llmProxy, idpCli, iamCli, jwtSecret, frontendURL)
 
 	adminHealth := pkghealth.NewServer(pkghealth.Config{Service: "edge-api", Addr: pkghealth.AdminAddr("edge-api", 48080)})
 	adminHealth.Check("redis", pkghealth.RedisCheck(pkgredis.GetClient()))

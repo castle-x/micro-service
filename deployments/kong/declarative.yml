@@ -73,9 +73,9 @@ services:
     read_timeout: 300000
     write_timeout: 300000
     routes:
-      - name: edge-api-admin-model-stream-protected
+      - name: edge-api-admin-llm-stream-protected
         paths:
-          - /api/v1/admin/models/chat/stream
+          - /api/v1/admin/llm/stream
         protocols:
           - http
           - https

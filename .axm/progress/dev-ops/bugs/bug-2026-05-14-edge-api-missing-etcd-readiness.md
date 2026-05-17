@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-14
 owner: castlexu
 progress-type: bug
 initiative: dev-ops
+workflow-state: closed
+state-updated: 2026-05-14
 related:
   - ../specs/health-endpoints.md
   - ../roadmap.md
@@ -21,7 +23,6 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P1 |
 | 严重度 | Major |
-| 当前状态 | `closed` |
 | 影响模块 | `services/edge-api`、`services/model`、`pkg/health` |
 | 影响版本 | dev-ops initiative 首版 |
 | 关联 PR / commit | 本地未提交 |
