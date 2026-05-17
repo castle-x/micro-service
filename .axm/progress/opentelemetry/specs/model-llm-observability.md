@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: deprecated
 last-reviewed: 2026-05-12
 owner: castlexu
 progress-type: spec
 initiative: opentelemetry
+workflow-state: superseded
+state-updated: 2026-05-12
 related:
   - ../roadmap.md
   - ../../../project/observability.md
@@ -13,7 +15,8 @@ related:
 
 # OTel-05：model / LLM 可观测性
 
-> **状态**：已完成
+> **状态**：已被 GP-02 `services/llm` 重建取代。本文仅保留旧 `services/model` 方向的历史验收记录，不应作为当前运行链路参考；当前 LLM 链路事实见 `../../generation-platform/specs/gp-02-llm-service-rebuild.md`、`../../../knowledge/services/overview.md` 和 `../../../knowledge/observability/overview.md`。
+> **原始状态**：已完成
 > **完成时间**：2026-05-12
 
 ## 背景

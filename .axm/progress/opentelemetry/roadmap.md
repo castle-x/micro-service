@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: opentelemetry
+workflow-state: closed
+state-updated: 2026-05-17
 related:
   - ../../project/observability.md
   - ../../knowledge/observability/overview.md
@@ -23,15 +25,15 @@ related:
 
 - `pkg/middleware` 负责 HTTP/Kitex 的 `trace_id` 生成与透传。
 - `pkg/logger.Ctx(ctx)` 能把 trace/user/tenant 元数据写入日志。
-- `edge-api`、`model` 已使用 Hertz 中间件；`idp`、`iam` 等 Kitex 服务已挂载 trace/recovery/logging。
+- `edge-api`、`llm` 已使用 Hertz 中间件；`idp`、`iam` 等 Kitex 服务已挂载 trace/recovery/logging。
 
 经过 OTel-01 至 OTel-05，当前已经具备标准 OpenTelemetry 应用侧能力：
 
 - `pkg/otel` 已提供 tracer/meter provider、OTLP exporter、resource、shutdown 与禁用降级。
 - Hertz / Kitex 已支持 W3C `traceparent` / `baggage` 传播，并兼容 `X-Trace-ID`。
 - 日志可通过 OTel `trace_id` / `span_id` 与 span 树关联。
-- Mongo、Redis、MQ、model/LLM provider 调用已形成低敏、低基数的可观测边界。
-- `edge-api -> model -> LLM provider` 已具备连续 trace 传播和 provider span。
+- Mongo、Redis、MQ、llm/LLM provider 调用已形成低敏、低基数的可观测边界。
+- `edge-api -> llm -> LLM provider` 已具备连续 trace 传播和 provider span；旧 `model` 观测记录已由 GP-02 `llm` 重建取代。
 
 OTel-06 已基于 OpenObserve 补齐本地统一观测平台、OpenTelemetry Collector 和 AI 可读查询命令。当前目标已经从“继续搭基础设施”转为“在具体业务排障时使用这些入口，并按需补齐日志入库、metrics 展示和拓扑状态聚合”。
 
@@ -54,7 +56,7 @@ OTel-06 已基于 OpenObserve 补齐本地统一观测平台、OpenTelemetry Col
 | OTel-02 | Hertz + Kitex trace 注入 | 已完成 | [`specs/http-rpc-tracing.md`](specs/http-rpc-tracing.md) |
 | OTel-03 | log correlation | 已完成 | [`specs/log-correlation.md`](specs/log-correlation.md) |
 | OTel-04 | Mongo / Redis / MQ instrumentation | 已完成 | [`specs/data-mq-instrumentation.md`](specs/data-mq-instrumentation.md) |
-| OTel-05 | model / LLM 可观测性 | 已完成 | [`specs/model-llm-observability.md`](specs/model-llm-observability.md) |
+| OTel-05 | model / LLM 可观测性 | 已完成，旧 model 实现已被 GP-02 `llm` 重建取代 | [`specs/model-llm-observability.md`](specs/model-llm-observability.md) |
 | OTel-06 | OpenObserve 本地观测平台与 AI 查询工具 | 已完成并闭合 | [`specs/local-observability-ai-tools.md`](specs/local-observability-ai-tools.md) |
 
 ## 四、阶段依赖
@@ -64,7 +66,7 @@ OTel-01 pkg/otel
   -> OTel-02 HTTP/RPC trace
     -> OTel-03 log correlation
     -> OTel-04 DB/Redis/MQ
-    -> OTel-05 model/LLM
+    -> OTel-05 model/LLM（当前运行链路为 llm）
       -> OTel-06 OpenObserve local observability + AI tools
 ```
 
@@ -81,7 +83,7 @@ OTel-01 pkg/otel
 | OTLP exporter | 已实现：支持 OTLP gRPC / HTTP exporter 配置 |
 | logs 关联 span id | 已实现：`logger.Ctx(ctx)` 自动输出 OTel `trace_id` / `span_id`，无 span 时保留旧 trace_id |
 | DB/Redis/MQ instrumentation | 已实现：`pkg/db` Repository、`pkg/redis` Client/Lock、`pkg/mq` message context helper 与 NSQ placeholder span |
-| LLM provider instrumentation | 已实现：model adapter 非流式/流式调用创建 `LLM chat.completions` span，记录 provider/model/stream/status/usage/首 token 延迟并避免写入 prompt/response/API key |
+| LLM provider instrumentation | 已实现并迁移到当前 `llm` 链路：非流式/流式调用记录 provider/model/stream/status/usage/首 token 延迟并避免写入 prompt/response/API key |
 | 本地观测平台选型 | 已确认：OTel-06 优先接入 self-host OpenObserve，统一查看 traces、metrics、logs；Prometheus/Grafana/Jaeger 不作为第一版必需组件 |
 | OpenTelemetry Collector | 决策保留：作为应用与 OpenObserve 之间的 OTLP 解耦层，便于后续替换或并行转发后端 |
 | 本地观测栈 | 已实现并验证：`deployments/docker-compose.observability.yml` 启动 OpenObserve + OpenTelemetry Collector；OpenObserve UI 可打开 |

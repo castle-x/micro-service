@@ -170,41 +170,144 @@ export interface ModelProvider {
   id: string
   name: string
   slug: string
-  type: 'llm' | 'image'
+  vendor: string
   base_url: string
-  default_model: string
+  default_model_ref?: string | null
   enabled: boolean
   created_at: number
+  updated_at: number
+}
+
+export interface ModelInfo {
+  id: string
+  provider_id?: string
+  provider_slug: string
+  model: string
+  model_ref: string
+  display_name?: string
+  capabilities: string[]
+  context_window?: number
+  max_output_tokens?: number
+  default_parameters_json?: string
+  enabled: boolean
+  created_at?: number
+  updated_at?: number
+}
+
+export interface ProviderTestResult {
+  ok: boolean
+  message?: string
 }
 
 export const modelListProviders = async (): Promise<ModelProvider[]> => {
-  const res = await api.get<ApiResponse<ModelProvider[]>>('/v1/admin/models/providers')
+  const res = await api.get<ApiResponse<ModelProvider[]>>('/v1/admin/llm/providers')
   return res.data.data ?? []
 }
 
 export const modelCreateProvider = async (data: {
   name: string
   slug: string
-  type: 'llm' | 'image'
+  vendor: string
   base_url: string
   api_key: string
-  default_model: string
+  default_model_ref: string
 }): Promise<{ id: string }> => {
-  const res = await api.post<ApiResponse<{ id: string }>>('/v1/admin/models/providers', data)
+  const res = await api.post<ApiResponse<{ id: string }>>('/v1/admin/llm/providers', data)
   return res.data.data
 }
 
+export const modelUpdateProvider = async (id: string, data: {
+  name: string
+  vendor: string
+  base_url: string
+  default_model_ref: string
+}) => {
+  await api.put(`/v1/admin/llm/providers/${id}`, data)
+}
+
+export const modelDeleteProvider = async (id: string) => {
+  await api.delete(`/v1/admin/llm/providers/${id}`)
+}
+
 export const modelSetEnabled = async (id: string, enabled: boolean) => {
-  await api.patch(`/v1/admin/models/providers/${id}/enabled`, { enabled })
+  await api.patch(`/v1/admin/llm/providers/${id}/enabled`, { enabled })
 }
 
 export const modelUpdateAPIKey = async (id: string, apiKey: string) => {
-  await api.patch(`/v1/admin/models/providers/${id}/api_key`, { api_key: apiKey })
+  await api.patch(`/v1/admin/llm/providers/${id}/api-key`, { api_key: apiKey })
 }
 
-export const modelChat = async (slug: string, messages: { role: string; content: string }[], extra: Record<string, unknown> = {}): Promise<string> => {
-  const res = await chatApi.post<ApiResponse<{ content: string }>>('/v1/admin/models/chat', { slug, messages, ...extra })
-  return res.data.data.content
+export const modelTestProvider = async (id: string): Promise<ProviderTestResult> => {
+  const res = await api.post<ApiResponse<ProviderTestResult>>(`/v1/admin/llm/providers/${id}/test`)
+  return res.data.data
+}
+
+export const modelListModels = async (params: { provider_slug?: string; enabled?: boolean } = {}): Promise<ModelInfo[]> => {
+  const query = new URLSearchParams()
+  if (params.provider_slug) query.set('provider_slug', params.provider_slug)
+  if (params.enabled !== undefined) query.set('enabled', String(params.enabled))
+  const suffix = query.toString() ? `?${query}` : ''
+  const res = await api.get<ApiResponse<ModelInfo[]>>(`/v1/admin/llm/models${suffix}`)
+  return res.data.data ?? []
+}
+
+export const modelCreateModel = async (data: {
+  provider_slug: string
+  model: string
+  display_name?: string
+  capabilities: string[]
+  context_window?: number
+  max_output_tokens?: number
+  default_parameters_json?: string
+  enabled?: boolean
+}): Promise<{ id: string; model_ref?: string }> => {
+  const res = await api.post<ApiResponse<{ id: string; model_ref?: string }>>('/v1/admin/llm/models', data)
+  return res.data.data
+}
+
+export const modelUpdateModel = async (id: string, data: {
+  display_name?: string
+  capabilities: string[]
+  context_window?: number
+  max_output_tokens?: number
+  default_parameters_json?: string
+}) => {
+  await api.put(`/v1/admin/llm/models/${id}`, data)
+}
+
+export const modelDeleteModel = async (id: string) => {
+  await api.delete(`/v1/admin/llm/models/${id}`)
+}
+
+export const modelSetModelEnabled = async (id: string, enabled: boolean) => {
+  await api.patch(`/v1/admin/llm/models/${id}/enabled`, { enabled })
+}
+
+type GenerateData = {
+  message?: { content?: unknown } | string
+  assistant?: { content?: unknown } | string
+  content?: unknown
+}
+
+const readGenerateContent = (data?: GenerateData): string => {
+  if (!data) return ''
+
+  if (typeof data.message === 'string') return data.message
+  if (data.message && typeof data.message === 'object' && typeof data.message.content === 'string') {
+    return data.message.content
+  }
+
+  if (typeof data.assistant === 'string') return data.assistant
+  if (data.assistant && typeof data.assistant === 'object' && typeof data.assistant.content === 'string') {
+    return data.assistant.content
+  }
+
+  return typeof data.content === 'string' ? data.content : ''
+}
+
+export const modelChat = async (modelRef: string, messages: { role: string; content: string }[], extra: Record<string, unknown> = {}): Promise<string> => {
+  const res = await chatApi.post<ApiResponse<GenerateData>>('/v1/admin/llm/generate', { model_ref: modelRef, messages, ...extra })
+  return readGenerateContent(res.data.data)
 }
 
 // SSE stream chunk types
@@ -227,26 +330,26 @@ export const hasStreamUsage = (chunk: StreamChunk): boolean => (
 
 /**
  * modelChatStream — 使用 fetch + ReadableStream 消费 SSE 流式输出。
- * @param slug      provider slug
+ * @param modelRef  model_ref
  * @param messages  对话消息列表
  * @param onChunk   每收到一个 chunk 的回调
  * @param signal    AbortSignal，用于取消请求
  */
 export const modelChatStream = async (
-  slug: string,
+  modelRef: string,
   messages: { role: string; content: string }[],
   onChunk: (chunk: StreamChunk) => void,
   signal?: AbortSignal,
   extra: Record<string, unknown> = {},
 ): Promise<void> => {
   const token = (await import('../store/auth')).useAuthStore.getState().accessToken
-  const resp = await fetch('/api/v1/admin/models/chat/stream', {
+  const resp = await fetch('/api/v1/admin/llm/stream', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ slug, messages, ...extra }),
+    body: JSON.stringify({ model_ref: modelRef, messages, ...extra }),
     signal,
   })
 
@@ -258,6 +361,14 @@ export const modelChatStream = async (
   const reader = resp.body!.getReader()
   const decoder = new TextDecoder()
   let buf = ''
+  let usage: Pick<StreamChunk, 'prompt_tokens' | 'completion_tokens' | 'total_tokens'> = {}
+  const readUsage = (payload: Record<string, unknown>) => {
+    const next: Pick<StreamChunk, 'prompt_tokens' | 'completion_tokens' | 'total_tokens'> = {}
+    if (typeof payload.prompt_tokens === 'number') next.prompt_tokens = payload.prompt_tokens
+    if (typeof payload.completion_tokens === 'number') next.completion_tokens = payload.completion_tokens
+    if (typeof payload.total_tokens === 'number') next.total_tokens = payload.total_tokens
+    return next
+  }
 
   while (true) {
     const { value, done } = await reader.read()
@@ -269,14 +380,46 @@ export const modelChatStream = async (
     buf = parts.pop() ?? ''
 
     for (const part of parts) {
+      let eventName = ''
       for (const line of part.split('\n')) {
+        if (line.startsWith('event: ')) {
+          eventName = line.slice(7).trim()
+          continue
+        }
         if (!line.startsWith('data: ')) continue
         const data = line.slice(6).trim()
         if (!data || data === '[DONE]') continue
         try {
-          const chunk: StreamChunk = JSON.parse(data)
-          onChunk(chunk)
-          if (chunk.type === 'done' || chunk.type === 'error') return
+          const payload = JSON.parse(data) as Record<string, unknown>
+          if (eventName === 'reasoning_delta') {
+            onChunk({ type: 'reasoning', content: String(payload.content ?? payload.delta ?? '') })
+          } else if (eventName === 'content_delta') {
+            onChunk({ type: 'content', content: String(payload.content ?? payload.delta ?? '') })
+          } else if (eventName === 'usage') {
+            usage = readUsage(payload)
+          } else if (eventName === 'done') {
+            onChunk({ type: 'done', ...usage, ...readUsage(payload) })
+            return
+          } else if (eventName === 'error') {
+            onChunk({ type: 'error', message: String(payload.message ?? '流式输出错误') })
+            return
+          } else if (typeof payload.type === 'string') {
+            if (payload.type === 'usage') {
+              usage = readUsage(payload)
+              continue
+            }
+            const chunk = payload as unknown as StreamChunk
+            if (chunk.type === 'reasoning' || chunk.type === 'content') {
+              onChunk({ ...chunk, content: chunk.content ?? String(payload.delta ?? '') })
+              continue
+            }
+            if (chunk.type === 'done') {
+              onChunk({ type: 'done', ...usage, ...readUsage(payload) })
+              return
+            }
+            onChunk(chunk)
+            if (chunk.type === 'error') return
+          }
         } catch { /* 忽略非 JSON 行 */ }
       }
     }

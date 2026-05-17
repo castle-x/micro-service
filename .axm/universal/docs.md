@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 applies-to: [universal]
@@ -22,7 +22,7 @@ related:
 | 规范 | `universal/`、`project/` | 长期 | 编码/流程/设计约束 | A |
 | 知识 | `knowledge/**` | 中长期（随代码演进） | 系统设计、模块结构、设计决策 | B |
 | 索引 | 所有 `index.md` | 长期 | 子目录的文件清单与导航 | C |
-| 进度 | `progress/**` | 阶段性 | roadmap、阶段 spec、开发决策与验收状态 | D |
+| 进度 | `progress/**` | 阶段性 | roadmap、阶段 spec、开发决策与验收证据 | D |
 
 ## 二、axm metadata 骨架（必须）
 
@@ -34,7 +34,7 @@ related:
 
 ```yaml
 <!-- axm-meta
-status: active | draft | deprecated
+doc-state: current | draft | deprecated
 last-reviewed: YYYY-MM-DD
 owner: <team-or-person>
 applies-to: [universal] | [project:<name>] | [project:<name>, <scope>]
@@ -47,7 +47,7 @@ related:
 
 | 字段 | 必填 | 说明 |
 |---|---|---|
-| `status` | ✅ | 文档生命周期：`active`（仍可作为上下文参考）/ `draft`（草稿）/ `deprecated`（已废弃，应删除或重写）。它不表示业务状态、任务进度或 BUG 生命周期 |
+| `doc-state` | ✅ | `current`（AI 应继续当上下文读）/ `draft`（草稿）/ `deprecated`（已废弃，不应继续作为上下文）。它不表示业务状态、任务进度或 BUG 生命周期 |
 | `last-reviewed` | ✅ | 最近一次人工核对规范与现实一致性的日期（ISO 8601）。仅修 typo / 调格式不更新此字段 |
 | `owner` | ✅ | 负责维护的团队或人员标识 |
 | `applies-to` | ✅ | 适用范围。`universal` 表示跨项目通用规范；`project:<name>` 表示绑定到特定项目；可叠加子作用域（如 `project:<name>, frontend`） |
@@ -59,7 +59,7 @@ related:
 
 ```yaml
 <!-- axm-meta
-status: active | draft | deprecated
+doc-state: current | draft | deprecated
 last-reviewed: YYYY-MM-DD
 owner: <team-or-person>
 depth: overview | deep
@@ -84,7 +84,7 @@ related:
 
 ```yaml
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: YYYY-MM-DD
 owner: <team-or-person>
 entries:
@@ -114,11 +114,13 @@ entries:
 
 ```yaml
 <!-- axm-meta
-status: active | draft | deprecated
+doc-state: current | draft | deprecated
 last-reviewed: YYYY-MM-DD
 owner: <team-or-person>
 progress-type: roadmap | spec | decision | bug
 initiative: <module-or-initiative-name>
+workflow-state: proposed | ready | in-progress | blocked | implemented | verified | closed | deferred | superseded
+state-updated: YYYY-MM-DD
 related:
   - ../knowledge/<system>/overview.md
 -->
@@ -130,8 +132,10 @@ related:
 |---|---|---|
 | `progress-type` | ✅ | `roadmap`（较大路线图）/ `spec`（一次阶段开发计划）/ `decision`（已确认且影响路线的阶段性决策）/ `bug`（一条 BUG 记录） |
 | `initiative` | ✅ | 该进度文档所属的模块、子系统或较大开发主题 |
+| `workflow-state` | ✅ | 当前业务/流程状态。roadmap/spec 用 `proposed` / `ready` / `in-progress` / `blocked` / `implemented` / `verified` / `closed` / `deferred` / `superseded`；decision 用 `proposed` / `accepted` / `rejected` / `superseded`；bug 用 `open` / `in-progress` / `fixed` / `verified` / `closed` / `reopened` / `wont-fix` / `duplicate` |
+| `state-updated` | ✅ | `workflow-state` 最后确认日期（YYYY-MM-DD） |
 
-骨架 D 的 `status` 仍然表示文档生命周期，不表示业务状态。roadmap/spec 的业务进度写在正文里；spec 推荐设置 `## 实施进度` 小节记录 `未开始 / 进行中 / 已完成 / deferred` 等状态。
+骨架 D 的 `doc-state` 表示 AI 是否应继续把文档当上下文读，不表示业务状态。progress 非 index 文档的当前状态只看 axm-meta `workflow-state`；正文只保留时间线、验收证据、完成说明和遗留项。
 
 ## 三、axm metadata 写作细则
 
@@ -225,7 +229,7 @@ AGENTS.md（根入口·Knowledge Index）
 
 ## 九、归档与废弃
 
-1. **内容过时**：先将 `status` 改为 `deprecated`，在正文顶部说明原因与替代文档链接，保留至少 1 个 review 周期
+1. **内容过时**：先将 `doc-state` 改为 `deprecated`，在正文顶部说明原因与替代文档链接，保留至少 1 个 review 周期
 2. **彻底删除**：deprecated 状态超过 1 个周期且无引用后，可以删除；**不**做 archive 目录保留（git 历史已足够）
 
 ## 十、规范文档的稳定性约束（AI 行为禁令）
@@ -262,7 +266,7 @@ AGENTS.md（根入口·Knowledge Index）
 
 1. 用户在当前会话中**显式指示**修改某条规范（例："把 §3 的缩进从 2 改成 4"）
 2. 用户明确授权"落规则"（例："把 X 规则写进 docs.md"）——AI 必须先出草案供确认再写入
-3. `status: deprecated` 的文档按 §九归档流程处理
+3. `doc-state: deprecated` 的文档按 §九归档流程处理
 
 违反本节的修改，下一轮审查时应直接 `git checkout --` 回滚，无需征得原修改者同意。
 
@@ -278,7 +282,7 @@ AGENTS.md（根入口·Knowledge Index）
 - 阶段列表中的每个已拆分阶段必须链接到对应 `specs/<spec>.md`；尚未拆 spec 的阶段标记为 `未拆 spec`，不得假造链接
 - 依赖关系必须明确写出上游与下游，例如 `phase-b 依赖 phase-a 完成人类验收`，不要只写"后续阶段"
 - 定期更新符合事实的进度，不写流水账
-- roadmap/spec 的业务状态写在正文，不用 axm-meta `status` 表达；spec 推荐使用 `## 实施进度` 小节
+- roadmap/spec 的当前业务状态写在 axm-meta `workflow-state`，并用 `state-updated` 记录最后确认日期；正文只记录时间线、验收证据、完成说明和遗留项
 - 当某阶段完成后，若产生长期系统事实，把事实沉淀到 `knowledge/`
 
 ### 11.2 Spec
@@ -306,7 +310,7 @@ spec 可由 Superpowers、OpenSpec、人工讨论或其他外部方法生成；a
 - 若 BUG 无现成归属主题，应先新建 initiative（如 `quality/`、`<module>/`），再在其下开 `bugs/`
 - 每条 BUG 一份独立 `bug-YYYY-MM-DD-<slug>.md`，骨架 D、`progress-type: bug`、`initiative: <所属主题名>`（**禁止填 `bugs`**）
 - `<initiative>/bugs/log.md` 作为该主题 BUG 看板汇总，骨架 D、`progress-type: roadmap`，`initiative` 与主题一致
-- BUG 文档必须写清：标题、所属 initiative、优先级、复现步骤、期望/实际表现、影响范围、修复验收标准（AI 自动验收 + 人类验收）、当前状态
+- BUG 文档必须写清：标题、所属 initiative、优先级、复现步骤、期望/实际表现、影响范围、修复验收标准（AI 自动验收 + 人类验收）；当前状态只写 axm-meta `workflow-state`
 - BUG 生命周期使用固定状态：`open` → `in-progress` → `fixed` → `verified` → `closed`；可回退到 `reopened`、`wont-fix`、`duplicate`
 - BUG ID 命名 kebab-case；完整路径形如 `progress/<initiative>/bugs/bug-2026-05-14-login-timeout.md`，这是唯一允许日期前缀的 `.axm` 文件；BUG 关闭后**不删除**文档，保留为历史证据
 - BUG 修复并验收通过后，若产生长期系统事实或回归测试，应同步沉淀到 `knowledge/` 或 `project/`
@@ -323,7 +327,7 @@ spec 可由 Superpowers、OpenSpec、人工讨论或其他外部方法生成；a
 
 | 维度 | 骨架 A（规范） | 骨架 B（知识） | 骨架 C（索引） | 骨架 D（进度） |
 |---|---|---|---|---|
-| 必填字段 | status / last-reviewed / owner / applies-to | status / last-reviewed / owner / depth / code-refs | status / last-reviewed / owner / entries | status / last-reviewed / owner / progress-type / initiative |
+| 必填字段 | doc-state / last-reviewed / owner / applies-to | doc-state / last-reviewed / owner / depth / code-refs | doc-state / last-reviewed / owner / entries | doc-state / last-reviewed / owner / progress-type / initiative / workflow-state / state-updated |
 | 可选字段 | related | related | — | related |
 | 使用位置 | universal/*.md · project/*.md | knowledge/**/*.md | 所有 index.md | progress/**/*.md |
 | 触发 `last-reviewed` 更新 | 规则被核对 | 代码对照完成 | entries 核对完成 | 状态/验收被核对 |

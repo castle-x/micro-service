@@ -49,7 +49,7 @@ Password: Complexpass123
 
 ## Service Configuration
 
-Development services use these values by default when started through `make dev-start`, `make dev-restart`, `make model-start`, or `make model-restart`:
+Development services use these values by default when started through `make dev-start`, `make dev-restart`, `make llm-start`, or `make llm-restart`:
 
 ```bash
 OTEL_ENABLED=true

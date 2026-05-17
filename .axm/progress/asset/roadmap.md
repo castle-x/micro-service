@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: asset
+workflow-state: closed
+state-updated: 2026-05-17
 related:
   - ../generation-platform/roadmap.md
   - ../../project/architecture.md

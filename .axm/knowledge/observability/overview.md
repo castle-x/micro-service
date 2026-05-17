@@ -1,6 +1,6 @@
 <!-- axm-meta
-status: active
-last-reviewed: 2026-05-12
+doc-state: current
+last-reviewed: 2026-05-17
 owner: castlexu
 depth: overview
 code-refs:
@@ -14,9 +14,9 @@ code-refs:
   - pkg/mq/nsq/nsq.go
   - pkg/mq/instrumentation.go
   - services/edge-api/router.go
-  - services/edge-api/handler/model_otel.go
-  - services/model/router.go
-  - services/model/adapter/adapter.go
+  - services/edge-api/handler/llm_proxy_otel.go
+  - services/llm/router.go
+  - services/llm/biz/generate.go
   - deployments/docker-compose.observability.yml
   - deployments/observability/otel-collector.yaml
   - scripts/observability/openobserve-query.mjs
@@ -39,11 +39,11 @@ related:
 ```text
 Client/Kong
   -> edge-api/Hertz
-    -> Kitex RPC: idp/iam/billing/credits/notification
+    -> Kitex RPC: idp/iam/asset（billing/credits/notification 后续业务阶段接入）
       -> MongoDB / Redis
       -> MQ publish / consume
-    -> model service/Hertz
-      -> LLM or image provider
+    -> llm service/Hertz
+      -> LLM provider
 ```
 
 ## 观测信号
@@ -67,7 +67,7 @@ Client/Kong
 | `pkg/db` | Mongo Client/Repository/Transaction 封装 | 已有 Mongo operation span/metrics 边界 |
 | `pkg/redis` | go-redis client 与 lock/key helper | 已有 Redis command span/metrics 边界 |
 | `pkg/mq` | NSQ producer/consumer 抽象仍是占位 | 已有 publish/consume span 与 message context helper，真实 NSQ 后续跟业务接入 |
-| `services/model` | Hertz 服务与 provider adapter | 已接入 LLM provider span、token/latency/error metrics |
+| `services/llm` | Hertz 服务、Eino ChatModel 适配、Generate/Stream | 已接入服务级 OTel 初始化、edge proxy client span、usage/request log；provider 细粒度 metrics 随 GP-02/后续质量阶段继续加厚 |
 | Kong Gateway | `deployments/kong/declarative.yml` 全局 `opentelemetry` plugin | 本地 trace 以 `service_name=kong-gateway` 写入 OpenObserve |
 
 ## 人类观测入口

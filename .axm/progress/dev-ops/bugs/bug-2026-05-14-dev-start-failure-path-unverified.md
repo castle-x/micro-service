@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: bug
 initiative: dev-ops
+workflow-state: closed
+state-updated: 2026-05-17
 related:
   - ../specs/process-lifecycle.md
   - ./bug-2026-05-14-dev-start-exit-zero-on-failure.md
@@ -21,7 +23,6 @@ related:
 | 提交时间 | 2026-05-14 |
 | 优先级 | P2 |
 | 严重度 | Minor |
-| 当前状态 | `closed` |
 | 影响模块 | `scripts/dev/start.sh` |
 | 影响版本 | dev-ops initiative 首版 |
 | 关联 PR / commit | 本地未提交 |

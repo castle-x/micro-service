@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 applies-to: [project:micro-service]
@@ -22,7 +22,7 @@ related:
 | 接口类型 | 协议 | 典型位置 | 主要风险 | 责任分级 |
 |---|---|---|---|---|
 | 对外 HTTP（REST） | Hertz HTTP/JSON | `services/edge-api/` | 入参校验、鉴权、协议转换 | T2+ |
-| 对外 HTTP（SSE 流式） | Hertz HTTP/SSE | `services/model/` | 流断、首 token 延迟、心跳 | T3 |
+| 对外 HTTP（SSE 流式） | Hertz HTTP/SSE | `services/llm/` | 流断、首 token 延迟、done/error 事件 | T3 |
 | 内部 RPC | Kitex Thrift | `services/{idp,iam,billing,credits,notification,asset}` | 契约兼容、超时、幂等 | T2+ |
 | 异步事件 | NSQ Topic | `billing → credits/notification` | 重复消费、顺序、死信 | T2+ |
 
@@ -89,7 +89,7 @@ CI 上必跑；本地默认跳过（用 build tag），需要时显式开。
 
 ### 3.3 契约测试（Layer 3）
 
-micro-service 的契约面有两个：**IDL Thrift（内部 RPC）** 和 **OpenAPI（对外 HTTP / model 服务）**。
+micro-service 的契约面有两个：**IDL Thrift（内部 RPC）** 和 **OpenAPI（对外 HTTP / llm 服务）**。
 
 #### 3.3.1 Thrift IDL 兼容性测试
 
@@ -104,12 +104,12 @@ micro-service 的契约面有两个：**IDL Thrift（内部 RPC）** 和 **OpenA
 
 #### 3.3.2 OpenAPI 契约测试
 
-**对象**：`idl/model/openapi.yaml` 与 `services/model/`、`services/edge-api/` 暴露的 HTTP 接口。
+**对象**：`idl/llm/openapi.yaml` 与 `services/llm/`、`services/edge-api/` 暴露的 HTTP 接口。
 
 **双向校验**：
 1. **请求/响应 schema 校验**：在集成测试里用 `kin-openapi` 对每个 case 的 req/resp 做 OpenAPI schema 验证；任何字段不符即 fail。
 2. **路由覆盖率检查**：CI 跑完测试后用 coverage 工具列出 OpenAPI 里所有路径，未被任何测试 hit 的路径 → 阻塞合并。
-3. **Mock server**：前端联调期用 `prism mock idl/model/openapi.yaml` 起 mock；前后端共享同一份契约。
+3. **Mock server**：前端联调期用 `prism mock idl/llm/openapi.yaml` 起 mock；前后端共享同一份契约。
 
 ### 3.4 E2E 测试（Layer 4）
 
@@ -117,7 +117,7 @@ micro-service 的契约面有两个：**IDL Thrift（内部 RPC）** 和 **OpenA
 - 登录注册：`edge-api → idp → iam`（已有 `scripts/e2e-google-auth.sh`，作为模板）
 - 资产上传：`edge-api → asset → OSS 回调`（已有 `scripts/e2e-asset-oss-upload.sh`）
 - 支付扣费：`edge-api → billing → MQ → credits/notification`
-- 模型对话（SSE）：`edge-api → model → LLM provider`，验证流式 chunk、心跳、断流恢复
+- LLM 生成（SSE）：`edge-api → llm → LLM provider`，验证流式 chunk、done/error 事件、断流恢复
 
 **实现**：
 - 用 shell + curl + jq；不引重型框架，保持 5 分钟内可读懂。
@@ -129,18 +129,18 @@ micro-service 的契约面有两个：**IDL Thrift（内部 RPC）** 和 **OpenA
 
 ### 3.5 SSE 流式接口专项
 
-`services/model/` 的对话流是 micro-service 最容易出事的接口，单独立专项：
+`services/llm/` 的生成流是 micro-service 最容易出事的接口，单独立专项：
 
 | 测试点 | 方法 |
 |---|---|
 | 首 token 延迟 P95 | `time` + 第一行输出时间戳，断言 < 阈值 |
 | chunk 完整性 | 收完所有 chunk 拼接 == provider raw response |
-| 心跳 | 长连接（>30s）期间收到 `:keepalive\n\n` |
+| 终止事件 | 正常完成时收到 `event: done` |
 | 客户端断开 | client close 后服务端 ctx cancel、span end、provider 调用 abort（不漏 token 计费） |
 | Upstream 错误 | LLM 返回 4xx/5xx 时 SSE 应推 `event: error\ndata: {...}` 而非直接断 |
 | Backpressure | client 慢消费时不 OOM（buffer 上限） |
 
-工具：`scripts/e2e-model-sse.sh`，通过 edge-api 的 `/api/v1/admin/models/chat/stream` 代理入口，用 curl `--no-buffer` + 自写解析。
+工具：`scripts/e2e-llm-sse.sh`，通过 edge-api 的 `/api/v1/admin/llm/stream` 代理入口，用 curl `--no-buffer` + 自写解析。
 
 ### 3.6 异步事件（NSQ）测试
 

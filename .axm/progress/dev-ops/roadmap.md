@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: roadmap
 initiative: dev-ops
+workflow-state: in-progress
+state-updated: 2026-05-17
 related:
   - ../../knowledge/pkg-infra/overview.md
   - ../../project/observability.md
@@ -72,16 +74,16 @@ related:
 - ✅ dev-ops BUG 修复波次完成：5 条 `open` BUG 均进入 `fixed`，覆盖 `start.sh` 失败传播、readyz 超时诊断、edge-api/model etcd readiness、`MODEL_ENCRYPT_KEY` env 模板与 gitignore env 白名单（2026-05-14）
 - ✅ 主 agent 与验收 agent 交叉复核通过：脚本语法、自检、start 失败路径、env fixture、gitignore 行为、`pkg/cloudwego` + `pkg/health` 测试、edge-api/model 测试、`make build`、`make lint`、`git diff --check` 均通过（2026-05-14）
 - ✅ 2026-05-17 用户确认 dev-ops 已开发完成；DEV-01 ~ DEV-04 闭合为历史实施记录
-- ✅ dev-ops BUG 已从 `fixed` 闭合为 `closed`，当前无未关闭 BUG
+- ⚠️ 2026-05-17 复核发现 `.gitignore` 仍会 ignore `deployments/env/infra.env` 与 `deployments/env/observability.env`，`bug-2026-05-14-gitignore-blocks-shared-env-files` 已重开；因此本 roadmap 的 workflow-state 暂回到 `in-progress`，直到该 BUG 再次修复/验证
 
 ## 闭合记录
 
 - 长期事实已同步到 `../../knowledge/pkg-infra/overview.md`、`../../knowledge/services/overview.md`、`../../project/observability.md`：`pkg/health`、dev-start/status/check-env、日志查询、env 拆分均已成为当前系统事实。
-- 本 initiative 的 5 条 BUG 已关闭；单条 BUG 文档为事实来源。
+- 本 initiative 的 4 条 BUG 已关闭，1 条 `.gitignore` 共享 env 白名单 BUG 处于 reopened；单条 BUG 文档为事实来源。
 - 真实依赖异常演练、新成员 onboard 体验和 OpenObserve 日志入库等可作为后续回归或质量项，不再阻塞 dev-ops 第一版闭合。
 
 ## 尚未确认的问题
 
-- 无阻塞项。
+- 当前阻塞项：`bug-2026-05-14-gitignore-blocks-shared-env-files` 需重新修复 `.gitignore` 白名单并复跑验收。
 - 已知限制：edge-api/model 的 etcd readiness 通过 `pkg/cloudwego.SharedEtcdClient` 集中缓存 health client；upstream Hertz/Kitex etcd registry/resolver 不暴露内部 client，因此没有直接复用 registry 私有 client。
 - 日志查询当前只做本地文件版；OpenObserve 仍走现有 `make obs-*`。完整日志入库如有需要另拆质量或 OTel 小阶段。

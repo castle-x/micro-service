@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 entries:
@@ -16,8 +16,8 @@ entries:
     title: DB/Redis/MQ instrumentation
     when-to-read: 理解已完成 Mongo、Redis、NSQ 的 span、metrics 和 message context 时
   - path: model-llm-observability.md
-    title: model/LLM 可观测性
-    when-to-read: 理解已完成 model service、provider adapter、stream 和 token usage 遥测时
+    title: model/LLM 可观测性（旧 model 历史记录）
+    when-to-read: 仅在追溯旧 services/model 观测实现历史时读取；当前 LLM 链路改读 generation-platform GP-02 与 knowledge/observability
   - path: local-observability-ai-tools.md
     title: 本地观测栈与 AI 查询工具
     when-to-read: 理解已完成 Collector、OpenObserve、make obs-*、AI 排障入口时

@@ -87,6 +87,7 @@ func TestCodeRanges(t *testing.T) {
 		"billing":      ErrOrderNotFound.Code,
 		"credits":      ErrInsufficientCredits.Code,
 		"notification": ErrTemplateNotFound.Code,
+		"llm":          ErrLLMProviderNotFound.Code,
 		"asset":        ErrAssetNotFound.Code,
 	}
 	ranges := map[string][2]int32{
@@ -97,12 +98,40 @@ func TestCodeRanges(t *testing.T) {
 		"billing":      {13001, 13999},
 		"credits":      {14001, 14999},
 		"notification": {15001, 15999},
+		"llm":          {16001, 16999},
 		"asset":        {17001, 17999},
 	}
 	for name, code := range cases {
 		r := ranges[name]
 		assert.GreaterOrEqual(t, code, r[0], name)
 		assert.LessOrEqual(t, code, r[1], name)
+	}
+}
+
+func TestLLMErrnoCodesAndMessages(t *testing.T) {
+	cases := []struct {
+		name    string
+		err     Errno
+		code    int32
+		message string
+	}{
+		{"provider not found", ErrLLMProviderNotFound, 16001, "llm provider not found"},
+		{"provider disabled", ErrLLMProviderDisabled, 16002, "llm provider disabled"},
+		{"adapter unsupported", ErrLLMAdapterUnsupported, 16003, "llm adapter unsupported"},
+		{"upstream", ErrLLMUpstream, 16004, "llm upstream error"},
+		{"model not found", ErrLLMModelNotFound, 16005, "llm model not found"},
+		{"model disabled", ErrLLMModelDisabled, 16006, "llm model disabled"},
+		{"capability unsupported", ErrLLMModelCapabilityUnsupported, 16007, "llm model capability unsupported"},
+		{"rate limited", ErrLLMRateLimited, 16008, "llm rate limited"},
+		{"invalid message", ErrLLMInvalidMessage, 16009, "llm invalid message"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.code, tc.err.Code)
+			assert.Equal(t, tc.message, tc.err.Message)
+			assert.True(t, errors.Is(tc.err, tc.err.WithMessage("context")))
+		})
 	}
 }
 

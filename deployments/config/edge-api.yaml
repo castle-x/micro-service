@@ -3,8 +3,8 @@
 server:
   addr: ":38080"
 
-model:
-  service_name: "model"
+llm:
+  service_name: "llm"
 
 asset:
   service_name: "asset"

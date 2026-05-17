@@ -43,6 +43,19 @@ stop_service() {
   rm -f "${pid_file}" "${status_file}"
 }
 
+stop_legacy_services_for() {
+  local service="$1"
+  local legacy
+
+  while IFS= read -r legacy; do
+    if [ -z "${legacy}" ]; then
+      continue
+    fi
+    log "${service} replaces legacy ${legacy}; cleaning legacy process state"
+    stop_service "${legacy}"
+  done < <(legacy_services_for "${service}")
+}
+
 main() {
   local selection
   local services=()
@@ -58,6 +71,7 @@ main() {
   done <<< "${selection}"
 
   for service in "${services[@]}"; do
+    stop_legacy_services_for "${service}"
     stop_service "${service}"
   done
 }

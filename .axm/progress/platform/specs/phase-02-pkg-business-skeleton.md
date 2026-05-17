@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-12
 owner: castlexu
 progress-type: spec
 initiative: platform
+workflow-state: closed
+state-updated: 2026-05-12
 related:
   - ../../../knowledge/pkg-infra/overview.md
 -->

@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-17
 owner: castlexu
 progress-type: spec
 initiative: asset
+workflow-state: closed
+state-updated: 2026-05-17
 related:
   - ../roadmap.md
   - ../../../project/architecture.md
@@ -188,7 +190,7 @@ db.BaseDoc `bson:",inline"`
 
 ## 设计约束
 
-- `asset` 是 Kitex RPC 服务；不要使用 Hertz，SSE/HTTP 例外只属于 `services/model/`。
+- `asset` 是 Kitex RPC 服务；不要使用 Hertz，SSE/HTTP 例外只属于 `services/llm/`。
 - `services/edge-api` 后续只做 HTTP 适配，不直接访问资产 Mongo 集合。
 - `asset` 不 import 其他业务服务内部 Go 包；后续跨服务读取必须走 IDL + RPC 或 MQ。
 - `pkg/` 不得反向依赖 `services/asset`。

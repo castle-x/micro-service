@@ -20,8 +20,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-OPENAPI_SPEC="idl/model/openapi.yaml"
+OPENAPI_SPEC="idl/llm/openapi.yaml"
 SERVICES_DIR="services"
+SERVICE_IMPL_DIR="$SERVICES_DIR/llm"
 
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -77,8 +78,10 @@ else
     [ -z "$p" ] && continue
     # 把 {param} 转成正则 [^/]+
     pat=$(echo "$p" | sed -E 's@\{[^}]+\}@[^/]+@g; s@/@\\/@g')
-    if ! grep -rE "$pat" "$SERVICES_DIR" --include='*.go' -l >/dev/null 2>&1; then
-      report_error "uncovered path: $p (no implementation found in services/)"
+    colon=$(echo "$p" | sed -E 's@\{([a-zA-Z_][a-zA-Z0-9_]*)\}@:\1@g')
+    if ! grep -rE "$pat" "$SERVICE_IMPL_DIR" --include='*.go' -l >/dev/null 2>&1 \
+      && ! grep -rF "$colon" "$SERVICE_IMPL_DIR" --include='*.go' -l >/dev/null 2>&1; then
+      report_error "uncovered path: $p (no implementation found in $SERVICE_IMPL_DIR/)"
       MISSING=$((MISSING + 1))
     fi
   done <<< "$PATHS"
@@ -95,7 +98,7 @@ fi
 echo
 echo ">>> Step 3: reverse coverage (routes in code should be in spec)"
 # 抓取 hertz 风格路由：h.GET / h.POST / h.PUT / h.DELETE / h.PATCH
-CODE_ROUTES=$(grep -rEh '\.(GET|POST|PUT|DELETE|PATCH)\("/' "$SERVICES_DIR/model" --include='*.go' 2>/dev/null \
+CODE_ROUTES=$(grep -rEh '\.(GET|POST|PUT|DELETE|PATCH)\("/' "$SERVICE_IMPL_DIR" --include='*.go' 2>/dev/null \
   | sed -E 's@.*\.(GET|POST|PUT|DELETE|PATCH)\("([^"]+)".*@\2@' \
   | sort -u || true)
 
@@ -114,7 +117,7 @@ if [ -n "$CODE_ROUTES" ]; then
     green "    ✓ All code routes documented"
   fi
 else
-  yellow "    (skip) No hertz routes found under services/model"
+  yellow "    (skip) No absolute hertz routes found under $SERVICE_IMPL_DIR"
 fi
 
 echo

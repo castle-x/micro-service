@@ -34,7 +34,7 @@ export default function App() {
           <Route path="admin/users" element={<UsersPage />} />
           <Route path="admin/roles" element={<RolesPage />} />
           <Route path="admin/permissions" element={<PermissionsPage />} />
-          <Route path="admin/models" element={<ModelProvidersPage />} />
+          <Route path="admin/llm" element={<ModelProvidersPage />} />
           <Route path="admin/chat-debug" element={<ChatDebugPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

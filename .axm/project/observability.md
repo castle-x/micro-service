@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-12
 owner: castlexu
 applies-to: [project:micro-service, observability]
@@ -124,7 +124,7 @@ metrics 用于趋势、告警和容量判断；trace 用于单次请求定位。
 | Log query | 按 trace id / service / error code 查询结构化日志 |
 | AI-friendly scripts | 输出 JSON 或紧凑文本，供 AI 稳定读取 trace、metrics、logs |
 
-本地开发优先保证 `edge-api -> idp/iam -> MongoDB/Redis` 与 `edge-api -> model -> LLM provider` 链路可被观察；`billing -> MQ -> credits/notification` 在对应功能实现时接入。
+本地开发优先保证 `edge-api -> idp/iam -> MongoDB/Redis` 与 `edge-api -> llm -> LLM provider` 链路可被观察；`billing -> MQ -> credits/notification` 在对应功能实现时接入。
 
 ## 验收标准
 

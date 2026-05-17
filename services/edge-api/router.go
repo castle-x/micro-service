@@ -38,7 +38,7 @@ func RegisterRoutes(
 	userHandler *handler.UserHandler,
 	adminHandler *handler.AdminHandler,
 	assetHandler *handler.AssetHandler,
-	modelProxy *handler.ModelProxy,
+	llmProxy *handler.LLMProxy,
 	idpCli idpclient.Client,
 	iamCli iamclient.Client,
 	jwtSecret []byte,
@@ -122,15 +122,25 @@ func RegisterRoutes(
 			admin.GET("/permissions", edgemw.RequirePermission("permission:read", iamCli), adminHandler.ListPermissions)
 			admin.POST("/permissions", edgemw.RequirePermission("permission:write", iamCli), adminHandler.CreatePermission)
 
-			// Model Providers（转发到 model service）
-			models := admin.Group("/models", edgemw.RequirePermission("model:admin", iamCli))
+			// LLM admin（转发到 llm service）
+			llm := admin.Group("/llm", edgemw.RequirePermission("llm:admin", iamCli))
 			{
-				models.GET("/providers", modelProxy.ProxyModels)
-				models.POST("/providers", modelProxy.ProxyModels)
-				models.PATCH("/providers/:id/enabled", modelProxy.ProxyModels)
-				models.PATCH("/providers/:id/api_key", modelProxy.ProxyModels)
-				models.POST("/chat", modelProxy.ProxyModels)
-				models.POST("/chat/stream", modelProxy.ProxyStream)
+				llm.GET("/providers", llmProxy.ProxyLLM)
+				llm.POST("/providers", llmProxy.ProxyLLM)
+				llm.PUT("/providers/:id", llmProxy.ProxyLLM)
+				llm.DELETE("/providers/:id", llmProxy.ProxyLLM)
+				llm.PATCH("/providers/:id/api-key", llmProxy.ProxyLLM)
+				llm.PATCH("/providers/:id/enabled", llmProxy.ProxyLLM)
+				llm.POST("/providers/:id/test", llmProxy.ProxyLLM)
+
+				llm.GET("/models", llmProxy.ProxyLLM)
+				llm.POST("/models", llmProxy.ProxyLLM)
+				llm.PUT("/models/:id", llmProxy.ProxyLLM)
+				llm.DELETE("/models/:id", llmProxy.ProxyLLM)
+				llm.PATCH("/models/:id/enabled", llmProxy.ProxyLLM)
+
+				llm.POST("/generate", llmProxy.ProxyLLM)
+				llm.POST("/stream", llmProxy.ProxyStream)
 			}
 		}
 	}

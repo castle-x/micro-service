@@ -1,9 +1,11 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-12
 owner: castlexu
 progress-type: decision
 initiative: platform
+workflow-state: accepted
+state-updated: 2026-05-12
 related:
   - ../../project/architecture.md
 -->

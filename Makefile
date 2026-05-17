@@ -1,13 +1,13 @@
-.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps konga-bootstrap obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart web-start web-stop web-restart
+.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps konga-bootstrap obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help llm-start llm-stop llm-restart asset-start asset-stop asset-restart web-start web-stop web-restart
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification asset
-ALL_SERVICES := edge-api model $(SERVICES)
+ALL_SERVICES := edge-api llm $(SERVICES)
 BIN_DIR := bin
 OBS_COMPOSE_FILE := deployments/docker-compose.observability.yml
 OBS_QUERY := node scripts/observability/openobserve-query.mjs
 DEV_OTEL_ENV := OTEL_ENABLED=true OTEL_ENDPOINT=localhost:4317 OTEL_PROTOCOL=grpc OTEL_ENVIRONMENT=local OTEL_INSECURE=true OTEL_STRICT=false
-DEV_LOG_SERVICES ?= edge-api idp iam asset model web
+DEV_LOG_SERVICES ?= edge-api idp iam asset llm web
 DEV_LOG_FILES := $(addprefix bin/log/,$(addsuffix .log,$(DEV_LOG_SERVICES)))
 
 # 自动检测 docker compose 命令（新版插件 vs 旧版独立命令）
@@ -24,9 +24,9 @@ help:
 	@echo "  make dev-check-env [DEV] 校验本地 env 文件缺失、占位符和重复 key"
 	@echo "  make dev-logs      [DEV] tail 本地后端服务日志"
 	@echo "  make logs-query    [DEV] 查询本地 JSON 日志：ARGS=\"--service=iam --since=15m\""
-	@echo "  make model-start   [MODEL] 单独编译并启动 model service :38083"
-	@echo "  make model-stop    [MODEL] 停止 model service"
-	@echo "  make model-restart [MODEL] 重编译并重启 model service"
+	@echo "  make llm-start     [LLM] 单独编译并启动 llm service :38083"
+	@echo "  make llm-stop      [LLM] 停止 llm service"
+	@echo "  make llm-restart   [LLM] 重编译并重启 llm service"
 	@echo "  make asset-start   [ASSET] 单独编译并启动 asset service :38084"
 	@echo "  make asset-stop    [ASSET] 停止 asset service"
 	@echo "  make asset-restart [ASSET] 重编译并重启 asset service"
@@ -135,7 +135,7 @@ dev: dev-start
 # ----------------------------------------------------------------
 # [DEV] 一键启动本地后端服务（infra + observability + 编译 + readyz 等待）
 # 前置：复制 deployments/env/*.env.example 为对应 *.env 并填写真实凭据
-# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/asset.log / bin/log/edge-api.log / bin/log/model.log
+# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/asset.log / bin/log/edge-api.log / bin/log/llm.log
 # ----------------------------------------------------------------
 dev-check-env:
 	@bash scripts/dev/check-env.sh
@@ -191,21 +191,21 @@ web-restart:
 	@echo ">>> [WEB] Web restarted at http://localhost:35173"
 
 # ----------------------------------------------------------------
-# [MODEL] 单独启动 / 停止 / 重启 model service（:38083）
-# 前置：deployments/env/*.env 已填写（包含 MODEL_ENCRYPT_KEY 等），infra 已启动
-# 日志：bin/log/model.log
+# [LLM] 单独启动 / 停止 / 重启 llm service（:38083）
+# 前置：deployments/env/*.env 已填写（包含 LLM_ENCRYPT_KEY 等），infra 已启动
+# 日志：bin/log/llm.log
 # ----------------------------------------------------------------
-model-start: dev-check-env infra-up obs-up build
-	@bash scripts/dev/start.sh model
-	@echo ">>> [MODEL] model service started. Log: bin/log/model.log"
+llm-start: dev-check-env infra-up obs-up build
+	@bash scripts/dev/start.sh llm
+	@echo ">>> [LLM] llm service started. Log: bin/log/llm.log"
 
-model-stop:
-	@bash scripts/dev/stop.sh model
-	@echo ">>> [MODEL] Stopped."
+llm-stop:
+	@bash scripts/dev/stop.sh llm
+	@echo ">>> [LLM] Stopped."
 
-model-restart: dev-check-env infra-up obs-up build
-	@bash scripts/dev/restart.sh model
-	@echo ">>> [MODEL] model service restarted. Log: bin/log/model.log"
+llm-restart: dev-check-env infra-up obs-up build
+	@bash scripts/dev/restart.sh llm
+	@echo ">>> [LLM] llm service restarted. Log: bin/log/llm.log"
 
 # ----------------------------------------------------------------
 # [ASSET] 单独启动 / 停止 / 重启 asset service（:38084）

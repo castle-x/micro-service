@@ -1,5 +1,5 @@
 <!-- axm-meta
-status: active
+doc-state: current
 last-reviewed: 2026-05-14
 owner: castlexu
 applies-to: [project:micro-service]

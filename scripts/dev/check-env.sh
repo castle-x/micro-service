@@ -4,14 +4,14 @@ set -u
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 ENV_DIR="${ENV_DIR:-$ROOT_DIR/deployments/env}"
 
-REQUIRED_KEYS="MONGO_URI REDIS_ADDR ETCD_ENDPOINT JWT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET ALIYUN_OSS_ACCESS_KEY_ID ALIYUN_OSS_ACCESS_KEY_SECRET OPENOBSERVE_AUTH_HEADER MODEL_ENCRYPT_KEY"
+REQUIRED_KEYS="MONGO_URI REDIS_ADDR ETCD_ENDPOINT JWT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET ALIYUN_OSS_ACCESS_KEY_ID ALIYUN_OSS_ACCESS_KEY_SECRET OPENOBSERVE_AUTH_HEADER LLM_ENCRYPT_KEY"
 
 ENV_FILES=(
   "$ROOT_DIR/.env"
   "$ENV_DIR/infra.env"
   "$ENV_DIR/observability.env"
   "$ENV_DIR/asset.env"
-  "$ENV_DIR/model.env"
+  "$ENV_DIR/llm.env"
   "$ENV_DIR/secrets.env"
   "$ENV_DIR/overrides.env"
 )
@@ -119,8 +119,8 @@ run_validation() {
         print "INVALID\tJWT_SECRET"
       }
 
-      if (("MODEL_ENCRYPT_KEY" in values) && values["MODEL_ENCRYPT_KEY"] != "" && length(values["MODEL_ENCRYPT_KEY"]) < 32) {
-        print "INVALID\tMODEL_ENCRYPT_KEY"
+      if (("LLM_ENCRYPT_KEY" in values) && values["LLM_ENCRYPT_KEY"] != "" && length(values["LLM_ENCRYPT_KEY"]) < 32) {
+        print "INVALID\tLLM_ENCRYPT_KEY"
       }
 
       for (key in duplicate) {
@@ -161,6 +161,23 @@ json_array_file() {
   printf ']'
 }
 
+list_contains() {
+  item="$1"
+  file="$2"
+  grep -Fqx "$item" "$file" 2>/dev/null
+}
+
+print_hints() {
+  if list_contains "LLM_ENCRYPT_KEY" "$missing" || list_contains "LLM_ENCRYPT_KEY" "$placeholder" || list_contains "LLM_ENCRYPT_KEY" "$invalid"; then
+    {
+      printf 'hint: set LLM_ENCRYPT_KEY in %s/llm.env.\n' "$ENV_DIR"
+      printf '      Copy %s/llm.env.example if the file does not exist.\n' "$ENV_DIR"
+      printf '      Generate a stable local value with: openssl rand -base64 32\n'
+      printf '      Keep the value stable; changing it requires re-entering LLM provider API keys.\n'
+    } >&2
+  fi
+}
+
 if [ -s "$missing" ] || [ -s "$placeholder" ] || [ -s "$invalid" ]; then
   ok=false
   exit_code=1
@@ -178,5 +195,9 @@ json_array_file "$invalid"
 printf ',"duplicates":'
 json_array_file "$duplicates"
 printf '}\n'
+
+if [ "$exit_code" -ne 0 ]; then
+  print_hints
+fi
 
 exit "$exit_code"

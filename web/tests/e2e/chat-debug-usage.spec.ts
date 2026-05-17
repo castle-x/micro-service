@@ -37,7 +37,7 @@ test('chat debug shows token usage for one streamed answer', async ({ page }) =>
     })
   })
 
-  await page.route('**/api/v1/admin/models/providers', async (route) => {
+  await page.route('**/api/v1/admin/llm/providers', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -48,9 +48,9 @@ test('chat debug shows token usage for one streamed answer', async ({ page }) =>
             id: 'mock-provider',
             name: 'Mock LLM',
             slug: 'mock-llm',
-            type: 'llm',
+            vendor: 'openai_compatible',
             base_url: 'http://mock.local',
-            default_model: 'mock-chat',
+            default_model_ref: 'mock-llm/legacy-default',
             enabled: true,
           },
         ],
@@ -58,7 +58,42 @@ test('chat debug shows token usage for one streamed answer', async ({ page }) =>
     })
   })
 
-  await page.route('**/api/v1/admin/models/chat/stream', async (route) => {
+  await page.route('**/api/v1/admin/llm/models**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 0,
+        data: [
+          {
+            id: 'mock-model',
+            provider_id: 'mock-provider',
+            provider_slug: 'mock-llm',
+            model: 'mock-chat',
+            model_ref: 'mock-llm/mock-chat',
+            display_name: 'Mock Chat',
+            capabilities: ['chat', 'stream'],
+            enabled: true,
+          },
+          {
+            id: 'disabled-model',
+            provider_id: 'mock-provider',
+            provider_slug: 'mock-llm',
+            model: 'disabled-chat',
+            model_ref: 'mock-llm/disabled-chat',
+            display_name: 'Disabled Chat',
+            capabilities: ['chat'],
+            enabled: false,
+          },
+        ],
+      }),
+    })
+  })
+
+  await page.route('**/api/v1/admin/llm/stream', async (route) => {
+    const body = route.request().postDataJSON() as { model_ref: string }
+    expect(body.model_ref).toBe('mock-llm/mock-chat')
+
     await route.fulfill({
       status: 200,
       contentType: 'text/event-stream; charset=utf-8',
@@ -68,11 +103,17 @@ test('chat debug shows token usage for one streamed answer', async ({ page }) =>
         'X-Accel-Buffering': 'no',
       },
       body: [
-        'data: {"type":"content","content":"hello"}',
+        'event: content_delta',
+        'data: {"content":"hello"}',
         '',
-        'data: {"type":"content","content":" from mock"}',
+        'event: content_delta',
+        'data: {"content":" from mock"}',
         '',
-        'data: {"type":"done","prompt_tokens":7,"completion_tokens":3,"total_tokens":10}',
+        'event: usage',
+        'data: {"prompt_tokens":7,"completion_tokens":3,"total_tokens":10}',
+        '',
+        'event: done',
+        'data: {"finish_reason":"stop","model_ref":"mock-llm/mock-chat"}',
         '',
         '',
       ].join('\n'),
@@ -88,7 +129,8 @@ test('chat debug shows token usage for one streamed answer', async ({ page }) =>
 
   await page.goto('/admin/chat-debug')
   await expect(page.getByRole('heading', { name: 'Chat 调试' })).toBeVisible()
-  await expect(page.locator('select')).toHaveValue('mock-llm')
+  await expect(page.locator('select')).toHaveValue('mock-llm/mock-chat')
+  await expect(page.getByRole('option', { name: /Disabled Chat/ })).toHaveCount(0)
 
   await page.getByPlaceholder('输入消息，Enter 发送，Shift+Enter 换行').fill('hello')
   await page.getByRole('button', { name: '发送' }).click()

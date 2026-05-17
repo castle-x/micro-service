@@ -71,6 +71,32 @@ selected_services() {
   done < <(service_names)
 }
 
+legacy_services_for() {
+  case "$1" in
+    llm)
+      printf '%s\n' "model"
+      ;;
+  esac
+}
+
+legacy_service_for_pid() {
+  local service="$1"
+  local pid="$2"
+  local legacy
+  local legacy_pid
+
+  while IFS= read -r legacy; do
+    if [ -z "${legacy}" ]; then
+      continue
+    fi
+    legacy_pid="$(read_pid_file "${legacy}")"
+    if [ -n "${legacy_pid}" ] && [ "${legacy_pid}" = "${pid}" ]; then
+      printf '%s\n' "${legacy}"
+      return
+    fi
+  done < <(legacy_services_for "${service}")
+}
+
 pid_file_for() {
   printf '%s/%s.pid\n' "${RUN_DIR}" "$1"
 }
@@ -176,7 +202,7 @@ load_env_files() {
     "${env_dir}/infra.env"
     "${env_dir}/observability.env"
     "${env_dir}/asset.env"
-    "${env_dir}/model.env"
+    "${env_dir}/llm.env"
     "${env_dir}/secrets.env"
     "${env_dir}/overrides.env"
   )

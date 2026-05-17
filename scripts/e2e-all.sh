@@ -25,7 +25,7 @@ bold()   { printf '\033[1m%s\033[0m\n' "$*"; }
 declare -a SUITES=(
   "auth:scripts/e2e-google-auth.sh:登录/鉴权链路 (edge-api → idp → iam)"
   "asset:scripts/e2e-asset-oss-upload.sh:资产上传链路 (edge-api → asset → OSS)"
-  "sse:scripts/e2e-model-sse.sh:模型 SSE 流式对话 (edge-api → model)"
+  "sse:scripts/e2e-llm-sse.sh:LLM SSE 流式生成 (edge-api → llm)"
   # billing 链路待 scripts/e2e-billing.sh 落地后启用
   # "billing:scripts/e2e-billing.sh:支付扣费链路 (edge-api → billing → MQ → credits/notification)"
 )

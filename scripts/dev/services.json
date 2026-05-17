@@ -41,14 +41,14 @@
       "log_path": "bin/log/edge-api.log"
     },
     {
-      "name": "model",
+      "name": "llm",
       "port": 38083,
       "admin_port": 48083,
-      "binary": "model",
+      "binary": "llm",
       "depends_on": [
         "edge-api"
       ],
-      "log_path": "bin/log/model.log"
+      "log_path": "bin/log/llm.log"
     }
   ]
 }
