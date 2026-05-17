@@ -1,4 +1,4 @@
-.PHONY: gen build dev dev-start dev-stop dev-restart infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services lint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart
+.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification asset
@@ -6,8 +6,9 @@ ALL_SERVICES := edge-api model $(SERVICES)
 BIN_DIR := bin
 OBS_COMPOSE_FILE := deployments/docker-compose.observability.yml
 OBS_QUERY := node scripts/observability/openobserve-query.mjs
-ENV_FILE_VARS = $$(grep -v '^\#' .env | grep -v '^$$$$' | xargs)
 DEV_OTEL_ENV := OTEL_ENABLED=true OTEL_ENDPOINT=localhost:4317 OTEL_PROTOCOL=grpc OTEL_ENVIRONMENT=local OTEL_INSECURE=true OTEL_STRICT=false
+DEV_LOG_SERVICES ?= edge-api idp iam asset model
+DEV_LOG_FILES := $(addprefix bin/log/,$(addsuffix .log,$(DEV_LOG_SERVICES)))
 
 # 自动检测 docker compose 命令（新版插件 vs 旧版独立命令）
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; elif command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; fi)
@@ -16,9 +17,13 @@ help:
 	@echo "Platform Monorepo - Available targets:"
 	@echo ""
 	@echo "  [DEV] ----------------------------------------------------------------"
-	@echo "  make dev-start     [DEV] 一键启动：infra + observability + 编译 + 后端 + 前端"
+	@echo "  make dev-start     [DEV] 一键启动：infra + observability + 编译 + 后端服务"
 	@echo "  make dev-restart   [DEV] 重编译并按正确顺序重启所有后端服务（默认启用 OTel）"
-	@echo "  make dev-stop      [DEV] 一键停止后端和前端进程（不停 Docker infra/obs）"
+	@echo "  make dev-stop      [DEV] 优雅停止后端服务进程（不停 Docker infra/obs）"
+	@echo "  make dev-status    [DEV] 输出后端服务 pid / port / ready 状态 JSON"
+	@echo "  make dev-check-env [DEV] 校验本地 env 文件缺失、占位符和重复 key"
+	@echo "  make dev-logs      [DEV] tail 本地后端服务日志"
+	@echo "  make logs-query    [DEV] 查询本地 JSON 日志：ARGS=\"--service=iam --since=15m\""
 	@echo "  make model-start   [MODEL] 单独编译并启动 model service :38083"
 	@echo "  make model-stop    [MODEL] 停止 model service"
 	@echo "  make model-restart [MODEL] 重编译并重启 model service"
@@ -47,6 +52,13 @@ help:
 	@echo "  make test          Run go vet + go test across pkg and all services"
 	@echo "  make test-pkg      Run go test for pkg/ only"
 	@echo "  make test-services Run go test for services/* only"
+	@echo "  make test-unit         [TEST L1] Unit tests with -race -short (no DB)"
+	@echo "  make test-integration  [TEST L2] Integration tests with -tags=integration (testcontainers)"
+	@echo "  make test-contract     [TEST L3] IDL compat + OpenAPI validation"
+	@echo "  make test-e2e          [TEST L4] End-to-end shell scripts"
+	@echo "  make test-all          Run unit + integration + contract + e2e"
+	@echo "  make idl-compat        Check Thrift IDL backward compatibility (vs origin/develop)"
+	@echo "  make openapi-validate  Validate OpenAPI spec & route coverage"
 	@echo "  make lint          Run go vet (+ golangci-lint if installed)"
 
 # Start local dev infra. Services require etcd discovery by default.
@@ -110,104 +122,60 @@ obs-errors:
 dev: dev-start
 
 # ----------------------------------------------------------------
-# [DEV] 一键启动所有服务（infra + observability + 后端 + 前端）
-# 前置：复制 .env.example 为 .env 并填写真实凭据
-# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/asset.log / bin/log/edge-api.log / bin/log/web.log
+# [DEV] 一键启动本地后端服务（infra + observability + 编译 + readyz 等待）
+# 前置：复制 deployments/env/*.env.example 为 *.env 并填写真实凭据
+# 日志：bin/log/iam.log / bin/log/idp.log / bin/log/asset.log / bin/log/edge-api.log / bin/log/model.log
 # ----------------------------------------------------------------
-dev-start: infra-up obs-up build
-	@mkdir -p bin/log
-	@echo ">>> [DEV] Loading .env..."
-	@if [ ! -f .env ]; then \
-		echo "Error: .env not found. Copy .env.example and fill in credentials:"; \
-		echo "  cp .env.example .env"; \
-		exit 1; \
-	fi
-	@echo ">>> [DEV] OpenTelemetry enabled by default: localhost:4317"
-	@echo ">>> [DEV] Starting iam :38082)..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/iam > bin/log/iam.log 2>&1 &
-	@echo ">>> [DEV] Starting idp :38081)..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/idp > bin/log/idp.log 2>&1 &
-	@echo ">>> [DEV] Starting asset :38084)..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
-	@echo ">>> [DEV] Starting edge-api :38080)..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
-	@echo ">>> [DEV] Starting model :38083)..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/model > bin/log/model.log 2>&1 &
-	@sleep 2
-	@echo ">>> [DEV] Starting web dev server :35173)..."
-	@cd web && npm run dev > ../bin/log/web.log 2>&1 &
-	@sleep 2
+dev-check-env:
+	@bash scripts/dev/check-env.sh
+
+dev-start: dev-check-env infra-up obs-up build
+	@bash scripts/dev/start.sh
 	@echo ""
-	@echo "  ✅  All services started:"
-	@echo "     Backend  → http://localhost:38080"
-	@echo "     Frontend → http://localhost:35173"
-	@echo "     Observe  → http://localhost:5080/web/"
+	@echo "  Services started:"
+	@echo "     Backend → http://localhost:38080"
+	@echo "     Observe → http://localhost:5080/web/"
 	@echo ""
-	@echo "  Logs: bin/log/{iam,idp,asset,edge-api,web}.log"
-	@echo "  Stop: make dev-stop"
+	@echo "  Status: make dev-status"
+	@echo "  Logs:   make dev-logs"
+	@echo "  Stop:   make dev-stop"
 
 # [DEV] 停止所有服务进程（不停 Docker infra）
 dev-stop:
-	@echo ">>> [DEV] Stopping services..."
-	@lsof -ti tcp:38080 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:38081 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:38082 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:38084 | xargs kill -9 2>/dev/null || true
-	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null || true
+	@bash scripts/dev/stop.sh
 	@echo ">>> [DEV] Services stopped. Docker infra still running (make infra-down to stop)."
 
-# [DEV] 重启所有服务（停止 → 重新编译 → 启动），正确顺序：iam → idp → edge-api → model → web
-dev-restart: infra-up obs-up dev-stop build
+dev-status:
+	@bash scripts/dev/status.sh
+
+# [DEV] 重启所有后端服务（停止 → 重新编译 → 启动），顺序来自 scripts/dev/services.json
+dev-restart: dev-check-env infra-up obs-up build
+	@bash scripts/dev/restart.sh
+	@echo ">>> [DEV] Services restarted. Status: make dev-status"
+
+dev-logs:
 	@mkdir -p bin/log
-	@echo ">>> [DEV] Loading .env..."
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@echo ">>> [DEV] OpenTelemetry enabled by default: localhost:4317"
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/iam > bin/log/iam.log 2>&1 &
-	@sleep 1
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/idp > bin/log/idp.log 2>&1 &
-	@sleep 1
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
-	@sleep 1
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/edge-api > bin/log/edge-api.log 2>&1 &
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/model > bin/log/model.log 2>&1 &
-	@sleep 2
-	@lsof -ti tcp:35173 | xargs kill -9 2>/dev/null; true
-	@cd web && npm run dev > ../bin/log/web.log 2>&1 &
-	@sleep 2
-	@echo ""
-	@echo "  ✅  Services restarted:"
-	@echo "     Backend  → http://localhost:38080"
-	@echo "     Frontend → http://localhost:35173"
-	@echo "     Observe  → http://localhost:5080/web/"
-	@echo ""
-	@echo "  Logs: bin/log/{iam,idp,asset,edge-api,web}.log"
+	@touch $(DEV_LOG_FILES)
+	@tail -F $(DEV_LOG_FILES)
+
+logs-query:
+	@bash scripts/dev/logs-query.sh $(ARGS)
 
 # ----------------------------------------------------------------
 # [MODEL] 单独启动 / 停止 / 重启 model service（:38083）
 # 前置：.env 存在（包含 MODEL_ENCRYPT_KEY 等），infra 已启动
 # 日志：bin/log/model.log
 # ----------------------------------------------------------------
-model-start: infra-up obs-up build
-	@mkdir -p bin/log
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
-	@echo ">>> [MODEL] Starting model service :38083..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/model > bin/log/model.log 2>&1 &
-	@sleep 1
+model-start: dev-check-env infra-up obs-up build
+	@bash scripts/dev/start.sh model
 	@echo ">>> [MODEL] model service started. Log: bin/log/model.log"
 
 model-stop:
-	@echo ">>> [MODEL] Stopping model service..."
-	@lsof -ti tcp:38083 | xargs kill -9 2>/dev/null || true
+	@bash scripts/dev/stop.sh model
 	@echo ">>> [MODEL] Stopped."
 
-model-restart: infra-up obs-up model-stop build
-	@mkdir -p bin/log
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@echo ">>> [MODEL] Starting model service :38083..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/model > bin/log/model.log 2>&1 &
-	@sleep 1
+model-restart: dev-check-env infra-up obs-up build
+	@bash scripts/dev/restart.sh model
 	@echo ">>> [MODEL] model service restarted. Log: bin/log/model.log"
 
 # ----------------------------------------------------------------
@@ -215,26 +183,16 @@ model-restart: infra-up obs-up model-stop build
 # 前置：.env 存在（包含 ASSET/OSS 配置），infra 已启动
 # 日志：bin/log/asset.log
 # ----------------------------------------------------------------
-asset-start: infra-up obs-up build
-	@mkdir -p bin/log
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@lsof -ti tcp:38084 | xargs kill -9 2>/dev/null || true
-	@echo ">>> [ASSET] Starting asset service :38084..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
-	@sleep 1
+asset-start: dev-check-env infra-up obs-up build
+	@bash scripts/dev/start.sh asset
 	@echo ">>> [ASSET] asset service started. Log: bin/log/asset.log"
 
 asset-stop:
-	@echo ">>> [ASSET] Stopping asset service..."
-	@lsof -ti tcp:38084 | xargs kill -9 2>/dev/null || true
+	@bash scripts/dev/stop.sh asset
 	@echo ">>> [ASSET] Stopped."
 
-asset-restart: infra-up obs-up asset-stop build
-	@mkdir -p bin/log
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@echo ">>> [ASSET] Starting asset service :38084..."
-	@nohup env $(ENV_FILE_VARS) $(DEV_OTEL_ENV) ./bin/asset > bin/log/asset.log 2>&1 &
-	@sleep 1
+asset-restart: dev-check-env infra-up obs-up build
+	@bash scripts/dev/restart.sh asset
 	@echo ">>> [ASSET] asset service restarted. Log: bin/log/asset.log"
 
 
@@ -243,32 +201,31 @@ gen:
 	@for svc in $(SERVICES); do \
 		echo ">>> Generating $$svc..."; \
 		idl_svc=$$svc; \
-		cd services/$$svc && \
-			kitex -module $(MODULE)/services/$$svc ../../idl/$$idl_svc/$$idl_svc.thrift && \
-			cd ../..; \
+		(cd services/$$svc && \
+			kitex -module $(MODULE)/services/$$svc ../../idl/$$idl_svc/$$idl_svc.thrift); \
 	done
 	@echo ">>> Generating edge-api asset client..."
-	@cd services/edge-api && kitex -module $(MODULE)/services/edge-api ../../idl/asset/asset.thrift && cd ../..
+	@(cd services/edge-api && kitex -module $(MODULE)/services/edge-api ../../idl/asset/asset.thrift)
 
 # Build all services
 build:
 	@mkdir -p $(BIN_DIR)
 	@for svc in $(ALL_SERVICES); do \
 		echo ">>> Building $$svc..."; \
-		cd services/$$svc && go build -o ../../$(BIN_DIR)/$$svc . && cd ../..; \
+		(cd services/$$svc && go build -o ../../$(BIN_DIR)/$$svc .); \
 	done
 	@echo ">>> Building iam-bootstrap..."
-	@cd services/iam && go build -o ../../$(BIN_DIR)/iam-bootstrap ./cmd/bootstrap/ && cd ../..
+	@(cd services/iam && go build -o ../../$(BIN_DIR)/iam-bootstrap ./cmd/bootstrap/)
 
 # ---- lint / test 真实命令（Phase 02 补齐）----
 
 # lint: 跑 go vet，检测到 golangci-lint 时追加运行
-lint:
+lint: lint-noprint
 	@echo ">>> go vet ./pkg/..."
-	@cd pkg && go vet ./...
+	@(cd pkg && go vet ./...)
 	@for svc in $(ALL_SERVICES); do \
 		echo ">>> go vet ./services/$$svc/..."; \
-		cd services/$$svc && go vet ./... && cd ../..; \
+		(cd services/$$svc && go vet ./...); \
 	done
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		echo ">>> golangci-lint run (workspace)"; \
@@ -277,17 +234,62 @@ lint:
 		echo ">>> golangci-lint not installed, skipped (install: https://golangci-lint.run)"; \
 	fi
 
+lint-noprint:
+	@bad="$$(grep -RIn --include='*.go' --exclude='*_test.go' -E '(^|[^a-zA-Z])(fmt\.Print|fmt\.Println|log\.Print)' services pkg | while IFS= read -r line; do file="$${line%%:*}"; if grep -q 'nolint:noprint' "$$file"; then continue; fi; echo "$$line"; done || true)"; \
+	if [ -n "$$bad" ]; then \
+		echo "$$bad"; \
+		echo "direct fmt/log prints are blocked; use pkg/logger or add // nolint:noprint for intentional stdout"; \
+		exit 1; \
+	fi
+
 test: test-pkg test-services
 
 test-pkg:
 	@echo ">>> go test ./pkg/..."
-	@cd pkg && go test ./... -count=1
+	@(cd pkg && go test ./... -count=1)
 
 test-services:
 	@for svc in $(ALL_SERVICES); do \
 		echo ">>> go test ./services/$$svc/..."; \
-		cd services/$$svc && go test ./... -count=1 && cd ../..; \
+		(cd services/$$svc && go test ./... -count=1); \
 	done
+
+# ---- API 测试体系（详见 .axm/project/api-testing.md） ----
+
+# L1: 单元测试 —— 无外部依赖，开 -race，标记 -short 跳过集成
+test-unit:
+	@echo ">>> [L1 unit] go test ./pkg/..."
+	@(cd pkg && go test ./... -count=1 -race -short)
+	@for svc in $(ALL_SERVICES); do \
+		echo ">>> [L1 unit] go test ./services/$$svc/..."; \
+		(cd services/$$svc && go test ./... -count=1 -race -short); \
+	done
+
+# L2: 集成测试 —— 用 testcontainers 起真实 Mongo/Redis/NSQ，build tag=integration
+test-integration:
+	@echo ">>> [L2 integration] go test -tags=integration ./..."
+	@for svc in $(ALL_SERVICES); do \
+		if [ -d services/$$svc/test/integration ]; then \
+			echo ">>> [L2] services/$$svc"; \
+			(cd services/$$svc && go test ./test/integration/... -count=1 -race -tags=integration -timeout=10m); \
+		fi; \
+	done
+
+# L3: 契约测试 —— IDL 兼容 + OpenAPI schema 校验
+test-contract: idl-compat openapi-validate
+
+idl-compat:
+	@bash scripts/idl-compat.sh
+
+openapi-validate:
+	@bash scripts/openapi-validate.sh
+
+# L4: E2E 端到端 —— shell + curl，跑全栈关键链路
+test-e2e:
+	@bash scripts/e2e-all.sh
+
+# 全量测试 —— 本地阶段交付前 / merge to develop 触发
+test-all: test-unit test-integration test-contract test-e2e
 
 fmt:
 	gofmt -w .

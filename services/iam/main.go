@@ -14,6 +14,7 @@ import (
 	"github.com/castlexu/micro-service/pkg/cloudwego"
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
+	pkghealth "github.com/castlexu/micro-service/pkg/health"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	mwkitex "github.com/castlexu/micro-service/pkg/middleware/kitex"
@@ -43,6 +44,8 @@ type IAMConfig struct {
 
 func main() {
 	_ = logger.Init(logger.Options{Service: "iam"})
+	restoreStdLog := logger.IngestStdLog()
+	defer restoreStdLog()
 	defer logger.Sync()
 	mw.RegisterLoggerExtractor()
 
@@ -141,6 +144,17 @@ func main() {
 	}
 	opts = append(opts, registryOpts...)
 	svr := iamservice.NewServer(handler, opts...)
+	adminHealth := pkghealth.NewServer(pkghealth.Config{Service: "iam", Addr: pkghealth.AdminAddr("iam", 48082)})
+	adminHealth.Check("mongo", pkghealth.MongoCheck(mongoClient))
+	adminHealth.Check("redis", pkghealth.RedisCheck(pkgredis.GetClient()))
+	adminHealth.Start()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := adminHealth.Shutdown(ctx); err != nil {
+			logger.L().Warn("admin health shutdown failed", zap.Error(err))
+		}
+	}()
 	logger.L().Info(fmt.Sprintf("iam server listening on %s", addr))
 	if err := svr.Run(); err != nil {
 		logger.L().Fatal("iam server stopped", zap.Error(err))

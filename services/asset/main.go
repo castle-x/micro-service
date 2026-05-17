@@ -14,6 +14,7 @@ import (
 	"github.com/castlexu/micro-service/pkg/config"
 	"github.com/castlexu/micro-service/pkg/db"
 	"github.com/castlexu/micro-service/pkg/errno"
+	pkghealth "github.com/castlexu/micro-service/pkg/health"
 	"github.com/castlexu/micro-service/pkg/logger"
 	mw "github.com/castlexu/micro-service/pkg/middleware"
 	mwkitex "github.com/castlexu/micro-service/pkg/middleware/kitex"
@@ -52,6 +53,8 @@ type AssetConfig struct {
 
 func main() {
 	_ = logger.Init(logger.Options{Service: assetbiz.ServiceName})
+	restoreStdLog := logger.IngestStdLog()
+	defer restoreStdLog()
 	defer logger.Sync()
 	mw.RegisterLoggerExtractor()
 
@@ -171,6 +174,17 @@ func main() {
 	opts = append(opts, registryOpts...)
 
 	svr := assetservice.NewServer(handler, opts...)
+	adminHealth := pkghealth.NewServer(pkghealth.Config{Service: assetbiz.ServiceName, Addr: pkghealth.AdminAddr(assetbiz.ServiceName, 48084)})
+	adminHealth.Check("mongo", pkghealth.MongoCheck(mongoClient))
+	adminHealth.Check("redis", pkghealth.RedisCheck(pkgredis.GetClient()))
+	adminHealth.Start()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := adminHealth.Shutdown(ctx); err != nil {
+			logger.L().Warn("admin health shutdown failed", zap.Error(err))
+		}
+	}()
 	logger.L().Info("asset server listening", zap.String("addr", addr))
 	if err := svr.Run(); err != nil {
 		logger.L().Fatal("asset server stopped", zap.Error(err))
