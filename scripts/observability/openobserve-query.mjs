@@ -36,6 +36,14 @@ export function buildLatestTracesUrl(cfg, opts) {
   return url;
 }
 
+export function buildSearchUrl(cfg, streamType) {
+  const url = new URL(`/api/${encodeURIComponent(cfg.org)}/_search`, cfg.baseUrl);
+  if (streamType) {
+    url.searchParams.set("type", streamType);
+  }
+  return url;
+}
+
 export function buildSearchBody({ sql, startMicros, endMicros, size = 25 }) {
   return {
     query: {
@@ -52,6 +60,10 @@ export function buildSearchBody({ sql, startMicros, endMicros, size = 25 }) {
 
 export function isMissingStreamError(err) {
   return err instanceof Error && /Search stream not found/.test(err.message);
+}
+
+export function isTraceOverviewUnavailableError(err) {
+  return isMissingStreamError(err) || (err instanceof Error && /Search field not found/.test(err.message));
 }
 
 export function summarizeTrace(traceId, overview, hits) {
@@ -114,7 +126,7 @@ async function printTrace(cfg, traceId, startMicros, endMicros) {
   try {
     overview = await getJson(overviewUrl, cfg);
   } catch (err) {
-    if (!isMissingStreamError(err)) {
+    if (!isTraceOverviewUnavailableError(err)) {
       throw err;
     }
   }
@@ -123,6 +135,7 @@ async function printTrace(cfg, traceId, startMicros, endMicros) {
     startMicros,
     endMicros,
     size: -1,
+    streamType: "traces",
   });
   printJson(summarizeTrace(traceId, overview, spans.hits || []));
 }
@@ -169,6 +182,7 @@ async function printErrors(cfg, startMicros, endMicros) {
     startMicros,
     endMicros,
     size: 25,
+    streamType: "traces",
   });
   printJson({
     type: "errors",
@@ -176,8 +190,8 @@ async function printErrors(cfg, startMicros, endMicros) {
   });
 }
 
-async function search(cfg, { sql, startMicros, endMicros, size }) {
-  const url = new URL(`/api/${encodeURIComponent(cfg.org)}/_search`, cfg.baseUrl);
+async function search(cfg, { sql, startMicros, endMicros, size, streamType }) {
+  const url = buildSearchUrl(cfg, streamType);
   try {
     return await postJson(url, cfg, buildSearchBody({ sql, startMicros, endMicros, size }));
   } catch (err) {

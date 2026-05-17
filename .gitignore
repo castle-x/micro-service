@@ -13,6 +13,7 @@ web/dist/
 # 敏感配置（绝不提交真实凭据）
 .env
 .env.local
+.env.legacy-*
 deployments/env/*.env
 *.local.yaml
 
@@ -38,3 +39,7 @@ bin/log/
 
 # Playwright MCP
 .playwright-mcp/
+
+# go cache
+.gocache/
+docs/

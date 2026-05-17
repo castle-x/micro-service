@@ -30,10 +30,11 @@ fi
 raw="$(mktemp "${TMPDIR:-/tmp}/check-env.raw.XXXXXX")"
 missing="$(mktemp "${TMPDIR:-/tmp}/check-env.missing.XXXXXX")"
 placeholder="$(mktemp "${TMPDIR:-/tmp}/check-env.placeholder.XXXXXX")"
+invalid="$(mktemp "${TMPDIR:-/tmp}/check-env.invalid.XXXXXX")"
 duplicates="$(mktemp "${TMPDIR:-/tmp}/check-env.duplicates.XXXXXX")"
 
 cleanup() {
-  rm -f "$raw" "$missing" "$placeholder" "$duplicates"
+  rm -f "$raw" "$missing" "$placeholder" "$invalid" "$duplicates"
 }
 trap cleanup EXIT
 
@@ -114,6 +115,14 @@ run_validation() {
         }
       }
 
+      if (("JWT_SECRET" in values) && values["JWT_SECRET"] != "" && length(values["JWT_SECRET"]) < 32) {
+        print "INVALID\tJWT_SECRET"
+      }
+
+      if (("MODEL_ENCRYPT_KEY" in values) && values["MODEL_ENCRYPT_KEY"] != "" && length(values["MODEL_ENCRYPT_KEY"]) < 32) {
+        print "INVALID\tMODEL_ENCRYPT_KEY"
+      }
+
       for (key in duplicate) {
         print "DUPLICATE\t" key
       }
@@ -129,6 +138,7 @@ fi
 
 awk -F '\t' '$1 == "MISSING" { print $2 }' "$raw" | sort -u > "$missing"
 awk -F '\t' '$1 == "PLACEHOLDER" { print $2 }' "$raw" | sort -u > "$placeholder"
+awk -F '\t' '$1 == "INVALID" { print $2 }' "$raw" | sort -u > "$invalid"
 awk -F '\t' '$1 == "DUPLICATE" { print $2 }' "$raw" | sort -u > "$duplicates"
 
 json_array_file() {
@@ -151,7 +161,7 @@ json_array_file() {
   printf ']'
 }
 
-if [ -s "$missing" ] || [ -s "$placeholder" ]; then
+if [ -s "$missing" ] || [ -s "$placeholder" ] || [ -s "$invalid" ]; then
   ok=false
   exit_code=1
 else
@@ -163,6 +173,8 @@ printf '{"ok":%s,"missing":' "$ok"
 json_array_file "$missing"
 printf ',"placeholder":'
 json_array_file "$placeholder"
+printf ',"invalid":'
+json_array_file "$invalid"
 printf ',"duplicates":'
 json_array_file "$duplicates"
 printf '}\n'

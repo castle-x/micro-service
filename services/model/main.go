@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -32,11 +33,22 @@ type ModelConfig struct {
 		Addr string `mapstructure:"addr"`
 	} `mapstructure:"server"`
 	Encrypt struct {
-		// Key 是 32 字节 base64 或原始字符串，优先读 MODEL_ENCRYPT_KEY 环境变量
+		// Key 是至少 32 字节的加密主钥，优先读 MODEL_ENCRYPT_KEY 环境变量。
 		Key string `mapstructure:"key"`
 	} `mapstructure:"encrypt"`
 	Registry cloudwego.RegistryConfig `mapstructure:"registry"`
 	OTel     pkgotel.Config           `mapstructure:"otel"`
+}
+
+func resolveEncryptKey(envKey, cfgKey string) ([]byte, error) {
+	encKeyStr := envKey
+	if encKeyStr == "" {
+		encKeyStr = cfgKey
+	}
+	if len(encKeyStr) < 32 {
+		return nil, fmt.Errorf("MODEL_ENCRYPT_KEY must be at least 32 bytes, got %d", len(encKeyStr))
+	}
+	return []byte(encKeyStr)[:32], nil
 }
 
 func main() {
@@ -66,17 +78,11 @@ func main() {
 		}
 	}()
 
-	// 加密主密钥（32 字节），优先读环境变量
-	encKeyStr := os.Getenv("MODEL_ENCRYPT_KEY")
-	if encKeyStr == "" {
-		encKeyStr = cfg.Encrypt.Key
+	// 加密主密钥（32 字节），优先读环境变量。该值必须保持稳定，否则已入库的 provider api_key 无法解密。
+	encryptKey, err := resolveEncryptKey(os.Getenv("MODEL_ENCRYPT_KEY"), cfg.Encrypt.Key)
+	if err != nil {
+		logger.L().Fatal("resolve model encrypt key failed", zap.Error(err))
 	}
-	if len(encKeyStr) < 32 {
-		// dev 环境兜底：不配置时使用固定 dev key，生产环境必须设置
-		logger.L().Warn("MODEL_ENCRYPT_KEY not set or too short, using dev fallback — do NOT use in production")
-		encKeyStr = "dev-model-encrypt-key-32bytesXXX"
-	}
-	encryptKey := []byte(encKeyStr)[:32]
 
 	// MongoDB
 	mongoURI := cfg.Mongo.URI

@@ -45,6 +45,7 @@ func TestSignVerify_RoundTrip(t *testing.T) {
 	assert.NotEmpty(t, got.ID, "JTI should be auto-generated")
 	assert.NotNil(t, got.ExpiresAt)
 	assert.NotNil(t, got.IssuedAt)
+	assert.NotNil(t, got.NotBefore)
 }
 
 func TestVerify_EmptyToken(t *testing.T) {
@@ -101,13 +102,15 @@ func TestVerify_AlgSwitchAttack(t *testing.T) {
 	assert.True(t, errors.Is(err, errno.ErrTokenInvalid))
 }
 
-func TestSign_RespectsUserProvidedJTIAndExp(t *testing.T) {
+func TestSign_RespectsUserProvidedJTIExpAndNotBefore(t *testing.T) {
 	s, _ := NewHS256Signer(testSecret, time.Hour, "idp")
+	fixedNBF := time.Now().Add(-time.Minute).Truncate(time.Second)
 	fixedExp := time.Now().Add(10 * time.Minute).Truncate(time.Second)
 	tok, err := s.Sign(Claims{
 		UserID: "u-1",
 		RegisteredClaims: jwtv5.RegisteredClaims{
 			ID:        "custom-jti",
+			NotBefore: jwtv5.NewNumericDate(fixedNBF),
 			ExpiresAt: jwtv5.NewNumericDate(fixedExp),
 		},
 	})
@@ -117,6 +120,7 @@ func TestSign_RespectsUserProvidedJTIAndExp(t *testing.T) {
 	got, err := v.Verify(tok)
 	require.NoError(t, err)
 	assert.Equal(t, "custom-jti", got.ID)
+	assert.True(t, got.NotBefore.Time.Equal(fixedNBF), "nbf should be preserved")
 	assert.True(t, got.ExpiresAt.Time.Equal(fixedExp), "exp should be preserved")
 }
 

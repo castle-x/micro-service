@@ -1,16 +1,114 @@
 _format_version: "3.0"
 _transform: true
 
-# Kong 声明式路由配置占位
-# TODO: 后续补充 services / routes / plugins（JWT / CORS / rate-limiting）
 services:
   - name: edge-api
-    url: http://edge-api:8888
+    url: http://host.docker.internal:38080
+    connect_timeout: 60000
+    read_timeout: 150000
+    write_timeout: 150000
     routes:
-      - name: edge-api-default
+      - name: edge-api-auth-public
         paths:
-          - /
+          - /api/v1/auth
+        protocols:
+          - http
+          - https
         strip_path: false
+      - name: edge-api-user-protected
+        paths:
+          - /api/v1/user
+        protocols:
+          - http
+          - https
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              header_names:
+                - authorization
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
+                - nbf
+              run_on_preflight: false
+      - name: edge-api-assets-protected
+        paths:
+          - /api/v1/assets
+        protocols:
+          - http
+          - https
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              header_names:
+                - authorization
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
+                - nbf
+              run_on_preflight: false
+      - name: edge-api-admin-protected
+        paths:
+          - /api/v1/admin
+        protocols:
+          - http
+          - https
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              header_names:
+                - authorization
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
+                - nbf
+              run_on_preflight: false
 
-plugins: []
-consumers: []
+  - name: edge-api-stream
+    url: http://host.docker.internal:38080
+    connect_timeout: 60000
+    read_timeout: 300000
+    write_timeout: 300000
+    routes:
+      - name: edge-api-admin-model-stream-protected
+        paths:
+          - /api/v1/admin/models/chat/stream
+        protocols:
+          - http
+          - https
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              header_names:
+                - authorization
+              key_claim_name: iss
+              claims_to_verify:
+                - exp
+                - nbf
+              run_on_preflight: false
+
+plugins:
+  - name: opentelemetry
+    config:
+      traces_endpoint: http://otel-collector:4318/v1/traces
+      propagation:
+        default_format: w3c
+        extract:
+          - w3c
+        inject:
+          - w3c
+      resource_attributes:
+        service.name: kong-gateway
+        service.namespace: micro-service
+        deployment.environment: local
+consumers:
+  - username: platform-idp
+    custom_id: platform-idp
+    jwt_secrets:
+      - key: idp
+        algorithm: HS256
+        secret: "__JWT_SECRET__"

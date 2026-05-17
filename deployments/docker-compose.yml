@@ -1,6 +1,6 @@
 version: "3.9"
 
-# 本地全量基础设施：MongoDB / Redis / etcd / NSQ (+ lookupd/admin) / Kong
+# 本地全量基础设施：MongoDB / Redis / etcd / NSQ (+ lookupd/admin) / Kong / Konga
 # 启动：make dev    |    停止：docker-compose -f deployments/docker-compose.yml down
 
 services:
@@ -68,24 +68,42 @@ services:
     restart: unless-stopped
 
   kong:
-    image: kong:3.7
+    image: kong:3.9.1
     container_name: platform-kong
     environment:
       KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /etc/kong/declarative.yml
+      KONG_DECLARATIVE_CONFIG: /etc/kong/declarative.local.yaml
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_TRACING_INSTRUMENTATIONS: all
+      KONG_TRACING_SAMPLING_RATE: "1.0"
     volumes:
-      - ./kong/declarative.yml:/etc/kong/declarative.yml:ro
+      - ./kong/declarative.local.yaml:/etc/kong/declarative.local.yaml:ro
     ports:
-      - "8000:8000"   # proxy
-      - "8001:8001"   # admin
+      - "127.0.0.1:8000:8000"   # proxy
+      - "127.0.0.1:8001:8001"   # admin
+    restart: unless-stopped
+
+  konga:
+    image: pantsel/konga:0.14.9
+    container_name: platform-konga
+    depends_on:
+      - kong
+    environment:
+      NODE_ENV: production
+      TOKEN_SECRET: "local-konga-token-secret-change-me"
+      NO_AUTH: "true"
+    ports:
+      - "127.0.0.1:1337:1337"
+    volumes:
+      - konga_data:/app/kongadata
     restart: unless-stopped
 
 volumes:
   mongo_data:
   redis_data:
   etcd_data:
+  konga_data:

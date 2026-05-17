@@ -38,6 +38,7 @@ type Claims struct {
 type Signer interface {
 	// Sign 为 claims 签发 token。若 claims.ExpiresAt 为零值，使用签发器默认 TTL；
 	// 若 claims.IssuedAt 为零值，使用当前时间；
+	// 若 claims.NotBefore 为零值，使用当前时间；
 	// 若 claims.ID 为空，生成 uuid v7。
 	Sign(claims Claims) (string, error)
 }
@@ -73,6 +74,9 @@ func (s *hs256Signer) Sign(claims Claims) (string, error) {
 	now := time.Now()
 	if claims.IssuedAt == nil {
 		claims.IssuedAt = jwtv5.NewNumericDate(now)
+	}
+	if claims.NotBefore == nil {
+		claims.NotBefore = jwtv5.NewNumericDate(now)
 	}
 	if claims.ExpiresAt == nil {
 		claims.ExpiresAt = jwtv5.NewNumericDate(now.Add(s.ttl))
