@@ -30,3 +30,10 @@ Use root `.env` only during migration. New values should live under
 Run `bash scripts/dev/check-env.sh` before `make dev-start`. It prints JSON to
 stdout and exits non-zero when required keys are missing or still use
 placeholder values.
+
+## Konga
+
+`make infra-up` runs `scripts/dev/bootstrap-konga.sh` after Compose starts. The
+script creates or activates Konga's local connection `local-kong` with Kong Admin
+URL `http://kong:8001`. If Konga shows `Connected to N/A`, run
+`make konga-bootstrap` once and refresh the browser.

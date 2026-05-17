@@ -1,4 +1,4 @@
-.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart
+.PHONY: gen build dev dev-start dev-stop dev-status dev-restart dev-check-env dev-logs logs-query infra-up infra-down infra-ps konga-bootstrap obs-up obs-down obs-ps obs-trace obs-logs obs-metrics obs-errors test test-pkg test-services test-unit test-integration test-contract test-e2e test-all idl-compat openapi-validate lint lint-noprint fmt clean help model-start model-stop model-restart asset-start asset-stop asset-restart
 
 MODULE := github.com/castlexu/micro-service
 SERVICES := idp iam billing credits notification asset
@@ -33,6 +33,7 @@ help:
 	@echo "  make infra-up      Start local dev dependencies (MongoDB + Redis + etcd + NSQ + Kong) via Docker"
 	@echo "  make infra-down    Stop local dev dependencies"
 	@echo "  make infra-ps      Show status of local dev containers"
+	@echo "  make konga-bootstrap Initialize/activate Konga's local Kong Admin connection"
 	@echo "  make obs-up        Start OpenObserve + OpenTelemetry Collector"
 	@echo "  make obs-down      Stop local observability containers"
 	@echo "  make obs-ps        Show status of local observability containers"
@@ -71,6 +72,7 @@ infra-up:
 	$(DOCKER_COMPOSE) -f deployments/docker-compose.yml up -d
 	@echo ">>> Waiting for services to be healthy..."
 	@sleep 3
+	@bash scripts/dev/bootstrap-konga.sh
 	@echo ">>> MongoDB : localhost:27017"
 	@echo ">>> Redis   : localhost:6379"
 	@echo ">>> etcd    : localhost:2379"
@@ -86,6 +88,9 @@ infra-down:
 infra-ps:
 	@if [ -z "$(DOCKER_COMPOSE)" ]; then echo "docker compose not found"; exit 1; fi
 	$(DOCKER_COMPOSE) -f deployments/docker-compose.yml ps
+
+konga-bootstrap:
+	@bash scripts/dev/bootstrap-konga.sh
 
 obs-up:
 	@if [ -z "$(DOCKER_COMPOSE)" ]; then \
